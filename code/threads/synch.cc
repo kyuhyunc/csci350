@@ -149,7 +149,7 @@ void Lock::Release() {
 	// checks if I'm not the lock owner
 	// a non-lock owner cannot release a lock they don't own...
 	if (!isHeldByCurrentThread()) {
-		printf("Error: only lock owners can release locks...\n");
+		printf("Error in Lock::Release -- only lock owners can release locks...\n");
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
@@ -192,7 +192,7 @@ void Condition::Wait(Lock* conditionLock) {
 
 	// if programmer irresponsibly passes in null printer, print error
 	if (conditionLock == NULL) {
-		printf("Error: parameter conditionLock cannot be NULL...\n");
+		printf("Error in Condition::Wait -- parameter conditionLock cannot be NULL...\n");
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
@@ -208,7 +208,7 @@ void Condition::Wait(Lock* conditionLock) {
 
 	// if conditionLock does not match waitingLock, print error
 	if (waitingLock != conditionLock) {
-		printf("Error: conditionLock does not match waitingLock...\n");
+		printf("Error in Condition::Wait -- conditionLock does not match waitingLock...\n");
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
@@ -217,6 +217,8 @@ void Condition::Wait(Lock* conditionLock) {
 	conditionLock->Release(); // exit critical section
 	waitQueue->Append((void *)currentThread);
 	currentThread->Sleep();
+
+	conditionLock->Acquire(); // enter critical section again
 
 	// restore interrupts and return
 	(void) interrupt->SetLevel(old);
@@ -235,7 +237,7 @@ void Condition::Signal(Lock* conditionLock) {
 
 	// if conditionLock does not match waitingLock, print error
 	if (waitingLock != conditionLock) {
-		printf("Error: conditionLock does not match waitingLock...\n");
+		printf("Error in Condition::Signal -- conditionLock does not match waitingLock...\n");
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
@@ -255,6 +257,12 @@ void Condition::Signal(Lock* conditionLock) {
 	(void) interrupt->SetLevel(old);
 }
 void Condition::Broadcast(Lock* conditionLock) {
+	// if conditionLock does not match waitingLock, print error
+	if (waitingLock != conditionLock) {
+		printf("Error in Condition::Broadcast -- conditionLock does not match waitingLock...\n");
+		return;
+	}
+
 	while (!waitQueue->IsEmpty()) {
 		Signal(conditionLock);
 	}
