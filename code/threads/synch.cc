@@ -114,14 +114,11 @@ void Lock::Acquire() {
 	// disable interrupts
 	IntStatus old = interrupt->SetLevel(IntOff);
 
-printf("Reached Checkpoint 1\n");
-	
 	// checks if I'm the lock owner
 	// if I'm the lock owner, I already "acquired" this lock
 	// this can happen if class functions are nested
 	// in this case, the lock will never be released without this check
 	if (owner == currentThread) {
-printf("Reached Checkpoint 2\n");
 		// restore interrupts
 		(void) interrupt->SetLevel(old);
 		return;
@@ -130,14 +127,12 @@ printf("Reached Checkpoint 2\n");
 	// checks if lock is available
 	// if nobody owns the lock, I can have it!
 	if (owner == NULL) {
-printf("Reached Checkpoint 3\n");
 		owner = currentThread;
 	}
 	
 	// checks if lock is not available
 	// if somebody else knows the lock, I can't have it :(
 	else {
-printf("Reached Checkpoint 4\n");
 		// add myself to queue and put myself to sleep
 		waitQueue->Append((void *)currentThread);
 		currentThread->Sleep();
