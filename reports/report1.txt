@@ -1,0 +1,80 @@
+Writeup for Project 1, Summer 2015
+6/10/15
+Greg Berger		grberger@usc.edu	4180-9551-49
+Kyu Chang		kyuhyunc@usc.edu	5668-6984-00
+Taegyum Kim		taegyumk@usc.edu	--
+Jerry Zhang		@usc.edu			--
+ 
+I. Requirements:
+	+ Part 1 - Locks and Condition Variables (10 points)
+		Using primitive thread functions, or semaphores as a building block, implement the Lock and Semaphore classes. Tests code is provided to ensure proper implementation. 
+	+ Part 2 - Airport Simulation (25 points)
+		Using the classes implemented in Part 1, implement a multi-threaded airport simulation involving the following characters: passengers, liasons, check-in staff, cargo handlers, screening officers, security inspectors, and an airport manager. The purpose of this exercise is to help us internalize the interplay between threads when using locks and condition variables. 
+
+II. Assumptions:
+	+ 
+
+III. Design:
+	+ Part 1
+		+ Lock
+			+ Description
+				A Lock is a synchronization mechanism that allows for mutual exlcusion on blocks of code, called critical sections, between threads in a multi-threading environment. 
+			+ Public Interface
+				+ Acquire
+
+				+ Release
+				+ isHeldByCurrentThread
+		+ Condition
+	+ Part 2
+- This section is to cover your logic and ideas as to how  you are going to solve the problem presented.  This should include a description of classes, algorithms, etc.
+
+IV. Implementation:
+	+ Part 1
+		+ Files Modified
+		+ Files added
+
+		+ Data Structures added, and the file they were added to.
+		+ Data Structures modified, and the file they were added to.
+			-For example,
+				class Lock		-- in file threads.cc/threads.h
+				{
+					//. Modified fields.
+				}
+
+		+ Functions added and in which file.
+		+ Functions modified and in which file.
+	+ Part 2
+		+ Files Modified
+		+ Files added
+
+		+ Data Structures added, and the file they were added to.
+		+ Data Structures modified, and the file they were added to.
+			-For example,
+				class Lock		-- in file threads.cc/threads.h
+				{
+					//. Modified fields.
+				}
+
+		+ Functions added and in which file.
+		+ Functions modified and in which file.
+	+ Atomic methods
+		To ensure methods are atomic, the code block must follow this pattern:
+			Disable Interrupts
+			Do task
+			Restore Interrupts
+		Note: You must restore interrupts to it's previous state, rather than setting it to enabled. 
+
+V. Testing:  (For each test case, you must show)
+	+ How to test
+		Simply run "nachos" in the command line. All the tests are held in threadtest.cc.
+	+ Test Output
+		
+
+VI. Discussion:
+	+ Experiment expectation.  (What you hope will happen.)
+	+ Experiment result.  (What actually happens.)
+	+ Explanation
+		- Explain your experiment result.
+
+VIII. Miscellaneous:
+- Whatever else you want the grader know about your development.  You can create your own subsections headings here.
