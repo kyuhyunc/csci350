@@ -417,3 +417,78 @@ ThreadTest()
 	TestSuite();
 }
 
+//----------------------------------------------------------------------
+// Airport
+//----------------------------------------------------------------------
+
+//-----------------------
+// Passenger
+//-----------------------
+
+#include <cstdlib>
+#include <time.h>
+#include <vector>
+
+class Passenger : public Thread
+{
+public:
+	Passenger(char* debugName) : Thread(debugName) {
+		//------------
+		// Initialize
+		//------------
+
+		// 2 or 3 baggages 30-60 lbs
+		srand(time(NULL));
+		int numBaggages = rand() % 2 + 2;
+		for (int i=0; i < numBaggages; i++) {
+			_baggages.push_back(rand() % 31 + 30);
+		}
+
+		// Executive or Economy ticket
+		_executive = false;
+		if ( (rand() % 2) == 1 ) {
+			_executive = true;
+		}
+	}
+	void Start(); // starts the thread
+
+private:
+	std::vector<int> _baggages;
+	bool _executive;
+};
+
+void Passenger::Start()
+{
+	printf("Made it!\n");
+}
+
+//-----------------------
+// Data
+//-----------------------
+
+struct MasterData {
+	Passenger* passengers[2];
+} cloud;
+
+//-----------------------
+// Thread Functions
+//-----------------------
+
+void PassengerStart(int index)
+{
+	cloud.passengers[index]->Start();
+}
+
+//-----------------------
+// Run Airport Simulation
+//-----------------------
+
+void AirportSim()
+{
+	Passenger* t;
+	char* name;
+
+	// Testing for one passenger thread! Cross fingers!
+	t = new Passenger("p0");
+	t->Fork((VoidFunctionPtr)PassengerStart, 0);
+}

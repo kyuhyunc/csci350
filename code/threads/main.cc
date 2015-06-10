@@ -61,6 +61,8 @@ extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
 
+extern void AirportSim();
+
 //----------------------------------------------------------------------
 // main
 // 	Bootstrap the operating system kernel.  
@@ -85,7 +87,8 @@ main(int argc, char **argv)
     (void) Initialize(argc, argv);
     
 #ifdef THREADS
-    ThreadTest();
+//    ThreadTest();
+	AirportSim();
 #endif
 
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
