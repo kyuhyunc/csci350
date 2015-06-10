@@ -426,11 +426,13 @@ ThreadTest()
 #include <time.h>
 #include <vector>
 
-#define NUM_PASSENGERS 1
+#define NUM_PASSENGERS 20
 #define NUM_LIASONS 7
 #define NUM_AIRLINES 3
 #define NUM_CIS_PER_AIRLINE 5
-#define NUM_CARGO_HANDLER 10
+#define NUM_CARGO_HANDLERS 10
+#define NUM_SCREENING_OFFICERS 5 // what num?
+#define NUM_SECURITY_INSPECTORS 5 // what num?
 
 //-----------------------
 // Passenger
@@ -450,37 +452,51 @@ public:
 		//------------
 
 		// 2 or 3 baggages 30-60 lbs
-		srand(time(NULL));
 		int numBaggages = rand() % 2 + 2;
 		for (int i=0; i < numBaggages; i++) {
 			_baggages.push_back(rand() % 31 + 30);
 		}
 
 		// Executive or Economy ticket
-		_executive = false;
+		_myticket._executive = false;
 		if ( (rand() % 2) == 1 ) {
-			_executive = true;
+			_myticket._executive = true;
 		}
+
+		// Airline number (choose between 0, 1, and 2)
+		_myticket._airline = rand() % 3;
 	}
 	void Start(); // starts the thread
 
 private:
 	std::vector<int> _baggages;
-	bool _executive;
+	Ticket _myticket;
 };
 
-void Passenger::Start()
-{
-	printf("%s: Made it!\n", this->getName());
-}
+//-----------------------
+// Airport Liaison
+//-----------------------
 
-//-----------------------
-// Passenger
-//-----------------------
-class Liason : public Thread
+class Liaison : public Thread
 {
 public:
-	Liason(char* debugName) : Thread(debugName) {
+	Liaison(char* debugName) : Thread(debugName) {
+		
+	}
+	void Start(); // starts the thread
+
+private:
+	
+};
+
+//-----------------------
+// Airport Check-In Staff
+//-----------------------
+
+class CheckInStaff : public Thread
+{
+public:
+	CheckInStaff(char* debugName) : Thread(debugName) {
 		
 	}
 	void Start(); // starts the thread
@@ -489,17 +505,82 @@ private:
 
 };
 
-void Liason::Start()
+//-----------------------
+// Cargo Handler
+//-----------------------
+
+class CargoHandler : public Thread
 {
-	
-}
+public:
+	CargoHandler(char* debugName) : Thread(debugName) {
+		
+	}
+	void Start(); // starts the thread
+
+private:
+
+};
+
+//-----------------------
+// Screening Officer
+//-----------------------
+
+class ScreeningOfficer : public Thread
+{
+public:
+	ScreeningOfficer(char* debugName) : Thread(debugName) {
+		
+	}
+	void Start(); // starts the thread
+
+private:
+
+};
+
+//-----------------------
+// Security Inspector
+//-----------------------
+
+class SecurityInspector : public Thread
+{
+public:
+	SecurityInspector(char* debugName) : Thread(debugName) {
+		
+	}
+	void Start(); // starts the thread
+
+private:
+
+};
+
+//-----------------------
+// Manager
+//-----------------------
+
+class Manager : public Thread
+{
+public:
+	Manager(char* debugName) : Thread(debugName) {
+		
+	}
+	void Start(); // starts the thread
+
+private:
+
+};
 
 //-----------------------
 // Data
 //-----------------------
 
 Passenger* passengers[NUM_PASSENGERS];
-Liason* liasons[NUM_LIASONS];
+Liaison* liaisons[NUM_LIASONS];
+// Cis*
+CheckInStaff* checkinstaff[NUM_AIRLINES][NUM_CIS_PER_AIRLINE];
+CargoHandler* cargohandlers[NUM_CARGO_HANDLERS];
+ScreeningOfficer* screeningofficers[NUM_SCREENING_OFFICERS];
+SecurityInspector* securityinspectors[NUM_SECURITY_INSPECTORS];
+Manager* manager;
 
 struct SecureData {
 	
@@ -514,10 +595,137 @@ void PassengerStart(int index)
 	passengers[index]->Start();
 }
 
-void LiasonStart(int index)
+void LiaisonStart(int index)
 {
-	liasons[index]->Start();
+	liaisons[index]->Start();
 }
+
+void Cis0Start(int index)
+{
+	// a bit finicky...
+	checkinstaff[0][index]->Start();
+}
+
+void Cis1Start(int index)
+{
+	checkinstaff[1][index]->Start();
+}
+
+void Cis2Start(int index)
+{
+	checkinstaff[2][index]->Start();
+}
+
+void CargoHandlerStart(int index)
+{
+	cargohandlers[index]->Start();
+}
+
+void ScreeningOfficerStart(int index)
+{
+	screeningofficers[index]->Start();
+}
+
+void SecurityInspectorStart(int index)
+{
+	securityinspectors[index]->Start();
+}
+
+void ManagerStart()
+{
+	manager->Start();
+}
+
+//-----------------------
+// Start Functions
+//-----------------------
+
+void Passenger::Start()
+{
+	printf("%s: Made it!\n", this->getName());
+
+	// enter terminal
+	// goes to Airport Liaison, choosing shortest line
+
+	// hands ticket to Liaison
+	// receives instruction from Liaison on which terminal to go to
+
+	// if executive passenger
+		// go to executive line
+		// get helped by cis
+
+	// if economy passenger
+		// choose shortest cis line
+		// get helped by cis
+	
+	// go through security...
+	// ...
+	// ...
+
+	// wait in boarding lounge until boarding announcement
+}
+
+void Liaison::Start()
+{
+	printf("%s: Made it!\n", this->getName());
+
+	// while loop
+		// help passenger
+		
+		// receives ticket from passenger
+		// guides them to proper airport terminal (based on airline)
+		// keeps track of passenger count and baggages
+}
+
+void CheckInStaff::Start()
+{
+	printf("%s: Made it!\n", this->getName());
+
+	// while loop
+		// if an executive passenger is waiting, help them
+
+		// if there is no executive passenger, help the first person in current line
+
+		// if there are no passengers, go on break
+
+		// accepts passenger ticket
+		// accepts passenger baggage
+		// assigns passenger seat number (no overlaps)
+			// (make sure there are enough seats! each airplane must have at NUM_PASSENGERS seats to ensure enough)
+		// tags baggage with airline code and weight
+		// places baggage on conveyor system
+
+
+		
+		// .
+		// .
+		// .
+		// when all passengers checked in, close check-in counter
+
+}
+
+void CargoHandler::Start()
+{
+	printf("%s: Made it!\n", this->getName());
+}
+
+void ScreeningOfficer::Start()
+{
+	printf("%s: Made it!\n", this->getName());
+}
+
+void SecurityInspector::Start()
+{
+	printf("%s: Made it!\n", this->getName());
+}
+
+void Manager::Start()
+{
+	printf("%s: Made it!\n", this->getName());
+}
+
+
+
 
 //-----------------------
 // Run Airport Simulation
@@ -525,10 +733,12 @@ void LiasonStart(int index)
 
 void AirportSim()
 {
-	// Testing for two passenger thread! Cross fingers!
-	Passenger* p;
+	// Setup
 	char* name;
-
+	srand(time(NULL));
+	
+	// Activating passenger threads
+	Passenger* p;
 	for (int i=0; i < NUM_PASSENGERS; i++) {
 		name = new char[20];
 		sprintf(name, "passenger%d", i);
@@ -537,4 +747,80 @@ void AirportSim()
 		passengers[i] = p;
 		p->Fork((VoidFunctionPtr)PassengerStart, i);
 	}
+
+	// Activating liaison threads
+	Liaison* l;
+	for (int i=0; i < NUM_LIASONS; i++) {
+		name = new char[20];
+		sprintf(name, "liaison%d", i);
+
+		l = new Liaison(name);
+		liaisons[i] = l;
+		l->Fork((VoidFunctionPtr)LiaisonStart, i);
+	}
+
+	// CIS
+	// kinda finicky
+	// gotta decide how to do this...
+	CheckInStaff* cis;
+	for (int i=0; i < NUM_AIRLINES; i++) {
+		for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+			name = new char[20];
+			sprintf(name, "cis_%d_%d", i, j);
+
+			cis = new CheckInStaff(name);
+			checkinstaff[i][j] = cis;
+			if (i == 0) {
+				cis->Fork((VoidFunctionPtr)Cis0Start, j);
+			}
+			else if (i == 1) {
+				cis->Fork((VoidFunctionPtr)Cis1Start, j);
+			}
+			else if (i == 2) {
+				cis->Fork((VoidFunctionPtr)Cis2Start, j);
+			}
+		}
+	}
+
+	// Activating cargo handler threads
+	CargoHandler* ch;
+	for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
+		name = new char[20];
+		sprintf(name, "cargo_handler%d", i);
+
+		ch = new CargoHandler(name);
+		cargohandlers[i] = ch;
+		ch->Fork((VoidFunctionPtr)CargoHandlerStart, i);
+	}
+
+	// Activating screening officer threads
+	ScreeningOfficer* so;
+	for (int i=0; i < NUM_SCREENING_OFFICERS; i++) {
+		name = new char[25];
+		sprintf(name, "screening_officer%d", i);
+
+		so = new ScreeningOfficer(name);
+		screeningofficers[i] = so;
+		so->Fork((VoidFunctionPtr)ScreeningOfficerStart, i);
+	}
+
+	// Activating security inspector threads
+	SecurityInspector* si;
+	for (int i=0; i < NUM_SECURITY_INSPECTORS; i++) {
+		name = new char[25];
+		sprintf(name, "security_inspectors%d", i);
+
+		si = new SecurityInspector(name);
+		securityinspectors[i] = si;
+		si->Fork((VoidFunctionPtr)SecurityInspectorStart, i);
+	}
+
+	// Activating manager thread
+	Manager* m;
+	name = new char[20];
+	sprintf(name, "manager");
+
+	m = new Manager(name);
+	manager = m;
+	m->Fork((VoidFunctionPtr)ManagerStart, 0);
 }
