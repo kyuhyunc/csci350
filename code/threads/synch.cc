@@ -227,13 +227,20 @@ void Condition::Signal(Lock* conditionLock) {
 	// disable interrupts
 	IntStatus old = interrupt->SetLevel(IntOff);
 
+	// if programmer irresponsibly passes in null printer, print error
+	if (conditionLock == NULL) {
+		printf("Error in Condition::Signal -- parameter conditionLock cannot be NULL...\n");
+		// restore interrupts and return
+		(void) interrupt->SetLevel(old);
+		return;
+	}
+
 	// if no waiting threads, then nothing to do
 	if (waitQueue->IsEmpty()) {
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
 	}
-
 
 	// if conditionLock does not match waitingLock, print error
 	if (waitingLock != conditionLock) {
