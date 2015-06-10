@@ -426,7 +426,7 @@ ThreadTest()
 #include <time.h>
 #include <vector>
 
-#define NUM_PASSENGERS 20
+#define NUM_PASSENGERS 1
 #define NUM_LIASONS 7
 #define NUM_AIRLINES 3
 #define NUM_CIS_PER_AIRLINE 5
@@ -435,6 +435,11 @@ ThreadTest()
 //-----------------------
 // Passenger
 //-----------------------
+
+struct Ticket {
+	bool _executive;
+	int _airline; // choices between 0, 1, and 2
+};
 
 class Passenger : public Thread
 {
@@ -466,10 +471,7 @@ private:
 
 void Passenger::Start()
 {
-/*	std::string printStatement;
-	printStatement = ((std::string) getName()) + ": Made it!";
-	std::cout << getName() << ": Made it!" << std::endl;*/
-	printf("Made it!\n");
+	printf("%s: Made it!\n", this->getName());
 }
 
 //-----------------------
@@ -530,7 +532,9 @@ void AirportSim()
 	for (int i=0; i < NUM_PASSENGERS; i++) {
 		name = new char[20];
 		sprintf(name, "passenger%d", i);
+
 		p = new Passenger(name);
+		passengers[i] = p;
 		p->Fork((VoidFunctionPtr)PassengerStart, i);
 	}
 }
