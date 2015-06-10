@@ -421,13 +421,20 @@ ThreadTest()
 // Airport
 //----------------------------------------------------------------------
 
-//-----------------------
-// Passenger
-//-----------------------
-
+#include <iostream>
 #include <cstdlib>
 #include <time.h>
 #include <vector>
+
+#define NUM_PASSENGERS 20
+#define NUM_LIASONS 7
+#define NUM_AIRLINES 3
+#define NUM_CIS_PER_AIRLINE 5
+#define NUM_CARGO_HANDLER 10
+
+//-----------------------
+// Passenger
+//-----------------------
 
 class Passenger : public Thread
 {
@@ -459,16 +466,42 @@ private:
 
 void Passenger::Start()
 {
+/*	std::string printStatement;
+	printStatement = ((std::string) getName()) + ": Made it!";
+	std::cout << getName() << ": Made it!" << std::endl;*/
 	printf("Made it!\n");
+}
+
+//-----------------------
+// Passenger
+//-----------------------
+class Liason : public Thread
+{
+public:
+	Liason(char* debugName) : Thread(debugName) {
+		
+	}
+	void Start(); // starts the thread
+
+private:
+
+};
+
+void Liason::Start()
+{
+	
 }
 
 //-----------------------
 // Data
 //-----------------------
 
-struct MasterData {
-	Passenger* passengers[2];
-} cloud;
+Passenger* passengers[NUM_PASSENGERS];
+Liason* liasons[NUM_LIASONS];
+
+struct SecureData {
+	
+} SecurityCloud;
 
 //-----------------------
 // Thread Functions
@@ -476,7 +509,12 @@ struct MasterData {
 
 void PassengerStart(int index)
 {
-	cloud.passengers[index]->Start();
+	passengers[index]->Start();
+}
+
+void LiasonStart(int index)
+{
+	liasons[index]->Start();
 }
 
 //-----------------------
@@ -485,10 +523,14 @@ void PassengerStart(int index)
 
 void AirportSim()
 {
-	Passenger* t;
+	// Testing for two passenger thread! Cross fingers!
+	Passenger* p;
 	char* name;
 
-	// Testing for one passenger thread! Cross fingers!
-	t = new Passenger("p0");
-	t->Fork((VoidFunctionPtr)PassengerStart, 0);
+	for (int i=0; i < NUM_PASSENGERS; i++) {
+		name = new char[20];
+		sprintf(name, "passenger%d", i);
+		p = new Passenger(name);
+		p->Fork((VoidFunctionPtr)PassengerStart, i);
+	}
 }
