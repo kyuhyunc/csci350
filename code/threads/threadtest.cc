@@ -764,8 +764,8 @@ void Liaison::Start()
 			_commCV->Wait(_lock);
 		}
 		else {
-			LiaisonGlobalLineLock->Release();
 			_lineCV->Signal(LiaisonGlobalLineLock);
+			LiaisonGlobalLineLock->Release();
 			_commCV->Wait(_lock);
 		}
 
