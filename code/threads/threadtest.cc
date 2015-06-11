@@ -689,8 +689,8 @@ void Passenger::Start()
 	// enter terminal
 	// goes to Airport Liaison, choosing shortest line
 	int myLine = 0;
-	int lineSize = liaisons[0]->_lineSize;
 	LiaisonGlobalLineLock->Acquire();
+	int lineSize = liaisons[0]->_lineSize;
 
 	// find shortest line
 	for (int i=0; i < NUM_LIASONS; i++) {
@@ -704,6 +704,7 @@ void Passenger::Start()
 
 	if (liaisons[myLine]->_state == BUSY) {
 		liaisons[myLine]->_lineSize++;
+	printf("Passenger %s summed to %i\n", getName(), liaisons[myLine]->_lineSize);
 		liaisons[myLine]->_lineCV->Wait(LiaisonGlobalLineLock);
 		liaisons[myLine]->_lineSize--;
 	}
