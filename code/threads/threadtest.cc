@@ -426,8 +426,8 @@ ThreadTest()
 #include <time.h>
 #include <vector>
 
-#define NUM_PASSENGERS 2
-#define NUM_LIASONS 1
+#define NUM_PASSENGERS 20
+#define NUM_LIASONS 7
 #define NUM_AIRLINES 3
 #define NUM_CIS_PER_AIRLINE 5
 #define NUM_CARGO_HANDLERS 10
@@ -694,8 +694,8 @@ void Passenger::Start()
 
 	// find shortest line
 	for (int i=0; i < NUM_LIASONS; i++) {
-		if (liaisons[myLine]->_lineSize < lineSize) {
-			lineSize = liaisons[myLine]->_lineSize;
+		if (liaisons[i]->_lineSize < lineSize) {
+			lineSize = liaisons[i]->_lineSize;
 			myLine = i;
 		}
 	}
