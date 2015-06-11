@@ -217,7 +217,6 @@ void Condition::Wait(Lock* conditionLock) {
 
 	conditionLock->Release(); // exit critical section
 	waitQueue->Append((void *)currentThread);
-std::cout << getName() << " " << conditionLock->getName() << " " << currentThread->getName() << " is about to go to sleep" << std::endl;
 	currentThread->Sleep();
 
 	conditionLock->Acquire(); // enter critical section again
@@ -247,7 +246,6 @@ void Condition::Signal(Lock* conditionLock) {
 
 	// Wakeup 1 waiting thread
 	Thread* t = (Thread*) waitQueue->Remove();
-std::cout << getName() << " " << conditionLock->getName() << " " << currentThread->getName() << " is about to go to signal" << std::endl;
 	scheduler->ReadyToRun(t); // wake up sleepy thread
 
 	// if after waking up this thread there are none left,

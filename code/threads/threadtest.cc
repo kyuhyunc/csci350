@@ -516,8 +516,6 @@ public:
 	}
 
 public:
-	static Lock* LiaisonGlobalLineLock;
-
 	Lock* _lock;
 	Condition* _lineCV;
 	Condition* _commCV;
@@ -530,8 +528,6 @@ public:
 	Passenger* _currentPassenger;
 	
 };
-
-Lock* Liaison::LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
 
 //-----------------------
 // Airport Check-In Staff
@@ -626,8 +622,7 @@ ScreeningOfficer* screeningofficers[NUM_SCREENING_OFFICERS];
 SecurityInspector* securityinspectors[NUM_SECURITY_INSPECTORS];
 Manager* manager;
 
-//Lock* LiaisonGlobalLineLock;
-//Lock LiaisonGlobalLineLock("liason_global_line_lock");
+Lock* LiaisonGlobalLineLock;
 
 struct SecureData {
 	
@@ -639,7 +634,6 @@ struct SecureData {
 
 void PassengerStart(int index)
 {
-std::cout << "Passenger" << index << " in" << std::endl;
 	passengers[index]->Start();
 }
 
@@ -696,9 +690,7 @@ void Passenger::Start()
 	// goes to Airport Liaison, choosing shortest line
 	int myLine = 0;
 	int lineSize = liaisons[0]->_lineSize;
-//	LiaisonGlobalLineLock->Acquire();
-	Liaison::LiaisonGlobalLineLock->Acquire();
-//	LiaisonGlobalLineLock.Acquire();
+	LiaisonGlobalLineLock->Acquire();
 
 	// find shortest line
 	for (int i=0; i < NUM_LIASONS; i++) {
@@ -712,30 +704,23 @@ void Passenger::Start()
 
 	if (liaisons[myLine]->_state == BUSY) {
 		liaisons[myLine]->_lineSize++;
-std::cout << getName() << " incremented to " << liaisons[myLine]->_lineSize << std::endl;
-//		liaisons[myLine]->_lineCV->Wait(LiaisonGlobalLineLock);
-		liaisons[myLine]->_lineCV->Wait(Liaison::LiaisonGlobalLineLock);
-//		liaisons[myLine]->_lineCV->Wait(&LiaisonGlobalLineLock);
-std::cout << getName() << " done waiting" << std::endl;
+		liaisons[myLine]->_lineCV->Wait(LiaisonGlobalLineLock);
 		liaisons[myLine]->_lineSize--;
-std::cout << getName() << " decremented to " << liaisons[myLine]->_lineSize << std::endl;
 	}
 
 	liaisons[myLine]->_lock->Acquire();
-//	LiaisonGlobalLineLock->Release();
-	Liaison::LiaisonGlobalLineLock->Release();
-//	LiaisonGlobalLineLock.Release();
+	LiaisonGlobalLineLock->Release();
 
 	// hands ticket to Liaison
 	liaisons[myLine]->updatePassengerInfo(this);
 
-//	liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
+	liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
 	liaisons[myLine]->_commCV->Wait(liaisons[myLine]->_lock);
 
 	// receives instruction from Liaison on which terminal to go to
 	printf("Passenger %s of Airline %i is directed to the check-in counter\n", getName(), _myticket._airline);
 
-//	liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
+	liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
 
 	liaisons[myLine]->_lock->Release();
 
@@ -773,23 +758,15 @@ void Liaison::Start()
 		_lock->Acquire();
 		// ISSUE HERE, FIX
 		LiaisonGlobalLineLock->Acquire();
-//		LiaisonGlobalLineLock.Acquire();
 		if (_lineSize == 0) {
 			LiaisonGlobalLineLock->Release();
-//			LiaisonGlobalLineLock.Release();
 			_state = AVAIL;
-std::cout << "linesize = 0 and before wait" << std::endl;
 			_commCV->Wait(_lock);
-std::cout << "linesize = 0 and after wait" << std::endl;
 		}
 		else {
 			LiaisonGlobalLineLock->Release();
-//			LiaisonGlobalLineLock.Release();
-//			_lineCV->Signal(LiaisonGlobalLineLock);
-//			_lineCV->Signal(&LiaisonGlobalLineLock);
-std::cout << "linesize not 0 and before wait" << std::endl;
+			_lineCV->Signal(LiaisonGlobalLineLock);
 			_commCV->Wait(_lock);
-std::cout << "linesize not 0 and after wait" << std::endl;
 		}
 
 		_state = BUSY;
@@ -799,12 +776,13 @@ std::cout << "linesize not 0 and after wait" << std::endl;
 
 		// print statement
 
-//		_commCV->Signal(_lock);
+		_commCV->Signal(_lock);
 		_commCV->Wait(_lock);
 
 		_lock->Release();
 
 	}
+
 }
 
 void CheckInStaff::Start()
@@ -868,14 +846,13 @@ void AirportSim()
 	srand(time(NULL));
 	
 	// Initialize locks
-//	LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
+	LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
 	
 	// Activating passenger threads
 	Passenger* p;
 	for (int i=0; i < NUM_PASSENGERS; i++) {
 		name = new char[20];
 		sprintf(name, "passenger%d", i);
-std::cout << "Entered for loop for " << name << std::endl;
 
 		p = new Passenger(name);
 		passengers[i] = p;
@@ -891,15 +868,12 @@ std::cout << "Entered for loop for " << name << std::endl;
 		liaisons[i] = l;
 	}
 
-	IntStatus old = interrupt->SetLevel(IntOff);
 	for (int i=0; i < NUM_PASSENGERS; i++) {
-std::cout << "Entered for loop for passenger" << i << std::endl;
-		p->Fork((VoidFunctionPtr)PassengerStart, i);
+		passengers[i]->Fork((VoidFunctionPtr)PassengerStart, i);
 	}
 	for (int i=0; i < NUM_LIASONS; i++) {
-		l->Fork((VoidFunctionPtr)LiaisonStart, i);
+		liaisons[i]->Fork((VoidFunctionPtr)LiaisonStart, i);
 	}
-	(void) interrupt->SetLevel(old);
 /*
 	// CIS
 	// kinda finicky
