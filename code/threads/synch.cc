@@ -24,6 +24,7 @@
 #include "copyright.h"
 #include "synch.h"
 #include "system.h"
+#include <iostream>
 
 //----------------------------------------------------------------------
 // Semaphore::Semaphore
@@ -216,6 +217,7 @@ void Condition::Wait(Lock* conditionLock) {
 
 	conditionLock->Release(); // exit critical section
 	waitQueue->Append((void *)currentThread);
+std::cout << getName() << " " << conditionLock->getName() << " " << currentThread->getName() << " is about to go to sleep" << std::endl;
 	currentThread->Sleep();
 
 	conditionLock->Acquire(); // enter critical section again
@@ -227,20 +229,13 @@ void Condition::Signal(Lock* conditionLock) {
 	// disable interrupts
 	IntStatus old = interrupt->SetLevel(IntOff);
 
-	// if programmer irresponsibly passes in null printer, print error
-	if (conditionLock == NULL) {
-		printf("Error in Condition::Signal -- parameter conditionLock cannot be NULL...\n");
-		// restore interrupts and return
-		(void) interrupt->SetLevel(old);
-		return;
-	}
-
 	// if no waiting threads, then nothing to do
 	if (waitQueue->IsEmpty()) {
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
 	}
+
 
 	// if conditionLock does not match waitingLock, print error
 	if (waitingLock != conditionLock) {
@@ -252,6 +247,7 @@ void Condition::Signal(Lock* conditionLock) {
 
 	// Wakeup 1 waiting thread
 	Thread* t = (Thread*) waitQueue->Remove();
+std::cout << getName() << " " << conditionLock->getName() << " " << currentThread->getName() << " is about to go to signal" << std::endl;
 	scheduler->ReadyToRun(t); // wake up sleepy thread
 
 	// if after waking up this thread there are none left,
