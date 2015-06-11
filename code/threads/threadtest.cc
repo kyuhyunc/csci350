@@ -434,6 +434,12 @@ ThreadTest()
 #define NUM_SCREENING_OFFICERS 5 // what num?
 #define NUM_SECURITY_INSPECTORS 5 // what num?
 
+enum State {
+	AVAIL,
+	BUSY,
+	ONBREAK
+};
+
 //-----------------------
 // Passenger
 //-----------------------
@@ -441,6 +447,12 @@ ThreadTest()
 struct Ticket {
 	bool _executive;
 	int _airline; // choices between 0, 1, and 2
+};
+
+struct Baggage {
+	int _airline;
+	int _weight; // between 30 and 60
+	
 };
 
 class Passenger : public Thread
@@ -452,9 +464,12 @@ public:
 		//------------
 
 		// 2 or 3 baggages 30-60 lbs
+		Baggage* mybag;
 		int numBaggages = rand() % 2 + 2;
 		for (int i=0; i < numBaggages; i++) {
-			_baggages.push_back(rand() % 31 + 30);
+			mybag = new Baggage;
+			mybag->_weight = rand() % 31 + 30;
+			_baggages.push_back(mybag);
 		}
 
 		// Executive or Economy ticket
@@ -468,8 +483,8 @@ public:
 	}
 	void Start(); // starts the thread
 
-private:
-	std::vector<int> _baggages;
+public:
+	std::vector<Baggage*> _baggages;
 	Ticket _myticket;
 };
 
@@ -481,11 +496,36 @@ class Liaison : public Thread
 {
 public:
 	Liaison(char* debugName) : Thread(debugName) {
-		
+		_lock = new Lock(debugName);// + "_lock");
+		_lineCV = new Condition(debugName);// + "_lineCV");
+		_commCV = new Condition(debugName);// + "_commCV");
+		_lineSize = 0;
+
+		_state = BUSY;
+		for (int i=0; i < NUM_AIRLINES; i++) {
+			_passCount[0] = 0;
+			_bagCount[0] = 0;
+		}
 	}
 	void Start(); // starts the thread
 
-private:
+	void updatePassengerInfo(Passenger* pass) {
+		_passCount[pass->_myticket._airline]++;
+		_passCount[pass->_myticket._airline] += pass->_baggages.size();
+		_currentPassenger = pass;
+	}
+
+public:
+	Lock* _lock;
+	Condition* _lineCV;
+	Condition* _commCV;
+	int _lineSize;
+
+	int _state; // AVAIL or BUSY
+	int _passCount[NUM_AIRLINES];
+	int _bagCount[NUM_AIRLINES];
+
+	Passenger* _currentPassenger;
 	
 };
 
@@ -501,7 +541,7 @@ public:
 	}
 	void Start(); // starts the thread
 
-private:
+public:
 
 };
 
@@ -582,6 +622,8 @@ ScreeningOfficer* screeningofficers[NUM_SCREENING_OFFICERS];
 SecurityInspector* securityinspectors[NUM_SECURITY_INSPECTORS];
 Manager* manager;
 
+Lock* LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
+
 struct SecureData {
 	
 } SecurityCloud;
@@ -646,9 +688,44 @@ void Passenger::Start()
 
 	// enter terminal
 	// goes to Airport Liaison, choosing shortest line
+	int myLine = 0;
+	int lineSize = liaisons[0]->_lineSize;
+	LiaisonGlobalLineLock->Acquire();
+
+	// find shortest line
+	for (int i=0; i < NUM_LIASONS; i++) {
+		if (liaisons[myLine]->_lineSize < lineSize) {
+			lineSize = liaisons[myLine]->_lineSize;
+			myLine = i;
+		}
+	}
+
+	printf("Passenger %s chose Liaison %s with a line length %i\n", getName(), liaisons[myLine]->getName(), lineSize);
+
+	if (liaisons[myLine]->_state == BUSY) {
+		liaisons[myLine]->_lineSize++;
+		liaisons[myLine]->_lineCV->Wait(LiaisonGlobalLineLock);
+		liaisons[myLine]->_lineSize--;
+	}
+
+	liaisons[myLine]->_lock->Acquire();
+	LiaisonGlobalLineLock->Release();
 
 	// hands ticket to Liaison
+	liaisons[myLine]->updatePassengerInfo(this);
+
+	liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
+	liaisons[myLine]->_commCV->Wait(liaisons[myLine]->_lock);
+
 	// receives instruction from Liaison on which terminal to go to
+	printf("Passenger %s of Airline %i is directed to the check-in counter\n", getName(), _myticket._airline);
+
+	liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
+
+	liaisons[myLine]->_lock->Release();
+
+
+
 
 	// if executive passenger
 		// go to executive line
@@ -673,8 +750,35 @@ void Liaison::Start()
 		// help passenger
 		
 		// receives ticket from passenger
-		// guides them to proper airport terminal (based on airline)
 		// keeps track of passenger count and baggages
+
+	char* statement;
+	
+	while (true) {
+		_lock->Acquire();
+		LiaisonGlobalLineLock->Acquire();
+		if (_lineSize == 0) {
+			LiaisonGlobalLineLock->Release();
+			_state = AVAIL;
+			_commCV->Wait(_lock);
+		}
+		else {
+			LiaisonGlobalLineLock->Release();
+			_lineCV->Signal(LiaisonGlobalLineLock);
+			_commCV->Wait(_lock);
+		}
+
+		// guides them to proper airport terminal (based on airline)
+		printf("Airport Liaison %s directed passenger %s of airline %i\n", getName(), _currentPassenger->getName(), _currentPassenger->_myticket._airline);
+
+		// print statement
+
+		_commCV->Signal(_lock);
+		_commCV->Wait(_lock);
+
+		_lock->Release();
+
+	}
 }
 
 void CheckInStaff::Start()
@@ -745,7 +849,6 @@ void AirportSim()
 
 		p = new Passenger(name);
 		passengers[i] = p;
-		p->Fork((VoidFunctionPtr)PassengerStart, i);
 	}
 
 	// Activating liaison threads
@@ -756,9 +859,15 @@ void AirportSim()
 
 		l = new Liaison(name);
 		liaisons[i] = l;
-		l->Fork((VoidFunctionPtr)LiaisonStart, i);
 	}
 
+	for (int i=0; i < NUM_PASSENGERS; i++) {
+		p->Fork((VoidFunctionPtr)PassengerStart, i);
+	}
+	for (int i=0; i < NUM_LIASONS; i++) {
+		l->Fork((VoidFunctionPtr)LiaisonStart, i);
+	}
+/*
 	// CIS
 	// kinda finicky
 	// gotta decide how to do this...
@@ -823,4 +932,5 @@ void AirportSim()
 	m = new Manager(name);
 	manager = m;
 	m->Fork((VoidFunctionPtr)ManagerStart, 0);
+	*/
 }
