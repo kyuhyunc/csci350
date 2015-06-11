@@ -426,6 +426,7 @@ ThreadTest()
 #include <time.h>
 #include <vector>
 
+/*
 #define NUM_PASSENGERS 20
 #define NUM_LIASONS 7
 #define NUM_AIRLINES 3
@@ -433,6 +434,15 @@ ThreadTest()
 #define NUM_CARGO_HANDLERS 10
 #define NUM_SCREENING_OFFICERS 5 // what num?
 #define NUM_SECURITY_INSPECTORS 5 // what num?
+*/
+
+int NUM_PASSENGERS;
+int NUM_LIASONS;
+int NUM_AIRLINES;
+int NUM_CIS_PER_AIRLINE;
+int NUM_CARGO_HANDLERS;
+int NUM_SCREENING_OFFICERS;
+int NUM_SECURITY_INSPECTORS;
 
 enum State {
 	AVAIL,
@@ -502,6 +512,10 @@ public:
 		_lineSize = 0;
 
 		_state = BUSY;
+
+		_passCount = new int[NUM_AIRLINES];
+		_bagCount = new int[NUM_AIRLINES];
+
 		for (int i=0; i < NUM_AIRLINES; i++) {
 			_passCount[0] = 0;
 			_bagCount[0] = 0;
@@ -511,7 +525,7 @@ public:
 
 	void updatePassengerInfo(Passenger* pass) {
 		_passCount[pass->_myticket._airline]++;
-		_passCount[pass->_myticket._airline] += pass->_baggages.size();
+		_bagCount[pass->_myticket._airline] += pass->_baggages.size();
 		_currentPassenger = pass;
 	}
 
@@ -522,8 +536,8 @@ public:
 	int _lineSize;
 
 	int _state; // AVAIL or BUSY
-	int _passCount[NUM_AIRLINES];
-	int _bagCount[NUM_AIRLINES];
+	int* _passCount;
+	int* _bagCount;
 
 	Passenger* _currentPassenger;
 	
@@ -610,9 +624,41 @@ private:
 };
 
 //-----------------------
+// Airline
+//-----------------------
+
+class Airline
+{
+public:
+	Airline(char* debugName) {
+		_name = debugName;
+
+		_cis = new CheckInStaff*[NUM_CIS_PER_AIRLINE];
+
+		_numExpectedPassengers = 0;
+		_numReadyPassengers = 0;
+		_numExpectedBaggages = 0;
+		_numLoadedBaggages = 0;
+	}
+	char* getName() { return _name; }
+
+public:
+	CheckInStaff** _cis;
+
+	int _numExpectedPassengers;
+	int _numReadyPassengers;
+	int _numExpectedBaggages;
+	int _numLoadedBaggages;
+
+private:
+	char* _name;
+};
+
+//-----------------------
 // Data
 //-----------------------
 
+/*
 Passenger* passengers[NUM_PASSENGERS];
 Liaison* liaisons[NUM_LIASONS];
 // Cis*
@@ -621,6 +667,17 @@ CargoHandler* cargohandlers[NUM_CARGO_HANDLERS];
 ScreeningOfficer* screeningofficers[NUM_SCREENING_OFFICERS];
 SecurityInspector* securityinspectors[NUM_SECURITY_INSPECTORS];
 Manager* manager;
+*/
+Passenger** passengers;
+Liaison** liaisons;
+CheckInStaff*** checkinstaff;
+CargoHandler** cargohandlers;
+ScreeningOfficer** screeningofficers;
+SecurityInspector** securityinspectors;
+Manager* manager;
+
+
+Airline** airlines;
 
 Lock* LiaisonGlobalLineLock;
 
@@ -642,20 +699,11 @@ void LiaisonStart(int index)
 	liaisons[index]->Start();
 }
 
-void Cis0Start(int index)
+void CisStart(int index)
 {
 	// a bit finicky...
-	checkinstaff[0][index]->Start();
-}
-
-void Cis1Start(int index)
-{
-	checkinstaff[1][index]->Start();
-}
-
-void Cis2Start(int index)
-{
-	checkinstaff[2][index]->Start();
+	airlines[index / NUM_CIS_PER_AIRLINE]->_cis[index % NUM_CIS_PER_AIRLINE]->Start();
+//	checkinstaff[index / NUM_CIS_PER_AIRLINE][index % NUM_CIS_PER_AIRLINE]->Start();
 }
 
 void CargoHandlerStart(int index)
@@ -845,11 +893,51 @@ void AirportSim()
 	// Setup
 	char* name;
 	srand(time(NULL));
+
+	// Read in number of airport people
+	printf("Number of airport liaisons = ");
+	scanf("%i", &NUM_LIASONS);
+	printf("Number of airlines = ");
+	scanf("%i", &NUM_AIRLINES);
+	printf("Number of check-in-staff = ");
+	scanf("%i", &NUM_CIS_PER_AIRLINE);
+	printf("Number of cargo handlers = ");
+	scanf("%i", &NUM_CARGO_HANDLERS);
+	printf("Number of screening officers = ");
+	scanf("%i", &NUM_SCREENING_OFFICERS);
+	printf("Total number of passengers = ");
+	scanf("%i", &NUM_PASSENGERS);
+
+	NUM_SECURITY_INSPECTORS = NUM_SCREENING_OFFICERS;
+
+	// Initializing global data
+	airlines = new Airline*[NUM_AIRLINES];
+	for (int i=0; i < NUM_AIRLINES; i++) {
+		name = new char[20];
+		sprintf(name, "airline%d", i);
+		airlines[i] = new Airline(name);
+	}
+
+	passengers = new Passenger*[NUM_PASSENGERS];
+	liaisons = new Liaison*[NUM_LIASONS];
+/*	checkinstaff = new CheckInStaff**[NUM_AIRLINES];
+	for (int i=0; i < NUM_AIRLINES; i++) {
+		checkinstaff[i] = new CheckInStaff*[NUM_CIS_PER_AIRLINE];
+	}*/
+	cargohandlers = new CargoHandler*[NUM_CARGO_HANDLERS];
+	screeningofficers = new ScreeningOfficer*[NUM_SCREENING_OFFICERS];
+	securityinspectors = new SecurityInspector*[NUM_SECURITY_INSPECTORS];
+
 	
 	// Initialize locks
 	LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
+
+
+	//----------------------------------------------
+	// INITIALIZING ALL THREADS
+	//----------------------------------------------
 	
-	// Activating passenger threads
+	// Initializing passenger threads
 	Passenger* p;
 	for (int i=0; i < NUM_PASSENGERS; i++) {
 		name = new char[20];
@@ -857,9 +945,12 @@ void AirportSim()
 
 		p = new Passenger(name);
 		passengers[i] = p;
+
+		// Track number of passengers expected per airline
+		airlines[p->_myticket._airline]->_numExpectedPassengers++;
 	}
 
-	// Activating liaison threads
+	// Initializing liaison threads
 	Liaison* l;
 	for (int i=0; i < NUM_LIASONS; i++) {
 		name = new char[20];
@@ -869,13 +960,6 @@ void AirportSim()
 		liaisons[i] = l;
 	}
 
-	for (int i=0; i < NUM_PASSENGERS; i++) {
-		passengers[i]->Fork((VoidFunctionPtr)PassengerStart, i);
-	}
-	for (int i=0; i < NUM_LIASONS; i++) {
-		liaisons[i]->Fork((VoidFunctionPtr)LiaisonStart, i);
-	}
-/*
 	// CIS
 	// kinda finicky
 	// gotta decide how to do this...
@@ -886,20 +970,12 @@ void AirportSim()
 			sprintf(name, "cis_%d_%d", i, j);
 
 			cis = new CheckInStaff(name);
-			checkinstaff[i][j] = cis;
-			if (i == 0) {
-				cis->Fork((VoidFunctionPtr)Cis0Start, j);
-			}
-			else if (i == 1) {
-				cis->Fork((VoidFunctionPtr)Cis1Start, j);
-			}
-			else if (i == 2) {
-				cis->Fork((VoidFunctionPtr)Cis2Start, j);
-			}
+			airlines[i]->_cis[j] = cis;
+//			checkinstaff[i][j] = cis;
 		}
 	}
 
-	// Activating cargo handler threads
+	// Initializing cargo handler threads
 	CargoHandler* ch;
 	for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
 		name = new char[20];
@@ -907,10 +983,9 @@ void AirportSim()
 
 		ch = new CargoHandler(name);
 		cargohandlers[i] = ch;
-		ch->Fork((VoidFunctionPtr)CargoHandlerStart, i);
 	}
 
-	// Activating screening officer threads
+	// Initializing screening officer threads
 	ScreeningOfficer* so;
 	for (int i=0; i < NUM_SCREENING_OFFICERS; i++) {
 		name = new char[25];
@@ -918,10 +993,9 @@ void AirportSim()
 
 		so = new ScreeningOfficer(name);
 		screeningofficers[i] = so;
-		so->Fork((VoidFunctionPtr)ScreeningOfficerStart, i);
 	}
 
-	// Activating security inspector threads
+	// Initializing security inspector threads
 	SecurityInspector* si;
 	for (int i=0; i < NUM_SECURITY_INSPECTORS; i++) {
 		name = new char[25];
@@ -929,16 +1003,82 @@ void AirportSim()
 
 		si = new SecurityInspector(name);
 		securityinspectors[i] = si;
-		si->Fork((VoidFunctionPtr)SecurityInspectorStart, i);
 	}
 
-	// Activating manager thread
-	Manager* m;
+	// Initializing manager thread
 	name = new char[20];
 	sprintf(name, "manager");
+	manager = new Manager(name);
 
-	m = new Manager(name);
-	manager = m;
-	m->Fork((VoidFunctionPtr)ManagerStart, 0);
-	*/
+
+	//----------------------------------------------
+	// END INITIALIZING ALL THREADS
+	//----------------------------------------------
+
+
+	//----------------------------------------------
+	// PRINT INFORMATION
+	//----------------------------------------------
+
+
+	// Print airline information
+	for (int i=0; i < NUM_AIRLINES; i++) {
+		printf("Number of passengers for airline %s = %i\n", airlines[i]->getName(), airlines[i]->_numExpectedPassengers);
+	}
+
+	// Print passenger information
+	for (int i=0; i < NUM_PASSENGERS; i++) {
+		printf("Passenger %s belongs to airline %i\n", passengers[i]->getName(), passengers[i]->_myticket._airline);
+		printf("Passenger %s : Number of bags = %i\n", passengers[i]->getName(), passengers[i]->_baggages.size());
+		printf("Passenger %s : Weight of bags = ", passengers[i]->getName());
+		for (unsigned int j=0; j < passengers[i]->_baggages.size(); j++) {
+			printf("%i ", passengers[i]->_baggages.at(j)->_weight);
+		}
+		printf("\n");
+	}
+
+	// Print cis information
+	for (int i=0; i < NUM_AIRLINES; i++) {
+		for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+			printf("Airline check-in staff %s belongs to airline %s\n", airlines[i]->_cis[j]->getName(), airlines[i]->getName());
+		}
+	}
+
+	
+	//----------------------------------------------
+	// END PRINT INFORMATION
+	//----------------------------------------------
+
+	//----------------------------------------------
+	// ACTIVATING ALL THREADS
+	//----------------------------------------------
+
+	// Activating all threads
+	for (int i=0; i < NUM_PASSENGERS; i++) {
+		passengers[i]->Fork((VoidFunctionPtr)PassengerStart, i);
+	}
+	for (int i=0; i < NUM_LIASONS; i++) {
+		liaisons[i]->Fork((VoidFunctionPtr)LiaisonStart, i);
+	}
+	for (int i=0; i < NUM_AIRLINES; i++) {
+		for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+			airlines[i]->_cis[j]->Fork((VoidFunctionPtr)CisStart, i*NUM_CIS_PER_AIRLINE+j);
+//			checkinstaff[i][j]->Fork((VoidFunctionPtr)CisStart, i*NUM_CIS_PER_AIRLINE+j);
+		}
+	}
+	for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
+		cargohandlers[i]->Fork((VoidFunctionPtr)CargoHandlerStart, i);
+	}
+	for (int i=0; i < NUM_SCREENING_OFFICERS; i++) {
+		screeningofficers[i]->Fork((VoidFunctionPtr)ScreeningOfficerStart, i);
+	}
+	for (int i=0; i < NUM_SECURITY_INSPECTORS; i++) {
+		securityinspectors[i]->Fork((VoidFunctionPtr)SecurityInspectorStart, i);
+	}
+	manager->Fork((VoidFunctionPtr)ManagerStart, 0);
+
+	//----------------------------------------------
+	// END ACTIVATING ALL THREADS
+	//----------------------------------------------
+
 }
