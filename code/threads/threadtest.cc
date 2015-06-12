@@ -879,7 +879,7 @@ void Passenger::Start()
 #define GlobalLock airlines[_myticket._airline]->_CisGlobalLineLock
 #define CisLock airlines[_myticket._airline]->_cis[myLine]->_lock
 	
-	GlobalLock->Acquire();
+	// GlobalLock->Acquire();
 	if (_myticket._executive) {
 		ExecLock->Acquire();
 		myairline->_execQueue->Append((void*) this);
@@ -887,13 +887,14 @@ void Passenger::Start()
 
 		printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
 		
-		GlobalLock->Release();
+		//GlobalLock->Release();
 		myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
-		GlobalLock->Acquire();
+		//GlobalLock->Acquire();
 
-		ExecLock->Release();
+		//ExecLock->Release();
 	}
 	else {
+    GlobalLock->Acquire();
 		// find shortest line
 		lineSize = checkinstaff[0]->_lineSize;
 		myLine = 0;
@@ -906,17 +907,20 @@ void Passenger::Start()
 
 		printf("Passenger %s of Airline %i chose Airline Check-In staff %s with a line length %i\n", getName(), _myticket._airline, myCis->getName(), lineSize);
 
+    GlobalLock->Release();
 		myCis->_lineSize++;
 		myCis->_lineCV->Wait(GlobalLock);
 		myCis->_lineSize--;
 	}
 	CisLock->Acquire();
-	GlobalLock->Release();
+	//GlobalLock->Release();
 
 	// give baggage + ticket to cis
 	myCis->updatePassengerInfo(this);
 
 	myCis->_commCV->Signal(CisLock);
+  ExecLock->Release();
+
 	myCis->_commCV->Wait(CisLock); // wait for cis for boarding pass
 
 	// receives boarding pass with seat number
