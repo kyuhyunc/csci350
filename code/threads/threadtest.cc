@@ -713,6 +713,7 @@ public:
 		_numReadyPassengers = 0;
 		_numExpectedBaggages = 0;
 		_numLoadedBaggages = 0;
+		_totalPassenger = 0;
 	}
 	char* getName() { return _name; }
 
@@ -730,6 +731,7 @@ public:
 	int _numReadyPassengers;
 	int _numExpectedBaggages;
 	int _numLoadedBaggages;
+	int _totalPassenger;
 
 private:
 	char* _name;
@@ -763,7 +765,9 @@ Lock* CisGlobalLineLock;
 
 
 Semaphore t1("t1",0);
+Semaphore t2("t1",0);
 bool semaBool = false;
+bool semaBool2 = false;
 
 struct SecureData {
 	
@@ -864,6 +868,9 @@ void Passenger::Start()
 	if(semaBool == true) {
 		t1.V();
 	}
+    if(semaBool2 == true) {
+        t2.V();
+    }
 	
 	//----------------------------------------------
 	// END PASSENGER INTERACTS WITH LIAISON
@@ -897,7 +904,6 @@ void Passenger::Start()
 		ExecLock->Acquire();
 		myairline->_execQueue->Append((void*) this);
 		myairline->_execLineSize++;
-
 std::cout << ">>>>>>  ";
 		printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
 		
@@ -916,10 +922,8 @@ std::cout << "Not an executive..." << std::endl;
 				myLine = i;
 			}
 		}
-
 std::cout << ">>>>>>  ";
 		printf("Passenger %s of Airline %i chose Airline Check-In staff %s with a line length %i\n", getName(), _myticket._airline, myCis->getName(), lineSize);
-
 		myCis->_lineSize++;
 		myCis->_lineCV->Wait(GlobalLock);
 std::cout << "Passenger wakes up." << std::endl;
@@ -927,39 +931,28 @@ std::cout << "Passenger wakes up." << std::endl;
 	}
 	CisLock->Acquire();
 	GlobalLock->Release();
-
 	// give baggage + ticket to cis
 std::cout << "Passenger updates info." << std::endl; 
 	myCis->updatePassengerInfo(this);
-
 	myCis->_commCV->Signal(CisLock);
 	myCis->_commCV->Wait(CisLock); // wait for cis for boarding pass
-
 	// receives boarding pass with seat number
 std::cout << ">>>>>>  ";
 	printf("Passenger %s of Airline %i was informed to board at gate %i\n", getName(), _myticket._airline, _myticket._airline);
-
 	myCis->_commCV->Signal(CisLock);
 	CisLock->Release();
-
-
 #undef myairline
 #undef checkinstaff
 #undef myCis
 #undef ExecLock
 #undef GlobalLock
 #undef CisLock
-
 	//----------------------------------------------
 	// END PASSENGER INTERACTS WITH CHECK-IN-STAFF
 	//----------------------------------------------
-
-
-
 	// go through security...
 	// ...
 	// ...
-
 	// wait in boarding lounge until boarding announcement
 */
 }
@@ -981,11 +974,25 @@ void Liaison::Start()
 			LiaisonGlobalLineLock->Release();
 			_state = AVAIL;
 			_commCV->Wait(_lock);
+			//for testing purposes(TEST2), in order to complete testing simulation first so that we can analyze the result at the end  
+			if(semaBool == true) {
+				t1.V();
+			}
+            if(semaBool2 == true) {
+                t2.V();
+            }
 		}
 		else {
 			_lineCV->Signal(LiaisonGlobalLineLock);
 			LiaisonGlobalLineLock->Release();
 			_commCV->Wait(_lock);
+			//for testing purposes(TEST2), in order to complete testing simulation first so that we can analyze the result at the end  
+			if(semaBool == true) {
+				t1.V();
+			}
+            if(semaBool2 == true) {
+                t2.V();
+            }
 		}
 
 		_state = BUSY;
@@ -1002,9 +1009,7 @@ void Liaison::Start()
 
 	}
 
-	if(semaBool == true) {
-		t1.V();
-	}
+
 
 }
 
@@ -1077,6 +1082,10 @@ std::cout << ">>>>>>  ";
 			printf("Airline check-in staff %s of airline %i serves an economy class passenger and executive class line length = %i\n", getName(), _airline, myairline->_execLineSize);
 
 			_lineCV->Signal(GlobalLock);
+			//for testing purposes(TEST2), in order to complete testing simulation first so that we can analyze the result at the end  
+            if(semaBool2 == true) {
+                t2.V();
+            }
 		}
 		GlobalLock->Release();
 		ExecLock->Release();
@@ -1104,6 +1113,7 @@ std::cout << ">>>>>>  ";
 		}
 		
 	}
+
 
 #undef myairline
 #undef ExecLock
@@ -1421,6 +1431,68 @@ void TEST1() {
 	
 }
 
+void TEST2() {
+
+	//initialize locks
+	LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
+	
+	//use fixed number so that we can test the implementation
+	NUM_PASSENGERS = 1;
+	NUM_LIASONS = 1;
+	NUM_AIRLINES = 3;
+	NUM_CIS_PER_AIRLINE = 1;
+
+	passengers = new Passenger*[NUM_PASSENGERS];
+	liaisons = new Liaison*[NUM_LIASONS];
+	airlines = new Airline*[NUM_AIRLINES];
+	
+	Passenger* p1;
+	char * testName;
+ 	
+
+ 	for (int i = 0; i < 3; i++) {
+ 		testName = new char[20];
+ 		sprintf(testName, "TPassenger%d", 1);
+ 		
+ 		p1 = new Passenger(testName);
+ 		passengers[i] = p1;
+ 	}
+
+
+ 	Liaison* l1;
+	testName = new char[20];
+	sprintf(testName, "TLiaison%d", 0);
+	l1 = new Liaison(testName);
+	liaisons[0] = l1;
+	
+
+	for (int i=0; i < NUM_AIRLINES; i++) {
+		testName = new char[20];
+		sprintf(testName, "TAirline%d", i);
+		airlines[i] = new Airline(testName);
+	}
+
+	CheckInStaff* cis;
+	for (int i=0; i < NUM_AIRLINES; i++) {
+		for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+			testName = new char[20];
+			sprintf(testName, "TCis_%d_%d", i, j);
+
+			cis = new CheckInStaff(testName, i, j);
+			airlines[i]->_cis[j] = cis;
+		}
+	}
+	//starting simulation
+	for (int i = 0; i < 1; i++) {
+		passengers[i]->Fork((VoidFunctionPtr)PassengerStart, i);
+	}
+		liaisons[0]->Fork((VoidFunctionPtr)LiaisonStart, 0);
+	for (int i=0; i < NUM_AIRLINES; i++) {
+		for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+			airlines[i]->_cis[j]->Fork((VoidFunctionPtr)CisStart, i*NUM_CIS_PER_AIRLINE+j);
+		}
+	}
+}
 
 void AirTest() {
 
@@ -1452,20 +1524,55 @@ void AirTest() {
 
 			//First two Passengers start going Liaison
 			//the for loop is waiting for the testing simulation done so that there is correct result/outcome
-	    	for (int i=0;i<2;i++)
+	    	for (int i=0;i<4;i++)
 	    		t1.P();
 
 			if(liaisons[1]->_totalNumber == 2) {
-				printf("Test 1 is passed!\n");
+				printf("Test 1 passed!\n");
 			}else {
 				printf("Test 1 failed\n");
 			}
 			printf("Test1 over!\n");
 			semaBool = false;
+            NUM_PASSENGERS = 0;
+            NUM_LIASONS = 0;
+            liaisons[0]->_lineSize = 0;
 			continue;
 		}else if(i == 2) {
 			std::cout<<"TESTING 2"<<std::endl;
-			//put function		
+			semaBool2 = true;
+			printf("Test2 : Passenger is directed by the Liaison to the correct airline counters\n");
+
+			//executes TEST 2 simulation
+			Thread * t = new Thread("TEST2");
+			t->Fork((VoidFunctionPtr)TEST2,0);
+
+			//waiting test simulation before getting results and compare the results 
+			for (int i = 0;i < 2; i++)
+	    		t2.P();
+
+            int temp2 = 0;
+            for (int i=0; i < NUM_AIRLINES; i++) {
+                int temp = 0;
+                for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+                    temp += airlines[i]->_cis[j]->_passCount;
+                }
+                if(temp == 1) {
+                    temp2 = i;
+                }
+            }
+	    	if(passengers[0]->_myticket._airline == temp2) {
+	    		printf("Test 2 passed!\n");
+	    	}else {
+	    		printf("Test 2 failed\n");
+	    	}
+
+			semaBool2 = false;
+            NUM_PASSENGERS = 0;
+            NUM_LIASONS = 0;
+            NUM_AIRLINES = 0;
+            NUM_CIS_PER_AIRLINE = 0;
+            temp2 = 0;
 			continue;
 		}else if(i == 3) {
 			std::cout<<"TESTING 3"<<std::endl;
@@ -1511,5 +1618,3 @@ void AirTest() {
 
 
 }
-
-
