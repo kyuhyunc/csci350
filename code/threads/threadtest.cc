@@ -486,10 +486,10 @@ public:
 
 		// Executive or Economy ticket
 		_myticket._executive = false;
-		if ( (rand() % 2) == 1 ) {
+/*		if ( (rand() % 2) == 1 ) {
 			_myticket._executive = true;
 		}
-
+*/
 		// Airline number (choose between 0, 1, and 2)
 		_myticket._airline = rand() % 3;
 	}
@@ -882,7 +882,7 @@ void Passenger::Start()
 		myairline->_execQueue->Append((void*) this);
 		myairline->_execLineSize++;
 
-		printf("Passenger %s of Airline %i is waiting in the executive class line", getName(), _myticket._airline);
+		printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
 		
 		myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
 		myairline->_execLineSize--;
@@ -890,6 +890,7 @@ void Passenger::Start()
 	}
 	else {
 		// find shortest line
+std::cout << "Not an executive..." << std::endl;
 		lineSize = checkinstaff[0]->_lineSize;
 		myLine = 0;
 		for (int i=0; i < NUM_CIS_PER_AIRLINE; i++) {
@@ -1019,6 +1020,7 @@ void CheckInStaff::Start()
 			GlobalLock->Release();
 			ExecLock->Release();
 			_state = ONBREAK;
+std::cout << "cis going to sleep..." << std::endl;
 			_commCV->Wait(_lock); // wait for manager to wake me up
 		}
 		else {
@@ -1110,18 +1112,23 @@ void Manager::Start()
 #define CisLine airlines[i]->_cis[j]->_lineSize
 #define Cis airlines[i]->_cis[j]
 
-	for (int i=0; i < NUM_AIRLINES; i++) {
-		ExecLock->Acquire();
-		GlobalLock->Acquire();
-		for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
-			CisLock->Acquire();
-			if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
-				Cis->_commCV->Signal(CisLock);
+	while (true) {
+		for (int i=0; i < NUM_AIRLINES; i++) {
+			ExecLock->Acquire();
+			GlobalLock->Acquire();
+			for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+				CisLock->Acquire();
+				if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
+					Cis->_commCV->Signal(CisLock);
+				}
+				CisLock->Release();
 			}
-			CisLock->Release();
+			GlobalLock->Release();
+			ExecLock->Release();
 		}
-		GlobalLock->Release();
-		ExecLock->Release();
+		for (int i=0; i < 1000; i++) {
+			currentThread->Yield();
+		}
 	}
 
 #undef ExecLock
