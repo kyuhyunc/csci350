@@ -533,6 +533,8 @@ public:
 			_passCount[0] = 0;
 			_bagCount[0] = 0;
 		}
+
+		_totalNumber = 0;
 	}
 	void Start(); // starts the thread
 
@@ -553,6 +555,8 @@ public:
 	int* _bagCount;
 
 	Passenger* _currentPassenger;
+
+	int _totalNumber;
 	
 };
 
@@ -753,6 +757,10 @@ Airline** airlines;
 Lock* LiaisonGlobalLineLock;
 Lock* CisGlobalLineLock;
 
+
+Semaphore t1("t1",0);
+bool semaBool = false;
+
 struct SecureData {
 	
 } SecurityCloud;
@@ -830,6 +838,7 @@ void Passenger::Start()
 		liaisons[myLine]->_lineSize++;
 		liaisons[myLine]->_lineCV->Wait(LiaisonGlobalLineLock);
 		liaisons[myLine]->_lineSize--;
+		liaisons[myLine]->_totalNumber++;
 	}
 
 	liaisons[myLine]->_lock->Acquire();
@@ -848,14 +857,17 @@ void Passenger::Start()
 
 	liaisons[myLine]->_lock->Release();
 
-
+	if(semaBool == true) {
+		t1.V();
+	}
+	
 	//----------------------------------------------
 	// END PASSENGER INTERACTS WITH LIAISON
 	//----------------------------------------------
 
 
 
-
+	
 	// if executive passenger
 		// go to executive line
 		// get helped by cis
@@ -868,6 +880,7 @@ void Passenger::Start()
 	// PASSENGER INTERACTS WITH CHECK-IN-STAFF
 	//----------------------------------------------
 
+/*
 #define myairline airlines[_myticket._airline]
 #define checkinstaff airlines[_myticket._airline]->_cis
 #define myCis airlines[_myticket._airline]->_cis[myLine]
@@ -939,6 +952,7 @@ void Passenger::Start()
 	// ...
 
 	// wait in boarding lounge until boarding announcement
+*/
 }
 
 void Liaison::Start()
@@ -977,6 +991,10 @@ void Liaison::Start()
 
 		_lock->Release();
 
+	}
+
+	if(semaBool == true) {
+		t1.V();
 	}
 
 }
@@ -1331,3 +1349,139 @@ void AirportSim()
 	//----------------------------------------------
 
 }
+void TEST1() {
+	
+	NUM_PASSENGERS = 2;
+	NUM_LIASONS = 2;
+
+	// Create 4 Passengers for test
+
+	passengers = new Passenger*[NUM_PASSENGERS];
+	liaisons = new Liaison*[NUM_LIASONS];
+
+	Passenger* p1;
+	char * testName;
+ 	
+	// Initialize locks
+	LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
+
+ 	for (int i = 0; i < 2; i++) {
+ 		testName = new char[20];
+ 		sprintf(testName, "TPassenger%d", 1);
+ 		
+ 		p1 = new Passenger(testName);
+ 		passengers[i] = p1;
+ 	}
+
+	// Create two Liaisons and assign two passengers to one Liaison
+	Liaison* l1;
+	
+	for (int i = 0; i < 2; i++) {
+		testName = new char[20];
+		sprintf(testName, "TLiaison%d", i);
+
+		l1 = new Liaison(testName);
+		liaisons[i] = l1;
+	}
+
+	liaisons[0]->_lineSize = 2;
+	passengers[0]->Fork((VoidFunctionPtr)PassengerStart, 0);
+	passengers[1]->Fork((VoidFunctionPtr)PassengerStart, 1);
+	
+	liaisons[0]->Fork((VoidFunctionPtr)LiaisonStart, 0);
+	liaisons[1]->Fork((VoidFunctionPtr)LiaisonStart, 1);
+	
+}
+
+
+void AirTest() {
+
+	while(true) {
+		int i;
+		std::cout<<"Select TESTING Menu"<<std::endl;
+		std::cout<<"1.  Test 1  : Passenger selects the shortest line for the aiport liaison"<<std::endl;
+		std::cout<<"2.  Test 2  : Passenger is directed by the Liaison to the correct airline counters"<<std::endl;
+		std::cout<<"3.  Test 3  : Economy class passengers enter the shortest line while Executive class passengers enter their correct line"<<std::endl;
+		std::cout<<"4.  Test 4  : Executive class passengers are given priority over the economy class passengers at the check-in kiosks"<<std::endl;
+		std::cout<<"5.  Test 5  : Screening officer chooses an available security inspector each time a passenger comes in."<<std::endl;
+		std::cout<<"6.  Test 6  : Cargo handlers choose bags from the conveyor system each time and go on a break if there are no bags."<<std::endl;
+		std::cout<<"7.  Test 7  : Handing over of the hand luggage by the passenger to the screening officer."<<std::endl;
+		std::cout<<"8.  Test 8  : Passenger returns to the same security inspector after further questioning."<<std::endl;
+		std::cout<<"9.  Test 9  : Baggage weights of all the passengers of a particular airline should match the weights of the bags reported by the cargo handlers."<<std::endl;
+		std::cout<<"10. Test 10 : Handing over of boarding pass by the passenger to the security inspector"<<std::endl;
+		std::cout<<"11. QUIT "<<std::endl;
+
+		std::cin>>i;
+		if(i == 1) {
+			std::cout<<"TESTING 1"<<std::endl;
+			semaBool = true;
+			// Passenger selects the shortest line for the airport liaison
+			printf("Test1 : Passenger selects the shortest line for the airport liaison\n");
+
+			//executes TEST 1 simulation!
+	    	Thread * t = new Thread("TEST1");
+	    	t->Fork((VoidFunctionPtr)TEST1,0);
+
+			//First two Passengers start going Liaison
+			//the for loop is waiting for the testing simulation done so that there is correct result/outcome
+	    	for (int i=0;i<2;i++)
+	    		t1.P();
+
+			if(liaisons[1]->_totalNumber == 2) {
+				printf("Test 1 is passed!\n");
+			}else {
+				printf("Test 1 failed\n");
+			}
+			printf("Test1 over!\n");
+			semaBool = false;
+			continue;
+		}else if(i == 2) {
+			std::cout<<"TESTING 2"<<std::endl;
+			//put function		
+			continue;
+		}else if(i == 3) {
+			std::cout<<"TESTING 3"<<std::endl;
+			//put function		
+			continue;
+		}else if(i == 4) {
+			std::cout<<"TESTING 4"<<std::endl;
+			//put function		
+			continue;
+		}else if(i == 5) {
+			std::cout<<"TESTING 5"<<std::endl;
+			//put function		
+			continue;
+		}else if(i == 6) {
+			std::cout<<"TESTING 6"<<std::endl;	
+			//put function	
+			continue;
+		}else if(i == 7) {
+			std::cout<<"TESTING 7"<<std::endl;	
+			//put function	
+			continue;
+		}else if(i == 8) {
+			std::cout<<"TESTING 8"<<std::endl;	
+			//put function	
+			continue;
+		}else if(i == 9) {
+			std::cout<<"TESTING 9"<<std::endl;
+			//put function		
+			continue;
+		}else if(i == 10) {
+			std::cout<<"TESTING 10"<<std::endl;	
+			//put function	
+			continue;
+		}else if(i == 11) {
+			std::cout<<"QUIT"<<std::endl;	
+			break;
+		}else{
+			std::cout<<"You select wrong number try again."<<std::endl;
+			continue;
+		}
+	}	
+
+
+
+}
+
+
