@@ -873,8 +873,7 @@ void Passenger::Start()
 #define myCis airlines[_myticket._airline]->_cis[myLine]
 #define ExecLock airlines[_myticket._airline]->_execLineLock
 #define GlobalLock airlines[_myticket._airline]->_CisGlobalLineLock
-#define CisLock myCis->_lock
-
+#define CisLock airlines[_myticket._airline]->_cis[myLine]->_lock
 	
 	GlobalLock->Acquire();
 	if (_myticket._executive) {
@@ -882,6 +881,7 @@ void Passenger::Start()
 		myairline->_execQueue->Append((void*) this);
 		myairline->_execLineSize++;
 
+std::cout << ">>>>>>";
 		printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
 		
 		myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
@@ -900,10 +900,11 @@ std::cout << "Not an executive..." << std::endl;
 			}
 		}
 
+std::cout << ">>>>>>";
 		printf("Passenger %s of Airline %i chose Airline Check-In staff %s with a line length %i\n", getName(), _myticket._airline, myCis->getName(), lineSize);
 
 		myCis->_lineSize++;
-		myCis->_lineCV->Wait(CisLock);
+		myCis->_lineCV->Wait(GlobalLock);
 		myCis->_lineSize--;
 	}
 	CisLock->Acquire();
@@ -916,6 +917,7 @@ std::cout << "Not an executive..." << std::endl;
 	myCis->_commCV->Wait(CisLock); // wait for cis for boarding pass
 
 	// receives boarding pass with seat number
+std::cout << ">>>>>>";
 	printf("Passenger %s of Airline %i was informed to board at gate %i\n", getName(), _myticket._airline, _myticket._airline);
 
 	myCis->_commCV->Signal(CisLock);
@@ -1038,6 +1040,7 @@ std::cout << "cis going to sleep..." << std::endl;
 			Passenger* p = (Passenger*) myairline->_execQueue->Remove();
 			p->myLine = _cisNum;
 
+std::cout << ">>>>>>";
 			printf("Airline check-in staff %s of airline %i serves an executive class passenger and economy line length = %i\n", getName(), _airline, _lineSize);
 
 			myairline->_execLineCV->Signal(ExecLock);
@@ -1046,6 +1049,7 @@ std::cout << "cis going to sleep..." << std::endl;
 		else if (_lineSize > 0) {
 			executive = false;
 			
+std::cout << ">>>>>>";
 			printf("Airline check-in staff %s of airline %i serves an economy class passenger and executive class line length = %i\n", getName(), _airline, myairline->_execLineSize);
 
 			_lineCV->Signal(GlobalLock);
@@ -1062,9 +1066,11 @@ std::cout << "cis going to sleep..." << std::endl;
 			// put bags on conveyor belt
 
 			if (executive) {
+std::cout << ">>>>>>";
 				printf("Airline check-in staff %s of airline %i informs executive class passenger %s to board at gate %i\n", getName(), _airline, _currentPassenger->getName(), _airline);
 			}
 			else {
+std::cout << ">>>>>>";
 				printf("Airline check-in staff %s of airline %i informs economy class passenger %s to board at gate %i\n", getName(), _airline, _currentPassenger->getName(), _airline);
 			}
 

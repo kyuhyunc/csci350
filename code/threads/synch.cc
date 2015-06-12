@@ -189,6 +189,7 @@ bool Lock::isHeldByCurrentThread() {
 Condition::Condition(char* debugName) {
 	name = debugName;
 	waitQueue = new List;
+	waitingLock = NULL;
 }
 
 Condition::~Condition() {
