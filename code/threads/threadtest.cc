@@ -1024,20 +1024,19 @@ void CheckInStaff::Start()
 	bool executive = false;
 	while (true) {
 		_lock->Acquire();
-		ExecLock->Acquire();
 		GlobalLock->Acquire();
+		ExecLock->Acquire();
 		if (_lineSize == 0 && myairline->_execLineSize == 0) {
     //if (_lineSize == 0 && myairline->_execQueue->IsEmpty()) {
+			_state = ONBREAK;
+		  _currentPassenger = NULL;
 			GlobalLock->Release();
 			ExecLock->Release();
-			_state = ONBREAK;
 			_commCV->Wait(_lock); // wait for manager to wake me up
       GlobalLock->Acquire();
       ExecLock->Acquire();
 		}
 		_state = BUSY;
-
-		_currentPassenger = NULL;
 
 		// serving an executive passenger
 		if (myairline->_execLineSize > 0) {
@@ -1085,6 +1084,8 @@ void CheckInStaff::Start()
 			_commCV->Signal(_lock);
 			_commCV->Wait(_lock);
 			_lock->Release();
+
+      _currentPassenger = NULL;
 		}
     else {
       printf("error: (in CIS) SHOULD NOT REACH HERE");
@@ -1141,7 +1142,7 @@ void Manager::Start()
 			for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
 				CisLock->Acquire();
 				if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
-std::cout << "Manager is waking up a cis..." << std::endl;
+          std::cout << "Manager is waking up a cis..." << std::endl;
 					Cis->_commCV->Signal(CisLock);
 				}
 				CisLock->Release();
