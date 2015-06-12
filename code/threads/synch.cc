@@ -138,8 +138,8 @@ void Lock::Acquire() {
 	// if somebody else knows the lock, I can't have it :(
 	else {
 		// add myself to queue and put myself to sleep
-    if (strcmp(currentThread->getName(), "manager"))
-     std::cout << "MANAGER GOING TO SLEEP" << std::endl;
+    //if (strcmp(currentThread->getName(), "manager"))
+    // std::cout << "MANAGER GOING TO SLEEP" << std::endl;
 		waitQueue->Append((void *)currentThread);
 		currentThread->Sleep();
 	}
