@@ -1086,7 +1086,10 @@ void CheckInStaff::Start()
 			_commCV->Wait(_lock);
 			_lock->Release();
 		}
-		
+    else {
+      std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+    }	
+	
 	}
 
 #undef myairline
