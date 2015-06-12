@@ -888,11 +888,11 @@ void Passenger::Start()
 		printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
 		
 		//GlobalLock->Release();
-    std::cout << "11111111111111111: " << myairline->_execLineSize << std::endl; 
+    std::cout << myairline->getName() << " 11111111111111111: " << myairline->_execLineSize << std::endl; 
 		myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
 		//GlobalLock->Acquire();
 
-    std::cout << "33333333333333333: " << myairline->_execLineSize << std::endl; 
+    std::cout << myairline->getName() << " 33333333333333333: " << myairline->_execLineSize << std::endl; 
     
 		ExecLock->Release();
 	}
@@ -1051,7 +1051,7 @@ void CheckInStaff::Start()
 
 			printf("Airline check-in staff %s of airline %i serves an executive class passenger and economy line length = %i\n", getName(), _airline, _lineSize);
 
-      std::cout << "22222222222222222: " << myairline->_execLineSize << std::endl; 
+      std::cout << myairline->getName() << " 22222222222222222: " << myairline->_execLineSize << std::endl; 
 
 			myairline->_execLineCV->Signal(ExecLock);
 		}
