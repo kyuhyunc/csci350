@@ -888,11 +888,13 @@ void Passenger::Start()
 		printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
 		
 		//GlobalLock->Release();
-    std::cout << "!!!!!!!!!!!!!!!!!: " << myairline->_execLineSize << std::endl; 
+    std::cout << "11111111111111111: " << myairline->_execLineSize << std::endl; 
 		myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
 		//GlobalLock->Acquire();
 
-		//ExecLock->Release();
+    std::cout << "22222222222222222: " << myairline->_execLineSize << std::endl; 
+    
+		ExecLock->Release();
 	}
 	else {
     GlobalLock->Acquire();
@@ -908,20 +910,18 @@ void Passenger::Start()
 
 		printf("Passenger %s of Airline %i chose Airline Check-In staff %s with a line length %i\n", getName(), _myticket._airline, myCis->getName(), lineSize);
 
-    GlobalLock->Release();
 		myCis->_lineSize++;
 		myCis->_lineCV->Wait(GlobalLock);
 		myCis->_lineSize--;
+
+    GlobalLock->Release();
 	}
 	CisLock->Acquire();
-	//GlobalLock->Release();
 
 	// give baggage + ticket to cis
 	myCis->updatePassengerInfo(this);
 
 	myCis->_commCV->Signal(CisLock);
-  ExecLock->Release();
-
 	myCis->_commCV->Wait(CisLock); // wait for cis for boarding pass
 
 	// receives boarding pass with seat number
