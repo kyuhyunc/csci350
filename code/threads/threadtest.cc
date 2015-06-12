@@ -1053,9 +1053,9 @@ std::cout << "cis going to sleep..." << std::endl;
 		GlobalLock->Release();
 		ExecLock->Release();
 
+		_commCV->Wait(_lock); // wait for passenger to hand over bags and ticket
 		// if serving any passenger
 		if (_currentPassenger != NULL) {
-			_commCV->Wait(_lock); // wait for passenger to hand over bags and ticket
 
 			// weigh bags, tag bags, check ticket
 			// give passenger boarding pass, seat number
@@ -1119,6 +1119,7 @@ void Manager::Start()
 			for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
 				CisLock->Acquire();
 				if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
+std::cout << "Manager is waking up a cis..." << std::endl;
 					Cis->_commCV->Signal(CisLock);
 				}
 				CisLock->Release();
