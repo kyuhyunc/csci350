@@ -281,6 +281,10 @@ void Condition::Broadcast(Lock* conditionLock) {
 	// if conditionLock does not match waitingLock, print error
 	if (waitingLock != conditionLock) {
 		printf("Error in Condition::Broadcast -- conditionLock does not match waitingLock...\n");
+		printf("Thread name: %s\n", currentThread->getName());
+		printf("Condition name: %s\n", getName());
+		printf("waitingLock name: %s\n", waitingLock->getName());
+		printf("conditionLock name: %s\n", conditionLock->getName());
 		return;
 	}
 
