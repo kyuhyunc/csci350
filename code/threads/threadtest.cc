@@ -1125,10 +1125,16 @@ void Manager::Start()
 #define Cis airlines[i]->_cis[j]
 
 	while (true) {
+
+		for (int i=0; i < 10; i++) {
+			currentThread->Yield();
+		}
+
 		for (int i=0; i < NUM_AIRLINES; i++) {
 			ExecLock->Acquire();
 			GlobalLock->Acquire();
 			for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+std::cout << "Manager loop i = " << i << " and j = " << j << std::endl;
 				CisLock->Acquire();
 				if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
 std::cout << "Manager is waking up a cis..." << std::endl;
@@ -1139,9 +1145,11 @@ std::cout << "Manager is waking up a cis..." << std::endl;
 			GlobalLock->Release();
 			ExecLock->Release();
 		}
+
 		for (int i=0; i < 1000; i++) {
 			currentThread->Yield();
 		}
+
 	}
 
 #undef ExecLock
