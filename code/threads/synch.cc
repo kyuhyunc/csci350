@@ -151,6 +151,14 @@ void Lock::Release() {
 	// a non-lock owner cannot release a lock they don't own...
 	if (!isHeldByCurrentThread()) {
 		printf("Error in Lock::Release -- only lock owners can release locks...\n");
+		printf("Thread name: %s\n", currentThread->getName());
+		printf("Lock name: %s\n", getName());
+		if (owner == NULL) {
+			printf("Owner name: NULL\n");
+		}
+		else {
+			printf("Owner name: %s\n", owner->getName());
+		}
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
@@ -181,6 +189,7 @@ bool Lock::isHeldByCurrentThread() {
 Condition::Condition(char* debugName) {
 	name = debugName;
 	waitQueue = new List;
+	waitingLock = NULL;
 }
 
 Condition::~Condition() {
@@ -210,6 +219,10 @@ void Condition::Wait(Lock* conditionLock) {
 	// if conditionLock does not match waitingLock, print error
 	if (waitingLock != conditionLock) {
 		printf("Error in Condition::Wait -- conditionLock does not match waitingLock...\n");
+		printf("Thread name: %s\n", currentThread->getName());
+		printf("Condition name: %s\n", getName());
+		printf("waitingLock name: %s\n", waitingLock->getName());
+		printf("conditionLock name: %s\n", conditionLock->getName());
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
@@ -239,6 +252,10 @@ void Condition::Signal(Lock* conditionLock) {
 	// if conditionLock does not match waitingLock, print error
 	if (waitingLock != conditionLock) {
 		printf("Error in Condition::Signal -- conditionLock does not match waitingLock...\n");
+		printf("Thread name: %s\n", currentThread->getName());
+		printf("Condition name: %s\n", getName());
+		printf("waitingLock name: %s\n", waitingLock->getName());
+		printf("conditionLock name: %s\n", conditionLock->getName());
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
