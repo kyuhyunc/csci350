@@ -485,7 +485,7 @@ public:
 		}
 
 		// Executive or Economy ticket
-		_myticket._executive = false;
+		_myticket._executive = true;
 /*		if ( (rand() % 2) == 1 ) {
 			_myticket._executive = true;
 		}
