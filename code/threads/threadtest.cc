@@ -888,6 +888,7 @@ void Passenger::Start()
 		printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
 		
 		//GlobalLock->Release();
+    std::cout << "!!!!!!!!!!!!!!!!!: " << myairline->_execLineSize; 
 		myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
 		//GlobalLock->Acquire();
 
@@ -1024,8 +1025,8 @@ void CheckInStaff::Start()
 		_lock->Acquire();
 		ExecLock->Acquire();
 		GlobalLock->Acquire();
-		//if (_lineSize == 0 && myairline->_execLineSize == 0) {
-    if (_lineSize == 0 && myairline->_execQueue->IsEmpty()) {
+		if (_lineSize == 0 && myairline->_execLineSize == 0) {
+    //if (_lineSize == 0 && myairline->_execQueue->IsEmpty()) {
 			GlobalLock->Release();
 			ExecLock->Release();
 			_state = ONBREAK;
@@ -1041,8 +1042,8 @@ void CheckInStaff::Start()
 		_currentPassenger = NULL;
 
 		// serving an executive passenger
-		//if (myairline->_execLineSize > 0) {
-    if (!myairline->_execQueue->IsEmpty()) {
+		if (myairline->_execLineSize > 0) {
+    //if (!myairline->_execQueue->IsEmpty()) {
 			executive = true;
 			Passenger* p = (Passenger*) myairline->_execQueue->Remove();
 			myairline->_execLineSize--;
