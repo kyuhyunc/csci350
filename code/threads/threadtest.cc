@@ -888,7 +888,10 @@ void Passenger::Start()
 std::cout << ">>>>>>  ";
 		printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
 		
+GlobalLock->Release();
 		myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
+GlobalLock->Acquire();
+
 		myairline->_execLineSize--;
 		ExecLock->Release();
 	}
@@ -1134,7 +1137,6 @@ void Manager::Start()
 			ExecLock->Acquire();
 			GlobalLock->Acquire();
 			for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
-std::cout << "Manager loop i = " << i << " and j = " << j << std::endl;
 				CisLock->Acquire();
 				if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
 std::cout << "Manager is waking up a cis..." << std::endl;
