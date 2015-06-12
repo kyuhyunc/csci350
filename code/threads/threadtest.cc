@@ -892,7 +892,7 @@ void Passenger::Start()
 		myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
 		//GlobalLock->Acquire();
 
-    std::cout << myairline->getName() << " 33333333333333333: " << myairline->_execLineSize << std::endl; 
+    std::cout << myairline->getName() << " 44444444444444444: " << myairline->_execLineSize << std::endl; 
     
 		ExecLock->Release();
 	}
@@ -1054,6 +1054,8 @@ void CheckInStaff::Start()
       std::cout << myairline->getName() << " 22222222222222222: " << myairline->_execLineSize << std::endl; 
 
 			myairline->_execLineCV->Signal(ExecLock);
+
+      std::cout << myairline->getName() << " 33333333333333333: " << myairline->_execLineSize << std::endl; 
 		}
 		// serving an economy passenger
 		else if (_lineSize > 0) {
