@@ -1148,6 +1148,8 @@ std::cout << "Manager is waking up a cis..." << std::endl;
 
 	}
 
+  std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::cout;
+
 #undef ExecLock
 #undef GlobalLock
 #undef CisLock
