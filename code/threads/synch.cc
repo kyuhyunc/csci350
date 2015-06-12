@@ -115,6 +115,9 @@ void Lock::Acquire() {
 	// disable interrupts
 	IntStatus old = interrupt->SetLevel(IntOff);
 
+//std::cout << "CurrentThread: " << currentThread->getName() << std::endl;
+//if (owner == NULL) { std::cout << "CurrentLockOwner: NULL" << std::endl; }
+//else { std::cout << "CurrentLockOwner: " << owner->getName() << std::endl; }
 	// checks if I'm the lock owner
 	// if I'm the lock owner, I already "acquired" this lock
 	// this can happen if class functions are nested
