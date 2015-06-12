@@ -426,16 +426,6 @@ ThreadTest()
 #include <time.h>
 #include <vector>
 
-/*
-#define NUM_PASSENGERS 20
-#define NUM_LIASONS 7
-#define NUM_AIRLINES 3
-#define NUM_CIS_PER_AIRLINE 5
-#define NUM_CARGO_HANDLERS 10
-#define NUM_SCREENING_OFFICERS 5 // what num?
-#define NUM_SECURITY_INSPECTORS 5 // what num?
-*/
-
 int NUM_PASSENGERS;
 int NUM_LIASONS;
 int NUM_AIRLINES;
@@ -469,6 +459,7 @@ struct Baggage {
 class Passenger : public Thread
 {
 public:
+<<<<<<< HEAD
     Passenger(char* debugName) : Thread(debugName) {
         //------------
         // Initialize
@@ -495,6 +486,33 @@ public:
         _myticket._airline = rand() % NUM_AIRLINES;
     }
     void Start(); // starts the thread
+=======
+	Passenger(char* debugName) : Thread(debugName) {
+		//------------
+		// Initialize
+		//------------
+		myLine = 0;
+
+		// 2 or 3 baggages 30-60 lbs
+		Baggage* mybag;
+		int numBaggages = rand() % 2 + 2;
+		for (int i=0; i < numBaggages; i++) {
+			mybag = new Baggage;
+			mybag->_weight = rand() % 31 + 30;
+			_baggages.push_back(mybag);
+		}
+
+		// Executive or Economy ticket
+		_myticket._executive = false;
+		if ( (rand() % 2) == 1 ) {
+			_myticket._executive = true;
+		}
+
+		// Airline number 
+		_myticket._airline = rand() % NUM_AIRLINES;
+	}
+	void Start(); // starts the thread
+>>>>>>> kyu
 
 public:
     std::vector<Baggage*> _baggages;
@@ -568,6 +586,7 @@ public:
 class CheckInStaff : public Thread
 {
 public:
+<<<<<<< HEAD
     CheckInStaff(char* debugName, int airline, int cisnum) : Thread(debugName) {
         char* myname;
         _airline = airline;
@@ -604,6 +623,44 @@ public:
     }
 
     friend class Manager;
+=======
+	CheckInStaff(char* debugName, int airline, int cisnum) : Thread(debugName) {
+		char* myname;
+		_airline = airline;
+		_cisNum = cisnum;
+
+		myname = new char[20];
+		sprintf(myname, "%s_lock", debugName);
+		_lock = new Lock(myname);
+
+		myname = new char[20];
+		sprintf(myname, "%s_lineCV", debugName);
+		_lineCV = new Condition(myname);
+
+		myname = new char[20];
+		sprintf(myname, "%s_commCV", debugName);
+		_commCV = new Condition(myname);
+
+		_lineSize = 0;
+
+		_state = BUSY;
+		_passCount = 0;
+		_bagCount = 0;
+		
+		_done = false;  // manager switches this to true once all
+                    // passengers of this airline have gone through
+                    // check-in
+	}
+	void Start(); // starts the thread
+
+	void updatePassengerInfo(Passenger* pass) {
+		_passCount++;
+		_bagCount += pass->_baggages.size();
+		_currentPassenger = pass;
+	}
+>>>>>>> kyu
+
+	friend class Manager;
 
 public:
     Lock* _lock;
@@ -618,10 +675,17 @@ public:
     Passenger* _currentPassenger;
 
 private:
+<<<<<<< HEAD
     int _airline;
     int _cisNum;
 
     bool _done;
+=======
+	int _airline;
+	int _cisNum;
+
+	bool _done;
+>>>>>>> kyu
 };
 
 //-----------------------
@@ -631,6 +695,7 @@ private:
 class CargoHandler : public Thread
 {
 public:
+<<<<<<< HEAD
     CargoHandler(char* debugName) : Thread(debugName) {
         _bagCount = new int[NUM_AIRLINES];
         for (int i=0; i < NUM_AIRLINES; i++) {
@@ -642,6 +707,18 @@ public:
 public:
     int* _bagCount;
 
+=======
+	CargoHandler(char* debugName) : Thread(debugName) {
+		_bagCount = new int[NUM_AIRLINES];
+		for (int i=0; i < NUM_AIRLINES; i++) {
+			_bagCount[i] = 0;
+		}
+	}
+	void Start(); // starts the thread
+
+public:
+	int* _bagCount;
+>>>>>>> kyu
 };
 
 
@@ -684,6 +761,7 @@ private:
 class Manager : public Thread
 {
 public:
+<<<<<<< HEAD
     Manager(char* debugName) : Thread(debugName) {
         
         _cisDone = false;
@@ -694,6 +772,17 @@ public:
 private:
     bool _cisDone;
     bool _cargoDone;
+=======
+	Manager(char* debugName) : Thread(debugName) {
+		_cisDone = false;
+		_cargoDone = false;
+	}
+	void Start(); // starts the thread
+
+private:
+	bool _cisDone;
+	bool _cargoDone;
+>>>>>>> kyu
 };
 
 //-----------------------
@@ -731,6 +820,7 @@ public:
         _numExpectedBaggages = 0;
         _numLoadedBaggages = 0;
 
+<<<<<<< HEAD
         _totalPassenger = 0;
 
 
@@ -740,6 +830,19 @@ public:
     }
     char* getName() { return _name; }
     friend class Manager;
+=======
+		_numExpectedPassengers = 0;
+		_numCheckedinPassengers = 0;
+		_numReadyPassengers = 0;
+		_numExpectedBaggages = 0;
+		_numLoadedBaggages = 0;
+
+		_allPassengersCheckedIn = false;
+		_allBaggagesCheckedIn = false;
+	}
+	char* getName() { return _name; }
+	friend class Manager;
+>>>>>>> kyu
 
 public:
     CheckInStaff** _cis;
@@ -751,6 +854,7 @@ public:
 
     Lock* _CisGlobalLineLock;
 
+<<<<<<< HEAD
     int _numExpectedPassengers;
     int _numCheckedinPassengers;
     int _numReadyPassengers;
@@ -762,6 +866,18 @@ private:
     char* _name;
     bool _allPassengersCheckedIn;
     bool _allBaggagesCheckedIn;
+=======
+	int _numExpectedPassengers;
+	int _numCheckedinPassengers;
+	int _numReadyPassengers;
+	int _numExpectedBaggages;
+	int _numLoadedBaggages;
+
+private:
+	char* _name;
+	bool _allPassengersCheckedIn;
+	bool _allBaggagesCheckedIn;
+>>>>>>> kyu
 };
 
 //-----------------------
@@ -786,6 +902,7 @@ List* ConveyorBelt;
 Lock* ConveyorLock;
 Condition* ConveyorCV;
 int CargoHandlerState = BUSY;
+<<<<<<< HEAD
 
 
 Semaphore t1("t1",0);
@@ -794,6 +911,8 @@ Semaphore t4("t4",0);
 bool semaBool = false;
 bool semaExe1 = false;
 bool semaExe = false; 
+=======
+>>>>>>> kyu
 
 struct SecureData {
     
@@ -874,6 +993,7 @@ void Passenger::Start()
 
 
 
+<<<<<<< HEAD
     
     // if executive passenger
         // go to executive line
@@ -887,6 +1007,12 @@ void Passenger::Start()
     //----------------------------------------------
     // PASSENGER INTERACTS WITH CHECK-IN-STAFF
     //----------------------------------------------
+=======
+	
+	//----------------------------------------------
+	// PASSENGER INTERACTS WITH CHECK-IN-STAFF
+	//----------------------------------------------
+>>>>>>> kyu
 
 /*
 #define myairline airlines[_myticket._airline]
@@ -895,6 +1021,7 @@ void Passenger::Start()
 #define ExecLock airlines[_myticket._airline]->_execLineLock
 #define GlobalLock airlines[_myticket._airline]->_CisGlobalLineLock
 #define CisLock airlines[_myticket._airline]->_cis[myLine]->_lock
+<<<<<<< HEAD
     
     GlobalLock->Acquire();
     if (_myticket._executive) {
@@ -911,6 +1038,45 @@ std::cout << ">>>>>>  ";
         GlobalLock->Release();
         myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
         GlobalLock->Acquire();
+=======
+	
+	// GlobalLock->Acquire();
+	if (_myticket._executive) {
+		ExecLock->Acquire();
+		myairline->_execQueue->Append((void*) this);
+		myairline->_execLineSize++;
+
+		printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
+		
+    myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
+
+		ExecLock->Release();
+	}
+	else {
+    GlobalLock->Acquire();
+		// find shortest line
+		lineSize = checkinstaff[0]->_lineSize;
+		myLine = 0;
+		for (int i=0; i < NUM_CIS_PER_AIRLINE; i++) {
+			if (checkinstaff[i]->_lineSize < lineSize) {
+				lineSize = airlines[_myticket._airline]->_cis[i]->_lineSize;
+				myLine = i;
+			}
+		}
+
+		printf("Passenger %s of Airline %i chose Airline Check-In staff %s with a line length %i\n", getName(), _myticket._airline, myCis->getName(), lineSize);
+
+		myCis->_lineSize++;
+		myCis->_lineCV->Wait(GlobalLock);
+		myCis->_lineSize--;
+
+    GlobalLock->Release();
+	}
+	CisLock->Acquire();
+
+	// give baggage + ticket to cis
+	myCis->updatePassengerInfo(this);
+>>>>>>> kyu
 
         ExecLock->Release();
     }
@@ -925,8 +1091,16 @@ std::cout << ">>>>>>  ";
             }
         }
 
+<<<<<<< HEAD
 std::cout << ">>>>>>  ";
 =======
+=======
+	// receives boarding pass with seat number
+	printf("Passenger %s of Airline %i was informed to board at gate %i\n", getName(), _myticket._airline, _myticket._airline);
+
+	myCis->_commCV->Signal(CisLock);
+	CisLock->Release();
+>>>>>>> kyu
 
 
         printf("Passenger %s of Airline %i chose Airline Check-In staff %s with a line length %i\n", getName(), _myticket._airline, myCis->getName(), lineSize);
@@ -957,6 +1131,16 @@ std::cout << ">>>>>>  ";
 
 
 
+<<<<<<< HEAD
+=======
+
+
+
+
+	// go through security...
+	// ...
+	// ...
+>>>>>>> kyu
 
 
 
@@ -1019,6 +1203,7 @@ void Liaison::Start()
 
 void CheckInStaff::Start()
 {
+<<<<<<< HEAD
 //  printf("%s: Made it!\n", this->getName());
 
     // while loop
@@ -1041,6 +1226,8 @@ void CheckInStaff::Start()
         // .
         // .
         // when all passengers checked in, close check-in counter
+=======
+>>>>>>> kyu
 
 #define myairline airlines[_airline]
 #define ExecLock airlines[_airline]->_execLineLock
@@ -1137,6 +1324,96 @@ void CheckInStaff::Start()
         
     }
 
+<<<<<<< HEAD
+=======
+// CHECK-IN-STAFF
+	bool executive = false;
+	while (true) {
+		_lock->Acquire();
+		GlobalLock->Acquire();
+		ExecLock->Acquire();
+		if (_lineSize == 0 && myairline->_execLineSize == 0) {
+			_state = ONBREAK;
+		  _currentPassenger = NULL;
+			GlobalLock->Release();
+			ExecLock->Release();
+			_commCV->Wait(_lock); // wait for manager to wake me up
+      GlobalLock->Acquire();
+      ExecLock->Acquire();
+
+      // if there are no more passengers, cis can exit and be done!
+      if (_done) {
+        _lock->Release();
+        GlobalLock->Release();
+        ExecLock->Release();
+        printf("Airline check-in staff %s is closing the counter\n", getName());
+        break;
+      }
+		}
+		_state = BUSY;
+
+		// serving an executive passenger
+		if (myairline->_execLineSize > 0) {
+    //if (!myairline->_execQueue->IsEmpty()) {
+			executive = true;
+			Passenger* p = (Passenger*) myairline->_execQueue->Remove();
+			myairline->_execLineSize--;
+			p->myLine = _cisNum;
+
+			printf("Airline check-in staff %s of airline %i serves an executive class passenger and economy line length = %i\n", getName(), _airline, _lineSize);
+
+			myairline->_execLineCV->Signal(ExecLock);
+		}
+		// serving an economy passenger
+		else if (_lineSize > 0) {
+			executive = false;
+			
+			printf("Airline check-in staff %s of airline %i serves an economy class passenger and executive class line length = %i\n", getName(), _airline, myairline->_execLineSize);
+
+			_lineCV->Signal(GlobalLock);
+		}
+		GlobalLock->Release();
+		ExecLock->Release();
+
+		_commCV->Wait(_lock); // wait for passenger to hand over bags and ticket
+
+		// if serving any passenger
+		if (_currentPassenger != NULL) {
+
+			// weigh bags, tag bags, check ticket
+			// give passenger boarding pass, seat number
+			GlobalLock->Acquire();
+			_currentPassenger->_myticket._seat = myairline->_numCheckedinPassengers; // give passenger seat number
+			myairline->_numCheckedinPassengers++;
+			GlobalLock->Release();
+
+			ConveyorLock->Acquire();
+			for (unsigned int i=0; i < _currentPassenger->_baggages.size(); i++) {
+				_currentPassenger->_baggages.at(i)->_airline = _airline; // tags baggage
+				ConveyorBelt->Append((void*) _currentPassenger->_baggages.at(i)); // put bags on conveyor belt
+			}
+			ConveyorLock->Release();
+
+			if (executive) {
+				printf("Airline check-in staff %s of airline %i informs executive class passenger %s to board at gate %i\n", getName(), _airline, _currentPassenger->getName(), _airline);
+			}
+			else {
+				printf("Airline check-in staff %s of airline %i informs economy class passenger %s to board at gate %i\n", getName(), _airline, _currentPassenger->getName(), _airline);
+			}
+
+			_commCV->Signal(_lock);
+			_commCV->Wait(_lock);
+			
+			_lock->Release();
+
+      _currentPassenger = NULL;
+		}
+    else {
+      printf("error: (in CIS) SHOULD NOT REACH HERE");
+    }	
+	
+	}
+>>>>>>> kyu
 
 #undef myairline
 #undef ExecLock
@@ -1146,6 +1423,7 @@ void CheckInStaff::Start()
 
 void CargoHandler::Start()
 {
+<<<<<<< HEAD
 //  printf("%s: Made it!\n", this->getName());
     
     Baggage* b;
@@ -1168,6 +1446,30 @@ void CargoHandler::Start()
         }
         ConveyorLock->Release();
     }
+=======
+//	printf("%s: Made it!\n", this->getName());
+	
+	Baggage* b;
+
+	while (true) {
+		ConveyorLock->Acquire();
+		if (CargoHandlerState == ONBREAK) {
+			printf("Cargo Handler %s is going for a break\n", getName());
+			ConveyorCV->Wait(ConveyorLock);
+			printf("Cargo Handler %s returned from break\n", getName());
+		}
+		if (ConveyorBelt->IsEmpty()) {
+			CargoHandlerState = ONBREAK;
+		}
+		else {
+			b = (Baggage*) ConveyorBelt->Remove();
+			printf("Cargo Handler %s picked bag of airline %i with weighing %i lbs\n", getName(), b->_airline, b->_weight);
+			airlines[b->_airline]->_numLoadedBaggages++; // load baggage into proper aircraft
+			_bagCount[b->_airline]++;
+		}
+		ConveyorLock->Release();
+	}
+>>>>>>> kyu
 }
 
 void ScreeningOfficer::Start()
@@ -1184,12 +1486,19 @@ void Manager::Start()
 {
 //  printf("%s: Made it!\n", this->getName());
 
+	while (true) {
 
+<<<<<<< HEAD
     while (true) {
 
         //----------------------------------------------
         // MANAGER CHECKS CIS LINES
         //----------------------------------------------
+=======
+		//----------------------------------------------
+		// MANAGER CHECKS CIS LINES
+		//----------------------------------------------
+>>>>>>> kyu
 
 #define ExecLock airlines[i]->_execLineLock
 #define GlobalLock airlines[i]->_CisGlobalLineLock
@@ -1197,7 +1506,26 @@ void Manager::Start()
 #define ExecLine airlines[i]->_execLineSize
 #define CisLine airlines[i]->_cis[j]->_lineSize
 #define Cis airlines[i]->_cis[j]
+		
+		if (!_cisDone) {
 
+			// check to see if airline check-in-staff have served all passengers
+			// if they are, they are all on break, so tell them all to shut down
+			for (int i=0; i < NUM_AIRLINES; i++) {
+				GlobalLock->Acquire();
+				if (airlines[i]->_numExpectedPassengers == airlines[i]->_numCheckedinPassengers) {
+					airlines[i]->_allPassengersCheckedIn = true;
+					for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+						CisLock->Acquire();
+						Cis->_done = true;
+						Cis->_commCV->Signal(CisLock);
+						CisLock->Release();
+					}
+				}
+				GlobalLock->Release();
+			}
+
+<<<<<<< HEAD
         
         if (!_cisDone) {
 
@@ -1262,6 +1590,42 @@ void Manager::Start()
 
 
         }
+=======
+			// check to see if all airlines have checked in their passengers
+			_cisDone = true;
+			for (int i=0; i < NUM_AIRLINES; i++) {
+				if (!airlines[i]->_allPassengersCheckedIn) {
+					_cisDone = false;
+					break;
+				}
+			}
+			
+			// tell cis to get off break!
+			// if there are passengers waiting in their line
+			for (int i=0; i < NUM_AIRLINES; i++) {
+				if (airlines[i]->_allPassengersCheckedIn) 
+					continue;
+
+				ExecLock->Acquire();
+				GlobalLock->Acquire();
+				for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+					CisLock->Acquire();
+					if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
+	          std::cout << "Manager is waking up a cis..." << std::endl;
+						Cis->_commCV->Signal(CisLock);
+					}
+					CisLock->Release();
+				}
+				GlobalLock->Release();
+				ExecLock->Release();
+			}
+
+			// prevent Manager from dominating CPU
+			for (int i=0; i < 1000; i++) {
+				currentThread->Yield();
+			}
+		}
+>>>>>>> kyu
 
 #undef ExecLock
 #undef GlobalLock
@@ -1270,6 +1634,7 @@ void Manager::Start()
 #undef CisLine
 #undef Cis
 
+<<<<<<< HEAD
         //----------------------------------------------
         // END MANAGER CHECKS CIS LINES
         //----------------------------------------------
@@ -1316,6 +1681,54 @@ void Manager::Start()
         
 
     }
+=======
+		//----------------------------------------------
+		// END MANAGER CHECKS CIS LINES
+		//----------------------------------------------
+		
+
+
+		//----------------------------------------------
+		// MANAGER CHECKS CONVEYOR BELT
+		//----------------------------------------------
+
+		if (!_cargoDone) {
+			
+			ConveyorLock->Acquire();
+
+			_cargoDone = true;
+			for (int i=0; i < NUM_AIRLINES; i++) {
+				// checks an airline if all baggages have been loaded
+				if (airlines[i]->_numExpectedBaggages == airlines[i]->_numLoadedBaggages) {
+					airlines[i]->_allBaggagesCheckedIn = true;
+				}
+				if (!airlines[i]->_allBaggagesCheckedIn) {
+					_cargoDone = false;
+					break;
+				}
+			}
+			
+//			if (!ConveyorBelt->IsEmpty() && cargohandlers[0]->_state == ONBREAK) {
+			if (!ConveyorBelt->IsEmpty() && CargoHandlerState == ONBREAK) {
+				ConveyorCV->Broadcast(ConveyorLock);
+			}
+
+			ConveyorLock->Release();
+
+		}
+
+		//----------------------------------------------
+		// END MANAGER CHECKS CONVEYOR BELT
+		//----------------------------------------------
+
+		// if all manager tasks are done, break!
+		if (_cisDone && _cargoDone) { // ADD CASES AS THE PROJECT GOES ALONG
+			break;
+		}
+		
+
+	}
+>>>>>>> kyu
 }
 
 
@@ -1327,6 +1740,7 @@ void Manager::Start()
 
 void AirportSim()
 {
+<<<<<<< HEAD
     //----------------------------------------------
     // SETUP
     //----------------------------------------------
@@ -1376,12 +1790,64 @@ void AirportSim()
     //----------------------------------------------
     // END SETUP
     //----------------------------------------------
+=======
+	//----------------------------------------------
+	// SETUP
+	//----------------------------------------------
+
+	// Setup
+	char* name;
+	srand(time(NULL));
+
+	// Read in number of airport people
+	printf("Number of airport liaisons = ");
+	scanf("%i", &NUM_LIASONS);
+	printf("Number of airlines = ");
+	scanf("%i", &NUM_AIRLINES);
+	printf("Number of check-in-staff = ");
+	scanf("%i", &NUM_CIS_PER_AIRLINE);
+	printf("Number of cargo handlers = ");
+	scanf("%i", &NUM_CARGO_HANDLERS);
+	printf("Number of screening officers = ");
+	scanf("%i", &NUM_SCREENING_OFFICERS);
+	printf("Total number of passengers = ");
+	scanf("%i", &NUM_PASSENGERS);
+
+	NUM_SECURITY_INSPECTORS = NUM_SCREENING_OFFICERS;
+
+	// Initializing global data
+	airlines = new Airline*[NUM_AIRLINES];
+	for (int i=0; i < NUM_AIRLINES; i++) {
+		name = new char[20];
+		sprintf(name, "airline%d", i);
+		airlines[i] = new Airline(name);
+	}
+
+	passengers = new Passenger*[NUM_PASSENGERS];
+	liaisons = new Liaison*[NUM_LIASONS];
+	cargohandlers = new CargoHandler*[NUM_CARGO_HANDLERS];
+	screeningofficers = new ScreeningOfficer*[NUM_SCREENING_OFFICERS];
+	securityinspectors = new SecurityInspector*[NUM_SECURITY_INSPECTORS];
+
+	// Initialize Liaison Globals
+	LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
+
+	// Initialize Conveyor Belt Globals
+	ConveyorBelt = new List();
+	ConveyorLock = new Lock("conveyor_belt_lock");
+	ConveyorCV = new Condition("conveyor_belt_cv");
+
+	//----------------------------------------------
+	// END SETUP
+	//----------------------------------------------
+>>>>>>> kyu
 
 
 
 
 
 
+<<<<<<< HEAD
     //----------------------------------------------
     // INITIALIZING ALL THREADS
     //----------------------------------------------
@@ -1880,6 +2346,161 @@ void AirTest() {
         }
     }   
 
+
+=======
+	//----------------------------------------------
+	// INITIALIZING ALL THREADS
+	//----------------------------------------------
+	
+	// Initializing passenger threads
+	Passenger* p;
+	for (int i=0; i < NUM_PASSENGERS; i++) {
+		name = new char[20];
+		sprintf(name, "passenger%d", i);
+
+		p = new Passenger(name);
+		passengers[i] = p;
+
+		// Track number of passengers expected per airline
+		airlines[p->_myticket._airline]->_numExpectedPassengers++;
+		airlines[p->_myticket._airline]->_numExpectedBaggages += passengers[i]->_baggages.size();
+	}
+
+	// Initializing liaison threads
+	Liaison* l;
+	for (int i=0; i < NUM_LIASONS; i++) {
+		name = new char[20];
+		sprintf(name, "liaison%d", i);
+
+		l = new Liaison(name);
+		liaisons[i] = l;
+	}
+
+	// CIS
+	// kinda finicky
+	// gotta decide how to do this...
+	CheckInStaff* cis;
+	for (int i=0; i < NUM_AIRLINES; i++) {
+		for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+			name = new char[20];
+			sprintf(name, "cis_%d_%d", i, j);
+
+			cis = new CheckInStaff(name, i, j);
+			airlines[i]->_cis[j] = cis;
+		}
+	}
+
+	// Initializing cargo handler threads
+	CargoHandler* ch;
+	for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
+		name = new char[20];
+		sprintf(name, "cargo_handler%d", i);
+
+		ch = new CargoHandler(name);
+		cargohandlers[i] = ch;
+	}
+
+	// Initializing screening officer threads
+	ScreeningOfficer* so;
+	for (int i=0; i < NUM_SCREENING_OFFICERS; i++) {
+		name = new char[25];
+		sprintf(name, "screening_officer%d", i);
+
+		so = new ScreeningOfficer(name);
+		screeningofficers[i] = so;
+	}
+
+	// Initializing security inspector threads
+	SecurityInspector* si;
+	for (int i=0; i < NUM_SECURITY_INSPECTORS; i++) {
+		name = new char[25];
+		sprintf(name, "security_inspectors%d", i);
+
+		si = new SecurityInspector(name);
+		securityinspectors[i] = si;
+	}
+
+	// Initializing manager thread
+	name = new char[20];
+	sprintf(name, "manager");
+	manager = new Manager(name);
+
+
+	//----------------------------------------------
+	// END INITIALIZING ALL THREADS
+	//----------------------------------------------
+
+
+
+
+
+
+	//----------------------------------------------
+	// PRINT INFORMATION
+	//----------------------------------------------
+
+
+	// Print airline information
+	for (int i=0; i < NUM_AIRLINES; i++) {
+		printf("Number of passengers for airline %s = %i\n", airlines[i]->getName(), airlines[i]->_numExpectedPassengers);
+	}
+
+	// Print passenger information
+	for (int i=0; i < NUM_PASSENGERS; i++) {
+		printf("Passenger %s belongs to airline %i\n", passengers[i]->getName(), passengers[i]->_myticket._airline);
+		printf("Passenger %s : Number of bags = %i\n", passengers[i]->getName(), passengers[i]->_baggages.size());
+		printf("Passenger %s : Weight of bags = ", passengers[i]->getName());
+		for (unsigned int j=0; j < passengers[i]->_baggages.size(); j++) {
+			printf("%i ", passengers[i]->_baggages.at(j)->_weight);
+		}
+		printf("\n");
+	}
+
+	// Print cis information
+	for (int i=0; i < NUM_AIRLINES; i++) {
+		for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+			printf("Airline check-in staff %s belongs to airline %s\n", airlines[i]->_cis[j]->getName(), airlines[i]->getName());
+		}
+	}
+
+	//----------------------------------------------
+	// END PRINT INFORMATION
+	//----------------------------------------------
+
+
+
+
+	//----------------------------------------------
+	// ACTIVATING ALL THREADS
+	//----------------------------------------------
+
+	// Activating all threads
+	for (int i=0; i < NUM_PASSENGERS; i++) {
+		passengers[i]->Fork((VoidFunctionPtr)PassengerStart, i);
+	}
+	for (int i=0; i < NUM_LIASONS; i++) {
+		liaisons[i]->Fork((VoidFunctionPtr)LiaisonStart, i);
+	}
+	for (int i=0; i < NUM_AIRLINES; i++) {
+		for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+			airlines[i]->_cis[j]->Fork((VoidFunctionPtr)CisStart, i*NUM_CIS_PER_AIRLINE+j);
+		}
+	}
+	for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
+		cargohandlers[i]->Fork((VoidFunctionPtr)CargoHandlerStart, i);
+	}
+	for (int i=0; i < NUM_SCREENING_OFFICERS; i++) {
+		screeningofficers[i]->Fork((VoidFunctionPtr)ScreeningOfficerStart, i);
+	}
+	for (int i=0; i < NUM_SECURITY_INSPECTORS; i++) {
+		securityinspectors[i]->Fork((VoidFunctionPtr)SecurityInspectorStart, i);
+	}
+	manager->Fork((VoidFunctionPtr)ManagerStart, 0);
+
+	//----------------------------------------------
+	// END ACTIVATING ALL THREADS
+	//----------------------------------------------
+>>>>>>> kyu
 
 
 }

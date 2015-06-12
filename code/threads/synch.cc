@@ -115,6 +115,9 @@ void Lock::Acquire() {
 	// disable interrupts
 	IntStatus old = interrupt->SetLevel(IntOff);
 
+//std::cout << "CurrentThread: " << currentThread->getName() << std::endl;
+//if (owner == NULL) { std::cout << "CurrentLockOwner: NULL" << std::endl; }
+//else { std::cout << "CurrentLockOwner: " << owner->getName() << std::endl; }
 	// checks if I'm the lock owner
 	// if I'm the lock owner, I already "acquired" this lock
 	// this can happen if class functions are nested
@@ -135,6 +138,8 @@ void Lock::Acquire() {
 	// if somebody else knows the lock, I can't have it :(
 	else {
 		// add myself to queue and put myself to sleep
+    //if (strcmp(currentThread->getName(), "manager"))
+    // std::cout << "MANAGER GOING TO SLEEP" << std::endl;
 		waitQueue->Append((void *)currentThread);
 		currentThread->Sleep();
 	}
@@ -278,6 +283,10 @@ void Condition::Broadcast(Lock* conditionLock) {
 	// if conditionLock does not match waitingLock, print error
 	if (waitingLock != conditionLock) {
 		printf("Error in Condition::Broadcast -- conditionLock does not match waitingLock...\n");
+		printf("Thread name: %s\n", currentThread->getName());
+		printf("Condition name: %s\n", getName());
+		printf("waitingLock name: %s\n", waitingLock->getName());
+		printf("conditionLock name: %s\n", conditionLock->getName());
 		return;
 	}
 
