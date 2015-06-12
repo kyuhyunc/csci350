@@ -889,7 +889,8 @@ void Passenger::Start()
 		
 		//GlobalLock->Release();
     std::cout << myairline->getName() << " 11111111111111111: " << myairline->_execLineSize << std::endl; 
-		myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
+		
+    myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
 		//GlobalLock->Acquire();
 
     std::cout << myairline->getName() << " 44444444444444444: " << myairline->_execLineSize << std::endl; 
@@ -1031,14 +1032,11 @@ void CheckInStaff::Start()
 			ExecLock->Release();
 			_state = ONBREAK;
 			_commCV->Wait(_lock); // wait for manager to wake me up
-		}
-		else {
-			GlobalLock->Release();
-			ExecLock->Release();
+      GlobalLock->Acquire();
+      ExecLock->Acquire();
 		}
 		_state = BUSY;
-		GlobalLock->Acquire();
-		ExecLock->Acquire();
+
 		_currentPassenger = NULL;
 
 		// serving an executive passenger
@@ -1068,8 +1066,8 @@ void CheckInStaff::Start()
 		GlobalLock->Release();
 		ExecLock->Release();
 
-
 		_commCV->Wait(_lock); // wait for passenger to hand over bags and ticket
+
 		// if serving any passenger
 		if (_currentPassenger != NULL) {
 
@@ -1089,7 +1087,7 @@ void CheckInStaff::Start()
 			_lock->Release();
 		}
     else {
-      std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+      printf("error: (in CIS) SHOULD NOT REACH HERE");
     }	
 	
 	}
