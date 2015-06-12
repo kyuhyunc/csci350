@@ -1024,7 +1024,8 @@ void CheckInStaff::Start()
 		_lock->Acquire();
 		ExecLock->Acquire();
 		GlobalLock->Acquire();
-		if (_lineSize == 0 && myairline->_execLineSize == 0) {
+		//if (_lineSize == 0 && myairline->_execLineSize == 0) {
+    if (_lineSize == 0 && myairline->_execQueue->IsEmpty()) {
 			GlobalLock->Release();
 			ExecLock->Release();
 			_state = ONBREAK;
@@ -1040,7 +1041,8 @@ void CheckInStaff::Start()
 		_currentPassenger = NULL;
 
 		// serving an executive passenger
-		if (myairline->_execLineSize > 0) {
+		//if (myairline->_execLineSize > 0) {
+    if (!myairline->_execQueue->IsEmpty()) {
 			executive = true;
 			Passenger* p = (Passenger*) myairline->_execQueue->Remove();
 			myairline->_execLineSize--;
@@ -1147,8 +1149,6 @@ std::cout << "Manager is waking up a cis..." << std::endl;
 		}
 
 	}
-
-  std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::cout;
 
 #undef ExecLock
 #undef GlobalLock
