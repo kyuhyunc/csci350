@@ -1069,7 +1069,6 @@ void CheckInStaff::Start()
 			_commCV->Signal(_lock);
 			_commCV->Wait(_lock);
 			_lock->Release();
->>>>>>> master
 
       _currentPassenger = NULL;
         }
