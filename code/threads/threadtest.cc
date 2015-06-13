@@ -469,31 +469,31 @@ struct Baggage {
 class Passenger : public Thread
 {
 public:
-    Passenger(char* debugName) : Thread(debugName) {
-        //------------
-        // Initialize
-        //------------
-        myLine = 0;
+	Passenger(char* debugName) : Thread(debugName) {
+		//------------
+		// Initialize
+		//------------
+		myLine = 0;
 
-        // 2 or 3 baggages 30-60 lbs
-        Baggage* mybag;
-        int numBaggages = rand() % 2 + 2;
-        for (int i=0; i < numBaggages; i++) {
-            mybag = new Baggage;
-            mybag->_weight = rand() % 31 + 30;
-            _baggages.push_back(mybag);
-        }
+		// 2 or 3 baggages 30-60 lbs
+		Baggage* mybag;
+		int numBaggages = rand() % 2 + 2;
+		for (int i=0; i < numBaggages; i++) {
+			mybag = new Baggage;
+			mybag->_weight = rand() % 31 + 30;
+			_baggages.push_back(mybag);
+		}
 
-        // Executive or Economy ticket
-        _myticket._executive = true;
-/*      if ( (rand() % 2) == 1 ) {
-            _myticket._executive = true;
-        }
-*/
-        // Airline number (choose between 0, 1, and 2)
-        _myticket._airline = rand() % NUM_AIRLINES;
-    }
-    void Start(); // starts the thread
+		// Executive or Economy ticket
+		_myticket._executive = false;
+		if ( (rand() % 4) == 1 ) {
+			_myticket._executive = true;
+		}
+
+		// Airline number 
+		_myticket._airline = rand() % NUM_AIRLINES;
+	}
+	void Start(); // starts the thread
 
 public:
     std::vector<Baggage*> _baggages;
@@ -798,8 +798,6 @@ void ManagerStart() { manager->Start(); }
 
 void Passenger::Start()
 {
-//  printf("%s: Made it!\n", this->getName());
-    
 
     //----------------------------------------------
     // PASSENGER INTERACTS WITH LIAISON
@@ -841,7 +839,6 @@ void Passenger::Start()
     printf("Passenger %s of Airline %i is directed to the check-in counter\n", getName(), _myticket._airline);
 
     liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
-
     liaisons[myLine]->_lock->Release();
 
     // For Test purposes. it makes wait testing simulation so that we can analyze result and verify outcome.
@@ -862,13 +859,6 @@ void Passenger::Start()
         return;
     }
     
-    // if executive passenger
-        // go to executive line
-        // get helped by cis
-
-    // if economy passenger
-        // choose shortest cis line
-        // get helped by cis
     
     //----------------------------------------------
     // PASSENGER INTERACTS WITH CHECK-IN-STAFF
@@ -880,23 +870,15 @@ void Passenger::Start()
 #define ExecLock airlines[_myticket._airline]->_execLineLock
 #define GlobalLock airlines[_myticket._airline]->_CisGlobalLineLock
 #define CisLock airlines[_myticket._airline]->_cis[myLine]->_lock
+	
+	if (_myticket._executive) {
+		ExecLock->Acquire();
+		myairline->_execQueue->Append((void*) this);
+		myairline->_execLineSize++;
 
-
-    // GlobalLock->Acquire();
-    if (_myticket._executive) {
-        ExecLock->Acquire();
-        myairline->_execQueue->Append((void*) this);
-        myairline->_execLineSize++;
-
-        printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
-        
-        //GlobalLock->Release();
-    std::cout << myairline->getName() << " 11111111111111111: " << myairline->_execLineSize << std::endl; 
-        
+		printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
+		
     myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
-        //GlobalLock->Acquire();
-
-    std::cout << myairline->getName() << " 44444444444444444: " << myairline->_execLineSize << std::endl; 
     
         ExecLock->Release();
     }
@@ -1006,111 +988,88 @@ void Liaison::Start()
 
 void CheckInStaff::Start()
 {
-//  printf("%s: Made it!\n", this->getName());
-
-    // while loop
-        // if an executive passenger is waiting, help them
-
-        // if there is no executive passenger, help the first person in current line
-
-        // if there are no passengers, go on break
-
-        // accepts passenger ticket
-        // accepts passenger baggage
-        // assigns passenger seat number (no overlaps)
-            // (make sure there are enough seats! each airplane must have at NUM_PASSENGERS seats to ensure enough)
-        // tags baggage with airline code and weight
-        // places baggage on conveyor system
-
-
-        
-        // .
-        // .
-        // .
-        // when all passengers checked in, close check-in counter
 
 #define myairline airlines[_airline]
 #define ExecLock airlines[_airline]->_execLineLock
 #define GlobalLock airlines[_airline]->_CisGlobalLineLock
 // CHECK-IN-STAFF
-    bool executive = false;
-    while (true) {
-        _lock->Acquire();
-        GlobalLock->Acquire();
-        ExecLock->Acquire();
-        if (_lineSize == 0 && myairline->_execLineSize == 0) {
-    //if (_lineSize == 0 && myairline->_execQueue->IsEmpty()) {
-            _state = ONBREAK;
-          _currentPassenger = NULL;
-            GlobalLock->Release();
-            ExecLock->Release();
-            _commCV->Wait(_lock); // wait for manager to wake me up
+	bool executive = false;
+	while (true) {
+		_lock->Acquire();
+		GlobalLock->Acquire();
+		ExecLock->Acquire();
+		if (_lineSize == 0 && myairline->_execLineSize == 0) {
+			_state = ONBREAK;
+		  _currentPassenger = NULL;
+			GlobalLock->Release();
+			ExecLock->Release();
+			_commCV->Wait(_lock); // wait for manager to wake me up
       GlobalLock->Acquire();
       ExecLock->Acquire();
         }
         _state = BUSY;
 
-        // serving an executive passenger
-        if (myairline->_execLineSize > 0) {
-    //if (!myairline->_execQueue->IsEmpty()) {
-            executive = true;
-            Passenger* p = (Passenger*) myairline->_execQueue->Remove();
-            myairline->_execLineSize--;
-            p->myLine = _cisNum;
-            //incremeting total number of passenger!
-            _PassengerNumber++;
-            printf("Airline check-in staff %s of airline %i serves an executive class passenger and economy line length = %i\n", getName(), _airline, _lineSize);
+		// serving an executive passenger
+		if (myairline->_execLineSize > 0) {
+			executive = true;
+			Passenger* p = (Passenger*) myairline->_execQueue->Remove();
+			myairline->_execLineSize--;
+			p->myLine = _cisNum;
+      //incremeting total number of passenger!
+      _PassengerNumber++;
 
-      std::cout << myairline->getName() << " 22222222222222222: " << myairline->_execLineSize << std::endl; 
+			printf("Airline check-in staff %s of airline %i serves an executive class passenger and economy line length = %i\n", getName(), _airline, _lineSize);
 
-            myairline->_execLineCV->Signal(ExecLock);
+			myairline->_execLineCV->Signal(ExecLock);
 
-      std::cout << myairline->getName() << " 33333333333333333: " << myairline->_execLineSize << std::endl; 
-            //Testing 4. To wait all executive passengers are processes and to see what happends right after that.
-            if(semaExe == true) {
-                t4.V();
-            }
+        //Testing 4. To wait all executive passengers are processes and to see what happends right after that.
+        if(semaExe == true) {
+            t4.V();
         }
-        // serving an economy passenger
-        else if (_lineSize > 0) {
-            //stop point so that test 4 simulation can stop! and simulate at this point
-            if(stopSIM4) {
-                return;
-            }
-            executive = false;
-            //incremeting total number of passenger!
-            _PassengerNumber++;
-            
-            printf("Airline check-in staff %s of airline %i serves an economy class passenger and executive class line length = %i\n", getName(), _airline, myairline->_execLineSize);
+		}
+		// serving an economy passenger
+		else if (_lineSize > 0) {
+      //stop point so that test 4 simulation can stop! and simulate at this point
+      if(stopSIM4) {
+          return;
+      }
+			executive = false;
+			
+      //incremeting total number of passenger!
+      _PassengerNumber++;
 
-            _lineCV->Signal(GlobalLock);
-            //for testing purposes(TEST2), in order to complete testing simulation first so that we can analyze the result at the end  
-            if(semaBool == true) {
-                t1.V();
-            }
+			printf("Airline check-in staff %s of airline %i serves an economy class passenger and executive class line length = %i\n", getName(), _airline, myairline->_execLineSize);
+
+			_lineCV->Signal(GlobalLock);
+
+        //for testing purposes(TEST2), in order to complete testing simulation first so that we can analyze the result at the end  
+        if(semaBool == true) {
+            t1.V();
         }
-        GlobalLock->Release();
-        ExecLock->Release();
+		}
+		GlobalLock->Release();
+		ExecLock->Release();
 
-        _commCV->Wait(_lock); // wait for passenger to hand over bags and ticket
+		_commCV->Wait(_lock); // wait for passenger to hand over bags and ticket
 
-        // if serving any passenger
-        if (_currentPassenger != NULL) {
+		// if serving any passenger
+		if (_currentPassenger != NULL) {
 
-            // weigh bags, tag bags, check ticket
-            // give passenger boarding pass, seat number
-            // put bags on conveyor belt
+			// weigh bags, tag bags, check ticket
+			// give passenger boarding pass, seat number
+			// put bags on conveyor belt
 
-            if (executive) {
-                printf("Airline check-in staff %s of airline %i informs executive class passenger %s to board at gate %i\n", getName(), _airline, _currentPassenger->getName(), _airline);
-            }
-            else {
-                printf("Airline check-in staff %s of airline %i informs economy class passenger %s to board at gate %i\n", getName(), _airline, _currentPassenger->getName(), _airline);
-            }
+			if (executive) {
+				printf("Airline check-in staff %s of airline %i informs executive class passenger %s to board at gate %i\n", getName(), _airline, _currentPassenger->getName(), _airline);
+			}
+			else {
+				printf("Airline check-in staff %s of airline %i informs economy class passenger %s to board at gate %i\n", getName(), _airline, _currentPassenger->getName(), _airline);
+			}
 
-            _commCV->Signal(_lock);
-            _commCV->Wait(_lock);
-            _lock->Release();
+			_commCV->Signal(_lock);
+			_commCV->Wait(_lock);
+			_lock->Release();
+>>>>>>> master
 
       _currentPassenger = NULL;
         }
