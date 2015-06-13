@@ -630,11 +630,23 @@ class CargoHandler : public Thread
 {
 public:
     CargoHandler(char* debugName) : Thread(debugName) {
-        
+        _bagCount = new int[NUM_AIRLINES];
+        for (int i=0; i < NUM_AIRLINES; i++) {
+            _bagCount[i] = 0;
+        }
+        char* myname;
+        myname = new char[20];
+        sprintf(myname, "%s_commCV", debugName);
+        _commCV = new Condition(myname);
+
+        _state = BUSY;
     }
     void Start(); // starts the thread
 
-private:
+public:
+    Condition* _commCV;
+    int _state;
+    int* _bagCount;
 
 };
 
@@ -701,12 +713,15 @@ class Manager : public Thread
 {
 public:
     Manager(char* debugName) : Thread(debugName) {
+        _cisDone = false;
+        _cargoDone = false;
         
     }
     void Start(); // starts the thread
 
 private:
-
+    bool _cisDone;
+    bool _cargoDone;
 };
 
 //-----------------------
@@ -813,6 +828,12 @@ Lock* CisGlobalLineLock;
 Lock* officersLineLock;
 Condition* officersLineCV;
 List* officersLine;
+
+// Conveyor Globals
+List* ConveyorBelt;
+Lock* ConveyorLock;
+Condition* ConveyorCV;
+int CargoHandlerState = BUSY;
 
 // Security
 SecurityData* securityCloud;
@@ -1125,7 +1146,14 @@ void CheckInStaff::Start()
 			// weigh bags, tag bags, check ticket
 			// give passenger boarding pass, seat number
 			// put bags on conveyor belt
+            ConveyorLock->Acquire();
+            for (unsigned int i=0; i < _currentPassenger->_baggages.size(); i++) {
+                _currentPassenger->_baggages.at(i)->_airline = _airline; // tags baggage
+                ConveyorBelt->Append((void*) _currentPassenger->_baggages.at(i)); // put bags on conveyor belt
+            }
+            ConveyorLock->Release();
 
+            // Direct th passenger
 			if (executive) {
 				printf("Airline check-in staff %s of airline %i informs executive class passenger %s to board at gate %i\n", getName(), _airline, _currentPassenger->getName(), _airline);
 			}
@@ -1153,8 +1181,25 @@ void CheckInStaff::Start()
 }
 
 void CargoHandler::Start()
-{
-//  printf("%s: Made it!\n", this->getName());
+{   
+    Baggage* b;
+
+    while (true) {
+        ConveyorLock->Acquire();
+        if (ConveyorBelt->IsEmpty()) {
+            printf("Cargo Handler %s is going for a break\n", getName());
+//          ConveyorCV->Wait(ConveyorLock);
+            _state = ONBREAK;
+            _commCV->Wait(ConveyorLock);
+            printf("Cargo Handler %s returned from break\n", getName());
+        } else {
+            b = (Baggage*) ConveyorBelt->Remove();
+            printf("Cargo Handler %s picked bag of airline %i with weighing %i lbs\n", getName(), b->_airline, b->_weight);
+            airlines[b->_airline]->_numLoadedBaggages++; // load baggage into proper aircraft
+            _bagCount[b->_airline]++;
+        }
+        ConveyorLock->Release();
+    }
 }
 
 void ScreeningOfficer::Start()
@@ -1277,6 +1322,49 @@ void Manager::Start()
         // END MANAGER CHECKS SCREENING OFFICERS
         //----------------------------------------------
 
+        //----------------------------------------------
+        // MANAGER CHECKS CONVEYOR BELT
+        //----------------------------------------------
+
+        if (!_cargoDone) {
+            
+            ConveyorLock->Acquire();
+/*
+            _cargoDone = true;
+            for (int i=0; i < NUM_AIRLINES; i++) {
+                // checks an airline if all baggages have been loaded
+                if (airlines[i]->_numExpectedBaggages == airlines[i]->_numLoadedBaggages) {
+                    airlines[i]->_allBaggagesCheckedIn = true;
+                }
+                if (!airlines[i]->_allBaggagesCheckedIn) {
+                    _cargoDone = false;
+                    break;
+                }
+            }
+*/          
+//          if (!ConveyorBelt->IsEmpty() && cargohandlers[0]->_state == ONBREAK) {
+//          if (!ConveyorBelt->IsEmpty() && CargoHandlerState == ONBREAK) {
+//              ConveyorCV->Broadcast(ConveyorLock);
+            for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
+                if (!ConveyorBelt->IsEmpty() && cargohandlers[i]->_state == ONBREAK) {
+                    cargohandlers[i]->_commCV->Signal(ConveyorLock);
+                }
+            }
+
+            ConveyorLock->Release();
+
+        }
+
+        //----------------------------------------------
+        // END MANAGER CHECKS CONVEYOR BELT
+        //----------------------------------------------
+
+        // if all manager tasks are done, break!
+        if (_cisDone && _cargoDone) { // ADD CASES AS THE PROJECT GOES ALONG
+            break;
+        }
+
+
     } // end while(true) for Manager
 } // end Manager::Start()
 
@@ -1332,6 +1420,12 @@ void AirportSim()
     officersLineLock = new Lock("screening_officer_line_lock");
     officersLineCV = new Condition("screening_officer_line_cv");
     officersLine = new List();
+
+
+    // Initialize Conveyor Belt Globals
+    ConveyorBelt = new List();
+    ConveyorLock = new Lock("conveyor_belt_lock");
+    ConveyorCV = new Condition("conveyor_belt_cv");
 
     //----------------------------------------------
     // END SETUP
