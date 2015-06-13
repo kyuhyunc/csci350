@@ -887,13 +887,7 @@ void Passenger::Start()
 
 		printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
 		
-		//GlobalLock->Release();
-    std::cout << myairline->getName() << " 11111111111111111: " << myairline->_execLineSize << std::endl; 
-		
     myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
-		//GlobalLock->Acquire();
-
-    std::cout << myairline->getName() << " 44444444444444444: " << myairline->_execLineSize << std::endl; 
     
 		ExecLock->Release();
 	}
