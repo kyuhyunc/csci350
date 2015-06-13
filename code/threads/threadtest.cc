@@ -640,8 +640,6 @@ class ScreeningOfficer : public Thread
 public:
     ScreeningOfficer(char* debugName, int num) : Thread(debugName) {
         char* myname;
-        _airline = airline;
-        _cisNum = cisnum;
 
         myname = new char[20];
         sprintf(myname, "%s_lock", debugName);
@@ -769,7 +767,7 @@ private:
 class SecurityData 
 {
 public:
-    SecurityData {
+    SecurityData() {
         _officerResults = new int[NUM_PASSENGERS];
     }
 private:
@@ -806,9 +804,10 @@ Lock* LiaisonGlobalLineLock;
 Lock* CisGlobalLineLock;
 
 // Screening Officer
-Lock* officerLineLock;
+Lock* officersLineLock;
 Condition* officersLineCV;
 List* officersLine;
+
 
 // Security
 SecurityData* securityCloud;
@@ -1004,15 +1003,18 @@ void Passenger::Start()
 #define officer screeningofficers[myOfficer]
     
     // Wait in line
-    officerLineLock->Acquire();
-    officersLine.Add(this); 
-    officersLineCV->Wait(officerLineLock); // myOfficer gets updated
-    // Give baggage to Screening Officer
+    officersLineLock->Acquire();
+    officersLine->Append(this);
+    std::cout << "Waiting in line" << std::endl;
+    officersLineCV->Wait(officersLineLock); // myOfficer gets updated
+    printf("Passenger %s gives the hand-luggage to screening officer %s\n", getName(), screeningofficers[myOfficer]->getName());
+    officer->_lock->Acquire();
     officer->_commCV->Signal(officer->_lock);
     officer->_commCV->Wait(officer->_lock);
     // Thanks - moving along to security inspector
     officer->_commCV->Signal(officer->_lock);
     officer->_lock->Release();
+    officersLineLock->Release();
 
 #undef officer 
 
@@ -1179,25 +1181,38 @@ void CargoHandler::Start()
 void ScreeningOfficer::Start()
 {
     while (true) {
-        _lock->Acquire();
-        officerLineLock->Acquire();
-        if (!officersLine.isEmpty()) {
-            officersLineLock->Release();
+        officersLineLock->Acquire();
+        if (officersLine->IsEmpty()) {
+            // officersLineLock->Release();
             _state = ONBREAK;
-            _commCV->Wait(_lock); // wait for passenger
+            _commCV->Wait(officersLineLock); // wait for passenger
         } // get to work, lazy butt!
-        state = BUSY; 
-        _currentPassenger = officersLine.Remove();
-        _currentPassenger->myOfficer = _myNum;
-        officersLineCV->Signal(officerLineLock);
-        officersLineLock->Release();
-        _commCV->Wait(_lock); // signal Passenger to come
-        // observe passenger, generate pass/fail
-        securityCloud._officerResults[_currentPassenger->_id] = rand() % 2;
-        // "direct" the passenger to the security inspector
-        _commCV->Signal(_lock);
-        _commCV->Wait(_lock); // wait for goodbye signal
-        _lock->Release();
+        if (!officersLine->IsEmpty()) {
+            _lock->Acquire();
+            _state = BUSY;
+            _currentPassenger = (Passenger*)officersLine->Remove();
+            _currentPassenger->myOfficer = _myNum;
+            officersLineCV->Signal(officersLineLock);
+            officersLineLock->Release();
+            _commCV->Wait(_lock); // signal Passenger to come
+            // observe passenger, generate pass/fail
+            int result = rand() % 2;
+            securityCloud->_officerResults[_currentPassenger->_id] = result;
+            // "direct" the passenger to the security inspector
+            if (result) {
+                printf("Screening officer %s is suspicious of the hand luggage of passenger %s\n", getName(), _currentPassenger->getName());
+            } else {
+                printf("Screening officer %s is not suspicious of the hand luggage of passenger %s\n", getName(), _currentPassenger->getName());
+            }
+            _commCV->Signal(_lock);
+            _commCV->Wait(_lock); // wait for goodbye signal
+            _lock->Release();
+std::cout << "Screening officer finished one pass!" << std::endl;
+//            printf("Screening officer %s directs passenger %s to security inspector %s\n", getName(), _currentPassenger->getName(), );
+        }
+        else {
+            officersLineLock->Release();
+        }
     }
 }
 
@@ -1247,7 +1262,7 @@ void Manager::Start()
 			currentThread->Yield();
 		}
 
-	}
+	
 
 #undef ExecLock
 #undef GlobalLock
@@ -1265,13 +1280,10 @@ void Manager::Start()
         //----------------------------------------------
 
 #define officer screeningofficers[i]       
-
         officersLineLock->Acquire();
         for (int i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
-            if (!officersLine.isEmpty() && officer->_state == ONBREAK) {
-                officer->_lock->Acquire();
-                officer->_commCV->Signal(officer->_lock);
-                officer->_lock->Release();
+            if (!officersLine->IsEmpty() && officer->_state == ONBREAK) {
+                officer->_commCV->Signal(officersLineLock);
             }
         }
         officersLineLock->Release();
@@ -1283,7 +1295,8 @@ void Manager::Start()
         // END MANAGER CHECKS SCREENING OFFICERS
         //----------------------------------------------
 
-}
+    } // end while(true) for Manager
+} // end Manager::Start()
 
 
 
