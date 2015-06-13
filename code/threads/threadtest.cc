@@ -856,18 +856,11 @@ void Passenger::Start()
 	//----------------------------------------------
 	// END PASSENGER INTERACTS WITH LIAISON
 	//----------------------------------------------
-
-
-
-
-	// if executive passenger
-		// go to executive line
-		// get helped by cis
-
-	// if economy passenger
-		// choose shortest cis line
-		// get helped by cis
 	
+
+
+
+
 	//----------------------------------------------
 	// PASSENGER INTERACTS WITH CHECK-IN-STAFF
 	//----------------------------------------------
@@ -879,7 +872,6 @@ void Passenger::Start()
 #define GlobalLock airlines[_myticket._airline]->_CisGlobalLineLock
 #define CisLock airlines[_myticket._airline]->_cis[myLine]->_lock
 	
-	// GlobalLock->Acquire();
 	if (_myticket._executive) {
 		ExecLock->Acquire();
 		myairline->_execQueue->Append((void*) this);
@@ -1021,7 +1013,6 @@ void CheckInStaff::Start()
 		GlobalLock->Acquire();
 		ExecLock->Acquire();
 		if (_lineSize == 0 && myairline->_execLineSize == 0) {
-    //if (_lineSize == 0 && myairline->_execQueue->IsEmpty()) {
 			_state = ONBREAK;
 		  _currentPassenger = NULL;
 			GlobalLock->Release();
@@ -1034,7 +1025,6 @@ void CheckInStaff::Start()
 
 		// serving an executive passenger
 		if (myairline->_execLineSize > 0) {
-    //if (!myairline->_execQueue->IsEmpty()) {
 			executive = true;
 			Passenger* p = (Passenger*) myairline->_execQueue->Remove();
 			myairline->_execLineSize--;
@@ -1042,11 +1032,8 @@ void CheckInStaff::Start()
 
 			printf("Airline check-in staff %s of airline %i serves an executive class passenger and economy line length = %i\n", getName(), _airline, _lineSize);
 
-      std::cout << myairline->getName() << " 22222222222222222: " << myairline->_execLineSize << std::endl; 
-
 			myairline->_execLineCV->Signal(ExecLock);
 
-      std::cout << myairline->getName() << " 33333333333333333: " << myairline->_execLineSize << std::endl; 
 		}
 		// serving an economy passenger
 		else if (_lineSize > 0) {
