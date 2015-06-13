@@ -469,11 +469,12 @@ struct Baggage {
 class Passenger : public Thread
 {
 public:
-	Passenger(char* debugName) : Thread(debugName) {
+	Passenger(char* debugName, int id) : Thread(debugName) {
 		//------------
 		// Initialize
 		//------------
 		myLine = 0;
+        _id = id;
 
 		// 2 or 3 baggages 30-60 lbs
 		Baggage* mybag;
@@ -499,6 +500,8 @@ public:
 	std::vector<Baggage*> _baggages;
 	Ticket _myticket;
 	int myLine;
+    int myOfficer;
+    int _id;
 };
 
 //-----------------------
@@ -635,12 +638,40 @@ private:
 class ScreeningOfficer : public Thread
 {
 public:
-	ScreeningOfficer(char* debugName) : Thread(debugName) {
-		
-	}
-	void Start(); // starts the thread
+    ScreeningOfficer(char* debugName, int num) : Thread(debugName) {
+        char* myname;
+        _airline = airline;
+        _cisNum = cisnum;
+
+        myname = new char[20];
+        sprintf(myname, "%s_lock", debugName);
+        _lock = new Lock(myname);
+
+        myname = new char[20];
+        sprintf(myname, "%s_commCV", debugName);
+        _commCV = new Condition(myname);
+
+        _state = BUSY;
+        _myNum = num;
+    }
+    void Start(); // starts the thread
+
+public:
+    Lock* _lock;
+    Condition* _commCV;
+
+    int _state; // ONBREAK or BUSY
+    int _passCount;
+
+    Passenger* _currentPassenger;
+
+    int _myNum;
 
 private:
+    int _airline;
+    int _cisNum;
+
+    bool _done;
 
 };
 
@@ -732,6 +763,23 @@ private:
 };
 
 //-----------------------
+// SecurityData
+//-----------------------
+
+class SecurityData 
+{
+public:
+    SecurityData {
+        _officerResults = new int[NUM_PASSENGERS];
+    }
+private:
+    int* _officerResults;
+
+friend class ScreeningOfficer;
+friend class SecurityInspector;
+};
+
+//-----------------------
 // Data
 //-----------------------
 
@@ -757,9 +805,13 @@ Airline** airlines;
 Lock* LiaisonGlobalLineLock;
 Lock* CisGlobalLineLock;
 
-struct SecureData {
-	
-} SecurityCloud;
+// Screening Officer
+Lock* officerLineLock;
+Condition* officersLineCV;
+List* officersLine;
+
+// Security
+SecurityData* securityCloud;
 
 //-----------------------
 // Thread Functions
@@ -945,9 +997,29 @@ void Passenger::Start()
 
 
 
-	// go through security...
-	// ...
-	// ...
+    //----------------------------------------------
+    // PASSENGER INTERACTS WITH SCREENING OFFICER
+    //----------------------------------------------
+
+#define officer screeningofficers[myOfficer]
+    
+    // Wait in line
+    officerLineLock->Acquire();
+    officersLine.Add(this); 
+    officersLineCV->Wait(officerLineLock); // myOfficer gets updated
+    // Give baggage to Screening Officer
+    officer->_commCV->Signal(officer->_lock);
+    officer->_commCV->Wait(officer->_lock);
+    // Thanks - moving along to security inspector
+    officer->_commCV->Signal(officer->_lock);
+    officer->_lock->Release();
+
+#undef officer 
+
+    //----------------------------------------------
+    // END PASSENGER INTERACTS WITH SCREENING OFFICER
+    //----------------------------------------------
+
 
 	// wait in boarding lounge until boarding announcement
 }
@@ -1106,7 +1178,27 @@ void CargoHandler::Start()
 
 void ScreeningOfficer::Start()
 {
-//	printf("%s: Made it!\n", this->getName());
+    while (true) {
+        _lock->Acquire();
+        officerLineLock->Acquire();
+        if (!officersLine.isEmpty()) {
+            officersLineLock->Release();
+            _state = ONBREAK;
+            _commCV->Wait(_lock); // wait for passenger
+        } // get to work, lazy butt!
+        state = BUSY; 
+        _currentPassenger = officersLine.Remove();
+        _currentPassenger->myOfficer = _myNum;
+        officersLineCV->Signal(officerLineLock);
+        officersLineLock->Release();
+        _commCV->Wait(_lock); // signal Passenger to come
+        // observe passenger, generate pass/fail
+        securityCloud._officerResults[_currentPassenger->_id] = rand() % 2;
+        // "direct" the passenger to the security inspector
+        _commCV->Signal(_lock);
+        _commCV->Wait(_lock); // wait for goodbye signal
+        _lock->Release();
+    }
 }
 
 void SecurityInspector::Start()
@@ -1167,6 +1259,30 @@ void Manager::Start()
 	//----------------------------------------------
 	// END MANAGER CHECKS CIS LINES
 	//----------------------------------------------
+
+            //----------------------------------------------
+        // MANAGER CHECKS SCREENING OFFICERS
+        //----------------------------------------------
+
+#define officer screeningofficers[i]       
+
+        officersLineLock->Acquire();
+        for (int i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
+            if (!officersLine.isEmpty() && officer->_state == ONBREAK) {
+                officer->_lock->Acquire();
+                officer->_commCV->Signal(officer->_lock);
+                officer->_lock->Release();
+            }
+        }
+        officersLineLock->Release();
+
+#undef officer
+
+
+        //----------------------------------------------
+        // END MANAGER CHECKS SCREENING OFFICERS
+        //----------------------------------------------
+
 }
 
 
@@ -1212,9 +1328,20 @@ void AirportSim()
 	screeningofficers = new ScreeningOfficer*[NUM_SCREENING_OFFICERS];
 	securityinspectors = new SecurityInspector*[NUM_SECURITY_INSPECTORS];
 
-	
 	// Initialize locks
 	LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
+
+    // Init Security Cloud data
+    securityCloud = new SecurityData();
+
+    // Init Screening Officer Globals
+    officersLineLock = new Lock("screening_officer_line_lock");
+    officersLineCV = new Condition("screening_officer_line_cv");
+    officersLine = new List();
+
+    //----------------------------------------------
+    // END SETUP
+    //----------------------------------------------
 
 
 	//----------------------------------------------
@@ -1227,7 +1354,7 @@ void AirportSim()
 		name = new char[20];
 		sprintf(name, "passenger%d", i);
 
-		p = new Passenger(name);
+		p = new Passenger(name, i);
 		passengers[i] = p;
 
 		// Track number of passengers expected per airline
@@ -1274,7 +1401,7 @@ void AirportSim()
 		name = new char[25];
 		sprintf(name, "screening_officer%d", i);
 
-		so = new ScreeningOfficer(name);
+		so = new ScreeningOfficer(name, i);
 		screeningofficers[i] = so;
 	}
 
