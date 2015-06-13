@@ -490,8 +490,8 @@ public:
 			_myticket._executive = true;
 		}
 */
-		// Airline number (choose between 0, 1, and 2)
-		_myticket._airline = rand() % 3;
+		// Airline number 
+		_myticket._airline = rand() % NUM_AIRLINES;
 	}
 	void Start(); // starts the thread
 
