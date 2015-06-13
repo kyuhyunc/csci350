@@ -52,7 +52,7 @@
 
 #include "utility.h"
 #include "system.h"
-
+#include <iostream>
 
 // External functions used by this file
 
@@ -62,6 +62,7 @@ extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
 
 extern void AirportSim();
+extern void AirTest();
 
 //----------------------------------------------------------------------
 // main
@@ -88,7 +89,27 @@ main(int argc, char **argv)
     
 #ifdef THREADS
 //    ThreadTest();
-	AirportSim();
+	while(true) {
+		int i;
+		std::cout<<"Select Menu"<<std::endl;
+
+		std::cout<<"1. TESTING "<<std::endl;
+		std::cout<<"2. SIMULATION"<<std::endl;
+		std::cin>>i;
+		if(i == 1) {
+			std::cout<<"You chose TESTING"<<std::endl;
+			AirTest();
+			break;
+		}else if(i == 2) {
+			std::cout<<"You chose SIMUATION"<<std::endl;
+			AirportSim();
+			break;
+		}else{
+			std::cout<<"You select wrong number try again."<<std::endl;
+			continue;
+		}
+	}
+
 #endif
 
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {

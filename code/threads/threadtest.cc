@@ -1,9 +1,9 @@
 // threadtest.cc 
-//	Simple test case for the threads assignment.
+//  Simple test case for the threads assignment.
 //
-//	Create two threads, and have them context switch
-//	back and forth between themselves by calling Thread::Yield, 
-//	to illustratethe inner workings of the thread system.
+//  Create two threads, and have them context switch
+//  back and forth between themselves by calling Thread::Yield, 
+//  to illustratethe inner workings of the thread system.
 //
 // Copyright (c) 1992-1993 The Regents of the University of California.
 // All rights reserved.  See copyright.h for copyright notice and limitation 
@@ -14,11 +14,11 @@
 
 //----------------------------------------------------------------------
 // SimpleThread
-// 	Loop 5 times, yielding the CPU to another ready thread 
-//	each iteration.
+//  Loop 5 times, yielding the CPU to another ready thread 
+//  each iteration.
 //
-//	"which" is simply a number identifying the thread, for debugging
-//	purposes.
+//  "which" is simply a number identifying the thread, for debugging
+//  purposes.
 //----------------------------------------------------------------------
 
 void
@@ -27,14 +27,14 @@ SimpleThread(int which)
     int num;
     
     for (num = 0; num < 5; num++) {
-	printf("*** thread %d looped %d times\n", which, num);
+    printf("*** thread %d looped %d times\n", which, num);
         currentThread->Yield();
     }
 }
 
 
 
-//	Simple test cases for the threads assignment.
+//  Simple test cases for the threads assignment.
 //
 
 #include "copyright.h"
@@ -60,7 +60,7 @@ Semaphore t1_s3("t1_s3",0);       // To make sure t1_t1 does not release the
                                   // lock before t1_t3 tries to acquire it
 Semaphore t1_done("t1_done",0);   // So that TestSuite knows when Test 1 is
                                   // done
-Lock t1_l1("t1_l1");		  // the lock tested in Test 1
+Lock t1_l1("t1_l1");          // the lock tested in Test 1
 
 // --------------------------------------------------
 // t1_t1() -- test1 thread 1
@@ -71,12 +71,12 @@ void t1_t1() {
     t1_s1.V();  // Allow t1_t2 to try to Acquire Lock
  
     printf ("%s: Acquired Lock %s, waiting for t3\n",currentThread->getName(),
-	    t1_l1.getName());
+        t1_l1.getName());
     t1_s3.P();
     printf ("%s: working in CS\n",currentThread->getName());
     for (int i = 0; i < 1000000; i++) ;
     printf ("%s: Releasing Lock %s\n",currentThread->getName(),
-	    t1_l1.getName());
+        t1_l1.getName());
     t1_l1.Release();
     t1_done.V();
 }
@@ -87,19 +87,19 @@ void t1_t1() {
 // --------------------------------------------------
 void t1_t2() {
 
-    t1_s1.P();	// Wait until t1 has the lock
+    t1_s1.P();  // Wait until t1 has the lock
     t1_s2.V();  // Let t3 try to acquire the lock
 
     printf("%s: trying to acquire lock %s\n",currentThread->getName(),
-	    t1_l1.getName());
+        t1_l1.getName());
     t1_l1.Acquire();
 
     printf ("%s: Acquired Lock %s, working in CS\n",currentThread->getName(),
-	    t1_l1.getName());
+        t1_l1.getName());
     for (int i = 0; i < 10; i++)
-	;
+    ;
     printf ("%s: Releasing Lock %s\n",currentThread->getName(),
-	    t1_l1.getName());
+        t1_l1.getName());
     t1_l1.Release();
     t1_done.V();
 }
@@ -110,22 +110,22 @@ void t1_t2() {
 // --------------------------------------------------
 void t1_t3() {
 
-    t1_s2.P();	// Wait until t2 is ready to try to acquire the lock
+    t1_s2.P();  // Wait until t2 is ready to try to acquire the lock
 
-    t1_s3.V();	// Let t1 do it's stuff
+    t1_s3.V();  // Let t1 do it's stuff
     for ( int i = 0; i < 3; i++ ) {
-	printf("%s: Trying to release Lock %s\n",currentThread->getName(),
-	       t1_l1.getName());
-	t1_l1.Release();
+    printf("%s: Trying to release Lock %s\n",currentThread->getName(),
+           t1_l1.getName());
+    t1_l1.Release();
     }
 }
 
 // --------------------------------------------------
 // Test 2 - see TestSuite() for details
 // --------------------------------------------------
-Lock t2_l1("t2_l1");		// For mutual exclusion
-Condition t2_c1("t2_c1");	// The condition variable to test
-Semaphore t2_s1("t2_s1",0);	// To ensure the Signal comes before the wait
+Lock t2_l1("t2_l1");        // For mutual exclusion
+Condition t2_c1("t2_c1");   // The condition variable to test
+Semaphore t2_s1("t2_s1",0); // To ensure the Signal comes before the wait
 Semaphore t2_done("t2_done",0);     // So that TestSuite knows when Test 2 is
                                   // done
 
@@ -136,12 +136,12 @@ Semaphore t2_done("t2_done",0);     // So that TestSuite knows when Test 2 is
 void t2_t1() {
     t2_l1.Acquire();
     printf("%s: Lock %s acquired, signalling %s\n",currentThread->getName(),
-	   t2_l1.getName(), t2_c1.getName());
+       t2_l1.getName(), t2_c1.getName());
     t2_c1.Signal(&t2_l1);
     printf("%s: Releasing Lock %s\n",currentThread->getName(),
-	   t2_l1.getName());
+       t2_l1.getName());
     t2_l1.Release();
-    t2_s1.V();	// release t2_t2
+    t2_s1.V();  // release t2_t2
     t2_done.V();
 }
 
@@ -150,21 +150,21 @@ void t2_t1() {
 //     This thread will wait on a pre-signalled variable
 // --------------------------------------------------
 void t2_t2() {
-    t2_s1.P();	// Wait for t2_t1 to be done with the lock
+    t2_s1.P();  // Wait for t2_t1 to be done with the lock
     t2_l1.Acquire();
     printf("%s: Lock %s acquired, waiting on %s\n",currentThread->getName(),
-	   t2_l1.getName(), t2_c1.getName());
+       t2_l1.getName(), t2_c1.getName());
     t2_c1.Wait(&t2_l1);
     printf("%s: Releasing Lock %s\n",currentThread->getName(),
-	   t2_l1.getName());
+       t2_l1.getName());
     t2_l1.Release();
 }
 // --------------------------------------------------
 // Test 3 - see TestSuite() for details
 // --------------------------------------------------
-Lock t3_l1("t3_l1");		// For mutual exclusion
-Condition t3_c1("t3_c1");	// The condition variable to test
-Semaphore t3_s1("t3_s1",0);	// To ensure the Signal comes before the wait
+Lock t3_l1("t3_l1");        // For mutual exclusion
+Condition t3_c1("t3_c1");   // The condition variable to test
+Semaphore t3_s1("t3_s1",0); // To ensure the Signal comes before the wait
 Semaphore t3_done("t3_done",0); // So that TestSuite knows when Test 3 is
                                 // done
 
@@ -175,9 +175,9 @@ Semaphore t3_done("t3_done",0); // So that TestSuite knows when Test 3 is
 // --------------------------------------------------
 void t3_waiter() {
     t3_l1.Acquire();
-    t3_s1.V();		// Let the signaller know we're ready to wait
+    t3_s1.V();      // Let the signaller know we're ready to wait
     printf("%s: Lock %s acquired, waiting on %s\n",currentThread->getName(),
-	   t3_l1.getName(), t3_c1.getName());
+       t3_l1.getName(), t3_c1.getName());
     t3_c1.Wait(&t3_l1);
     printf("%s: freed from %s\n",currentThread->getName(), t3_c1.getName());
     t3_l1.Release();
@@ -195,10 +195,10 @@ void t3_signaller() {
     // Don't signal until someone's waiting
     
     for ( int i = 0; i < 5 ; i++ ) 
-	t3_s1.P();
+    t3_s1.P();
     t3_l1.Acquire();
     printf("%s: Lock %s acquired, signalling %s\n",currentThread->getName(),
-	   t3_l1.getName(), t3_c1.getName());
+       t3_l1.getName(), t3_c1.getName());
     t3_c1.Signal(&t3_l1);
     printf("%s: Releasing %s\n",currentThread->getName(), t3_l1.getName());
     t3_l1.Release();
@@ -208,9 +208,9 @@ void t3_signaller() {
 // --------------------------------------------------
 // Test 4 - see TestSuite() for details
 // --------------------------------------------------
-Lock t4_l1("t4_l1");		// For mutual exclusion
-Condition t4_c1("t4_c1");	// The condition variable to test
-Semaphore t4_s1("t4_s1",0);	// To ensure the Signal comes before the wait
+Lock t4_l1("t4_l1");        // For mutual exclusion
+Condition t4_c1("t4_c1");   // The condition variable to test
+Semaphore t4_s1("t4_s1",0); // To ensure the Signal comes before the wait
 Semaphore t4_done("t4_done",0); // So that TestSuite knows when Test 4 is
                                 // done
 
@@ -221,9 +221,9 @@ Semaphore t4_done("t4_done",0); // So that TestSuite knows when Test 4 is
 // --------------------------------------------------
 void t4_waiter() {
     t4_l1.Acquire();
-    t4_s1.V();		// Let the signaller know we're ready to wait
+    t4_s1.V();      // Let the signaller know we're ready to wait
     printf("%s: Lock %s acquired, waiting on %s\n",currentThread->getName(),
-	   t4_l1.getName(), t4_c1.getName());
+       t4_l1.getName(), t4_c1.getName());
     t4_c1.Wait(&t4_l1);
     printf("%s: freed from %s\n",currentThread->getName(), t4_c1.getName());
     t4_l1.Release();
@@ -241,10 +241,10 @@ void t4_signaller() {
     // Don't broadcast until someone's waiting
     
     for ( int i = 0; i < 5 ; i++ ) 
-	t4_s1.P();
+    t4_s1.P();
     t4_l1.Acquire();
     printf("%s: Lock %s acquired, broadcasting %s\n",currentThread->getName(),
-	   t4_l1.getName(), t4_c1.getName());
+       t4_l1.getName(), t4_c1.getName());
     t4_c1.Broadcast(&t4_l1);
     printf("%s: Releasing %s\n",currentThread->getName(), t4_l1.getName());
     t4_l1.Release();
@@ -253,10 +253,10 @@ void t4_signaller() {
 // --------------------------------------------------
 // Test 5 - see TestSuite() for details
 // --------------------------------------------------
-Lock t5_l1("t5_l1");		// For mutual exclusion
-Lock t5_l2("t5_l2");		// Second lock for the bad behavior
-Condition t5_c1("t5_c1");	// The condition variable to test
-Semaphore t5_s1("t5_s1",0);	// To make sure t5_t2 acquires the lock after
+Lock t5_l1("t5_l1");        // For mutual exclusion
+Lock t5_l2("t5_l2");        // Second lock for the bad behavior
+Condition t5_c1("t5_c1");   // The condition variable to test
+Semaphore t5_s1("t5_s1",0); // To make sure t5_t2 acquires the lock after
                                 // t5_t1
 
 // --------------------------------------------------
@@ -265,12 +265,12 @@ Semaphore t5_s1("t5_s1",0);	// To make sure t5_t2 acquires the lock after
 // --------------------------------------------------
 void t5_t1() {
     t5_l1.Acquire();
-    t5_s1.V();	// release t5_t2
+    t5_s1.V();  // release t5_t2
     printf("%s: Lock %s acquired, waiting on %s\n",currentThread->getName(),
-	   t5_l1.getName(), t5_c1.getName());
+       t5_l1.getName(), t5_c1.getName());
     t5_c1.Wait(&t5_l1);
     printf("%s: Releasing Lock %s\n",currentThread->getName(),
-	   t5_l1.getName());
+       t5_l1.getName());
     t5_l1.Release();
 }
 
@@ -280,17 +280,17 @@ void t5_t1() {
 //     a Fatal error
 // --------------------------------------------------
 void t5_t2() {
-    t5_s1.P();	// Wait for t5_t1 to get into the monitor
+    t5_s1.P();  // Wait for t5_t1 to get into the monitor
     t5_l1.Acquire();
     t5_l2.Acquire();
     printf("%s: Lock %s acquired, signalling %s\n",currentThread->getName(),
-	   t5_l2.getName(), t5_c1.getName());
+       t5_l2.getName(), t5_c1.getName());
     t5_c1.Signal(&t5_l2);
     printf("%s: Releasing Lock %s\n",currentThread->getName(),
-	   t5_l2.getName());
+       t5_l2.getName());
     t5_l2.Release();
     printf("%s: Releasing Lock %s\n",currentThread->getName(),
-	   t5_l1.getName());
+       t5_l1.getName());
     t5_l1.Release();
 }
 
@@ -307,7 +307,7 @@ void t5_t2() {
 //
 //       3.  Show that Signal only wakes 1 thread
 //
-//	 4.  Show that Broadcast wakes all waiting threads
+//   4.  Show that Broadcast wakes all waiting threads
 //
 //       5.  Show that Signalling a thread waiting under one lock
 //       while holding another is a Fatal error
@@ -334,7 +334,7 @@ void TestSuite() {
 
     // Wait for Test 1 to complete
     for (  i = 0; i < 2; i++ )
-	t1_done.P();
+    t1_done.P();
 
     // Test 2
 
@@ -355,34 +355,34 @@ void TestSuite() {
     printf("Starting Test 3\n");
 
     for (  i = 0 ; i < 5 ; i++ ) {
-	name = new char [20];
-	sprintf(name,"t3_waiter%d",i);
-	t = new Thread(name);
-	t->Fork((VoidFunctionPtr)t3_waiter,0);
+    name = new char [20];
+    sprintf(name,"t3_waiter%d",i);
+    t = new Thread(name);
+    t->Fork((VoidFunctionPtr)t3_waiter,0);
     }
     t = new Thread("t3_signaller");
     t->Fork((VoidFunctionPtr)t3_signaller,0);
 
     // Wait for Test 3 to complete
     for (  i = 0; i < 2; i++ )
-	t3_done.P();
+    t3_done.P();
 
     // Test 4
 
     printf("Starting Test 4\n");
 
     for (  i = 0 ; i < 5 ; i++ ) {
-	name = new char [20];
-	sprintf(name,"t4_waiter%d",i);
-	t = new Thread(name);
-	t->Fork((VoidFunctionPtr)t4_waiter,0);
+    name = new char [20];
+    sprintf(name,"t4_waiter%d",i);
+    t = new Thread(name);
+    t->Fork((VoidFunctionPtr)t4_waiter,0);
     }
     t = new Thread("t4_signaller");
     t->Fork((VoidFunctionPtr)t4_signaller,0);
 
     // Wait for Test 4 to complete
     for (  i = 0; i < 6; i++ )
-	t4_done.P();
+    t4_done.P();
 
     // Test 5
 
@@ -400,8 +400,8 @@ void TestSuite() {
 
 //----------------------------------------------------------------------
 // ThreadTest
-// 	Set up a ping-pong between two threads, by forking a thread 
-//	to call SimpleThread, and then calling SimpleThread ourselves.
+//  Set up a ping-pong between two threads, by forking a thread 
+//  to call SimpleThread, and then calling SimpleThread ourselves.
 //----------------------------------------------------------------------
 
 void
@@ -414,7 +414,7 @@ ThreadTest()
     t->Fork(SimpleThread, 1);
     SimpleThread(0);
 
-	TestSuite();
+    TestSuite();
 }
 
 //----------------------------------------------------------------------
@@ -445,9 +445,9 @@ int NUM_SCREENING_OFFICERS;
 int NUM_SECURITY_INSPECTORS;
 
 enum State {
-	AVAIL,
-	BUSY,
-	ONBREAK
+    AVAIL,
+    BUSY,
+    ONBREAK
 };
 
 //-----------------------
@@ -455,15 +455,15 @@ enum State {
 //-----------------------
 
 struct Ticket {
-	bool _executive;
-	int _airline; // choices between 0, 1, and 2
-	int _seat; // uninitialized--done by cis
+    bool _executive;
+    int _airline; // choices between 0, 1, and 2
+    int _seat; // uninitialized--done by cis
 };
 
 struct Baggage {
-	int _airline; // uninitialized--done by cis
-	int _weight; // between 30 and 60
-	
+    int _airline; // uninitialized--done by cis
+    int _weight; // between 30 and 60
+    
 };
 
 class Passenger : public Thread
@@ -486,13 +486,13 @@ public:
 		}
 
 		// Executive or Economy ticket
-		_myticket._executive = true;
-/*		if ( (rand() % 2) == 1 ) {
+		_myticket._executive = false;
+		if ( (rand() % 4) == 1 ) {
 			_myticket._executive = true;
 		}
-*/
-		// Airline number (choose between 0, 1, and 2)
-		_myticket._airline = rand() % 3;
+
+		// Airline number 
+		_myticket._airline = rand() % NUM_AIRLINES;
 	}
 	void Start(); // starts the thread
 
@@ -511,52 +511,56 @@ public:
 class Liaison : public Thread
 {
 public:
-	Liaison(char* debugName) : Thread(debugName) {
-		char* myname;
+    Liaison(char* debugName) : Thread(debugName) {
+        char* myname;
 
-		myname = new char[20];
-		sprintf(myname, "%s_lock", debugName);
-		_lock = new Lock(myname);
+        myname = new char[20];
+        sprintf(myname, "%s_lock", debugName);
+        _lock = new Lock(myname);
 
-		myname = new char[20];
-		sprintf(myname, "%s_lineCV", debugName);
-		_lineCV = new Condition(myname);
+        myname = new char[20];
+        sprintf(myname, "%s_lineCV", debugName);
+        _lineCV = new Condition(myname);
 
-		myname = new char[20];
-		sprintf(myname, "%s_commCV", debugName);
-		_commCV = new Condition(myname);
-		_lineSize = 0;
+        myname = new char[20];
+        sprintf(myname, "%s_commCV", debugName);
+        _commCV = new Condition(myname);
+        _lineSize = 0;
 
-		_state = BUSY;
+        _state = BUSY;
 
-		_passCount = new int[NUM_AIRLINES];
-		_bagCount = new int[NUM_AIRLINES];
+        _passCount = new int[NUM_AIRLINES];
+        _bagCount = new int[NUM_AIRLINES];
 
-		for (int i=0; i < NUM_AIRLINES; i++) {
-			_passCount[0] = 0;
-			_bagCount[0] = 0;
-		}
-	}
-	void Start(); // starts the thread
+        for (int i=0; i < NUM_AIRLINES; i++) {
+            _passCount[0] = 0;
+            _bagCount[0] = 0;
+        }
 
-	void updatePassengerInfo(Passenger* pass) {
-		_passCount[pass->_myticket._airline]++;
-		_bagCount[pass->_myticket._airline] += pass->_baggages.size();
-		_currentPassenger = pass;
-	}
+        _totalNumber = 0;
+    }
+    void Start(); // starts the thread
+
+    void updatePassengerInfo(Passenger* pass) {
+        _passCount[pass->_myticket._airline]++;
+        _bagCount[pass->_myticket._airline] += pass->_baggages.size();
+        _currentPassenger = pass;
+    }
 
 public:
-	Lock* _lock;
-	Condition* _lineCV;
-	Condition* _commCV;
-	int _lineSize;
+    Lock* _lock;
+    Condition* _lineCV;
+    Condition* _commCV;
+    int _lineSize;
 
-	int _state; // AVAIL or BUSY
-	int* _passCount;
-	int* _bagCount;
+    int _state; // AVAIL or BUSY
+    int* _passCount;
+    int* _bagCount;
 
-	Passenger* _currentPassenger;
-	
+    Passenger* _currentPassenger;
+
+    int _totalNumber;
+    
 };
 
 //-----------------------
@@ -566,53 +570,56 @@ public:
 class CheckInStaff : public Thread
 {
 public:
-	CheckInStaff(char* debugName, int airline, int cisnum) : Thread(debugName) {
-		char* myname;
-		_airline = airline;
-		_cisNum = cisnum;
+    CheckInStaff(char* debugName, int airline, int cisnum) : Thread(debugName) {
+        char* myname;
+        _airline = airline;
+        _cisNum = cisnum;
 
-		myname = new char[20];
-		sprintf(myname, "%s_lock", debugName);
-		_lock = new Lock(myname);
+        myname = new char[20];
+        sprintf(myname, "%s_lock", debugName);
+        _lock = new Lock(myname);
 
-		myname = new char[20];
-		sprintf(myname, "%s_lineCV", debugName);
-		_lineCV = new Condition(myname);
+        myname = new char[20];
+        sprintf(myname, "%s_lineCV", debugName);
+        _lineCV = new Condition(myname);
 
-		myname = new char[20];
-		sprintf(myname, "%s_commCV", debugName);
-		_commCV = new Condition(myname);
+        myname = new char[20];
+        sprintf(myname, "%s_commCV", debugName);
+        _commCV = new Condition(myname);
 
-		_lineSize = 0;
+        _lineSize = 0;
 
-		_state = BUSY;
-		_passCount = 0;
-		_bagCount = 0;
-		
-	}
-	void Start(); // starts the thread
+        _state = BUSY;
+        _passCount = 0;
+        _bagCount = 0;
+        _PassengerNumber = 0;
+        
+    }
+    void Start(); // starts the thread
 
-	void updatePassengerInfo(Passenger* pass) {
-		_passCount++;
-		_bagCount += pass->_baggages.size();
-		_currentPassenger = pass;
-	}
+    void updatePassengerInfo(Passenger* pass) {
+        _passCount++;
+        _bagCount += pass->_baggages.size();
+        _currentPassenger = pass;
+    }
 
 public:
-	Lock* _lock;
-	Condition* _lineCV;
-	Condition* _commCV;
-	int _lineSize;
+    Lock* _lock;
+    Condition* _lineCV;
+    Condition* _commCV;
+    int _lineSize;
 
-	int _state; // ONBREAK or BUSY
-	int _passCount;
-	int _bagCount;
+    int _state; // ONBREAK or BUSY
+    int _passCount;
+    int _bagCount;
 
-	Passenger* _currentPassenger;
+    Passenger* _currentPassenger;
+
+    int _PassengerNumber;
 
 private:
-	int _airline;
-	int _cisNum;
+    int _airline;
+    int _cisNum;
 };
 
 //-----------------------
@@ -622,10 +629,10 @@ private:
 class CargoHandler : public Thread
 {
 public:
-	CargoHandler(char* debugName) : Thread(debugName) {
-		
-	}
-	void Start(); // starts the thread
+    CargoHandler(char* debugName) : Thread(debugName) {
+        
+    }
+    void Start(); // starts the thread
 
 private:
 
@@ -666,9 +673,6 @@ public:
     int _myNum;
 
 private:
-    int _airline;
-    int _cisNum;
-
     bool _done;
 
 };
@@ -680,10 +684,10 @@ private:
 class SecurityInspector : public Thread
 {
 public:
-	SecurityInspector(char* debugName) : Thread(debugName) {
-		
-	}
-	void Start(); // starts the thread
+    SecurityInspector(char* debugName) : Thread(debugName) {
+        
+    }
+    void Start(); // starts the thread
 
 private:
 
@@ -696,10 +700,10 @@ private:
 class Manager : public Thread
 {
 public:
-	Manager(char* debugName) : Thread(debugName) {
-		
-	}
-	void Start(); // starts the thread
+    Manager(char* debugName) : Thread(debugName) {
+        
+    }
+    void Start(); // starts the thread
 
 private:
 
@@ -712,52 +716,54 @@ private:
 class Airline
 {
 public:
-	Airline(char* debugName) {
-		_name = debugName;
+    Airline(char* debugName) {
+        _name = debugName;
 
-		_cis = new CheckInStaff*[NUM_CIS_PER_AIRLINE];
+        _cis = new CheckInStaff*[NUM_CIS_PER_AIRLINE];
 
-		char* myname;
-		myname = new char[20];
-		sprintf(myname, "%s_execlock", debugName);
-		_execLineLock = new Lock(myname);
+        char* myname;
+        myname = new char[20];
+        sprintf(myname, "%s_execlock", debugName);
+        _execLineLock = new Lock(myname);
 
-		myname = new char[20];
-		sprintf(myname, "%s_execCV", debugName);
-		_execLineCV = new Condition(myname);
+        myname = new char[20];
+        sprintf(myname, "%s_execCV", debugName);
+        _execLineCV = new Condition(myname);
 
-		_execLineSize = 0;
+        _execLineSize = 0;
 
-		_execQueue = new List;
+        _execQueue = new List;
 
-		myname = new char[20];
-		sprintf(myname, "%s_globallock", debugName);
-		_CisGlobalLineLock = new Lock(myname);
+        myname = new char[20];
+        sprintf(myname, "%s_globallock", debugName);
+        _CisGlobalLineLock = new Lock(myname);
 
-		_numExpectedPassengers = 0;
-		_numReadyPassengers = 0;
-		_numExpectedBaggages = 0;
-		_numLoadedBaggages = 0;
-	}
-	char* getName() { return _name; }
+        _numExpectedPassengers = 0;
+        _numReadyPassengers = 0;
+        _numExpectedBaggages = 0;
+        _numLoadedBaggages = 0;
+        _totalPassenger = 0;
+    }
+    char* getName() { return _name; }
 
 public:
-	CheckInStaff** _cis;
+    CheckInStaff** _cis;
 
-	Lock* _execLineLock;
-	Condition* _execLineCV;
-	int _execLineSize;
-	List* _execQueue;
+    Lock* _execLineLock;
+    Condition* _execLineCV;
+    int _execLineSize;
+    List* _execQueue;
 
-	Lock* _CisGlobalLineLock;
+    Lock* _CisGlobalLineLock;
 
-	int _numExpectedPassengers;
-	int _numReadyPassengers;
-	int _numExpectedBaggages;
-	int _numLoadedBaggages;
+    int _numExpectedPassengers;
+    int _numReadyPassengers;
+    int _numExpectedBaggages;
+    int _numLoadedBaggages;
+    int _totalPassenger;
 
 private:
-	char* _name;
+    char* _name;
 };
 
 //-----------------------
@@ -808,49 +814,29 @@ Lock* officersLineLock;
 Condition* officersLineCV;
 List* officersLine;
 
-
 // Security
 SecurityData* securityCloud;
+
+Semaphore t1("t1",0);
+Semaphore t4_1("t4_1",0);
+Semaphore t4("t4",0);
+bool stopSIM1 = false;
+bool semaBool = false;
+bool semaExe1 = false;
+bool semaExe = false; 
+bool stopSIM4 = false;
 
 //-----------------------
 // Thread Functions
 //-----------------------
 
-void PassengerStart(int index)
-{
-	passengers[index]->Start();
-}
-
-void LiaisonStart(int index)
-{
-	liaisons[index]->Start();
-}
-
-void CisStart(int index)
-{
-	// a bit finicky...
-	airlines[index / NUM_CIS_PER_AIRLINE]->_cis[index % NUM_CIS_PER_AIRLINE]->Start();
-}
-
-void CargoHandlerStart(int index)
-{
-	cargohandlers[index]->Start();
-}
-
-void ScreeningOfficerStart(int index)
-{
-	screeningofficers[index]->Start();
-}
-
-void SecurityInspectorStart(int index)
-{
-	securityinspectors[index]->Start();
-}
-
-void ManagerStart()
-{
-	manager->Start();
-}
+void PassengerStart(int index) { passengers[index]->Start(); }
+void LiaisonStart(int index) { liaisons[index]->Start(); }
+void CisStart(int index) { airlines[index / NUM_CIS_PER_AIRLINE]->_cis[index % NUM_CIS_PER_AIRLINE]->Start(); }
+void CargoHandlerStart(int index) { cargohandlers[index]->Start(); }
+void ScreeningOfficerStart(int index) { screeningofficers[index]->Start(); }
+void SecurityInspectorStart(int index) { securityinspectors[index]->Start(); }
+void ManagerStart() { manager->Start(); }
 
 //-----------------------
 // Start Functions
@@ -858,70 +844,71 @@ void ManagerStart()
 
 void Passenger::Start()
 {
-//	printf("%s: Made it!\n", this->getName());
-	
 
-	//----------------------------------------------
-	// PASSENGER INTERACTS WITH LIAISON
-	//----------------------------------------------
+    //----------------------------------------------
+    // PASSENGER INTERACTS WITH LIAISON
+    //----------------------------------------------
 
-	// enter terminal
-	// goes to Airport Liaison, choosing shortest line
-	myLine = 0;
-	LiaisonGlobalLineLock->Acquire();
-	int lineSize = liaisons[0]->_lineSize;
+    // enter terminal
+    // goes to Airport Liaison, choosing shortest line
+    myLine = 0;
+    LiaisonGlobalLineLock->Acquire();
+    int lineSize = liaisons[0]->_lineSize;
 
-	// find shortest line
-	for (int i=0; i < NUM_LIASONS; i++) {
-		if (liaisons[i]->_lineSize < lineSize) {
-			lineSize = liaisons[i]->_lineSize;
-			myLine = i;
-		}
-	}
+    // find shortest line
+    for (int i=0; i < NUM_LIASONS; i++) {
+        if (liaisons[i]->_lineSize < lineSize) {
+            lineSize = liaisons[i]->_lineSize;
+            myLine = i;
+        }
+    }
 
-	printf("Passenger %s chose Liaison %s with a line length %i\n", getName(), liaisons[myLine]->getName(), lineSize);
+    printf("Passenger %s chose Liaison %s with a line length %i\n", getName(), liaisons[myLine]->getName(), lineSize);
 
-	if (liaisons[myLine]->_state == BUSY) {
-		liaisons[myLine]->_lineSize++;
-		liaisons[myLine]->_lineCV->Wait(LiaisonGlobalLineLock);
-		liaisons[myLine]->_lineSize--;
-	}
+    if (liaisons[myLine]->_state == BUSY) {
+        liaisons[myLine]->_lineSize++;
+        liaisons[myLine]->_lineCV->Wait(LiaisonGlobalLineLock);
+        liaisons[myLine]->_lineSize--;
+        liaisons[myLine]->_totalNumber++;
+    }
 
-	liaisons[myLine]->_lock->Acquire();
-	LiaisonGlobalLineLock->Release();
+    liaisons[myLine]->_lock->Acquire();
+    LiaisonGlobalLineLock->Release();
 
-	// hands ticket to Liaison
-	liaisons[myLine]->updatePassengerInfo(this);
+    // hands ticket to Liaison
+    liaisons[myLine]->updatePassengerInfo(this);
 
-	liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
-	liaisons[myLine]->_commCV->Wait(liaisons[myLine]->_lock);
+    liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
+    liaisons[myLine]->_commCV->Wait(liaisons[myLine]->_lock);
 
-	// receives instruction from Liaison on which terminal to go to
-	printf("Passenger %s of Airline %i is directed to the check-in counter\n", getName(), _myticket._airline);
+    // receives instruction from Liaison on which terminal to go to
+    printf("Passenger %s of Airline %i is directed to the check-in counter\n", getName(), _myticket._airline);
 
-	liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
+    liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
+    liaisons[myLine]->_lock->Release();
 
-	liaisons[myLine]->_lock->Release();
+    // For Test purposes. it makes wait testing simulation so that we can analyze result and verify outcome.
+    if(semaBool == true) {
+        t1.V();
+    }
+    if(semaExe1 == true) {
+        t4_1.V();
+    }
+    
+    //----------------------------------------------
+    // END PASSENGER INTERACTS WITH LIAISON
+    //----------------------------------------------
 
 
-	//----------------------------------------------
-	// END PASSENGER INTERACTS WITH LIAISON
-	//----------------------------------------------
-
-
-
-
-	// if executive passenger
-		// go to executive line
-		// get helped by cis
-
-	// if economy passenger
-		// choose shortest cis line
-		// get helped by cis
-	
-	//----------------------------------------------
-	// PASSENGER INTERACTS WITH CHECK-IN-STAFF
-	//----------------------------------------------
+    //stop here for test 1 and test 2 simulation
+    if(stopSIM1 == true) {
+        return;
+    }
+    
+    
+    //----------------------------------------------
+    // PASSENGER INTERACTS WITH CHECK-IN-STAFF
+    //----------------------------------------------
 
 #define myairline airlines[_myticket._airline]
 #define checkinstaff airlines[_myticket._airline]->_cis
@@ -930,7 +917,6 @@ void Passenger::Start()
 #define GlobalLock airlines[_myticket._airline]->_CisGlobalLineLock
 #define CisLock airlines[_myticket._airline]->_cis[myLine]->_lock
 	
-	// GlobalLock->Acquire();
 	if (_myticket._executive) {
 		ExecLock->Acquire();
 		myairline->_execQueue->Append((void*) this);
@@ -938,50 +924,43 @@ void Passenger::Start()
 
 		printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
 		
-		//GlobalLock->Release();
-    std::cout << myairline->getName() << " 11111111111111111: " << myairline->_execLineSize << std::endl; 
-		
     myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
-		//GlobalLock->Acquire();
-
-    std::cout << myairline->getName() << " 44444444444444444: " << myairline->_execLineSize << std::endl; 
     
-		ExecLock->Release();
-	}
-	else {
+        ExecLock->Release();
+    }
+    else {
     GlobalLock->Acquire();
-		// find shortest line
-		lineSize = checkinstaff[0]->_lineSize;
-		myLine = 0;
-		for (int i=0; i < NUM_CIS_PER_AIRLINE; i++) {
-			if (checkinstaff[i]->_lineSize < lineSize) {
-				lineSize = airlines[_myticket._airline]->_cis[i]->_lineSize;
-				myLine = i;
-			}
-		}
+        // find shortest line
+        lineSize = checkinstaff[0]->_lineSize;
+        myLine = 0;
+        for (int i=0; i < NUM_CIS_PER_AIRLINE; i++) {
+            if (checkinstaff[i]->_lineSize < lineSize) {
+                lineSize = airlines[_myticket._airline]->_cis[i]->_lineSize;
+                myLine = i;
+            }
+        }
 
-		printf("Passenger %s of Airline %i chose Airline Check-In staff %s with a line length %i\n", getName(), _myticket._airline, myCis->getName(), lineSize);
+        printf("Passenger %s of Airline %i chose Airline Check-In staff %s with a line length %i\n", getName(), _myticket._airline, myCis->getName(), lineSize);
 
-		myCis->_lineSize++;
-		myCis->_lineCV->Wait(GlobalLock);
-		myCis->_lineSize--;
+        myCis->_lineSize++;
+        myCis->_lineCV->Wait(GlobalLock);
+        myCis->_lineSize--;
 
     GlobalLock->Release();
-	}
-	CisLock->Acquire();
+    }
+    CisLock->Acquire();
 
-	// give baggage + ticket to cis
-	myCis->updatePassengerInfo(this);
+    // give baggage + ticket to cis
+    myCis->updatePassengerInfo(this);
 
-	myCis->_commCV->Signal(CisLock);
-	myCis->_commCV->Wait(CisLock); // wait for cis for boarding pass
+    myCis->_commCV->Signal(CisLock);
+    myCis->_commCV->Wait(CisLock); // wait for cis for boarding pass
 
-	// receives boarding pass with seat number
-	printf("Passenger %s of Airline %i was informed to board at gate %i\n", getName(), _myticket._airline, _myticket._airline);
+    // receives boarding pass with seat number
+    printf("Passenger %s of Airline %i was informed to board at gate %i\n", getName(), _myticket._airline, _myticket._airline);
 
-	myCis->_commCV->Signal(CisLock);
-	CisLock->Release();
-
+    myCis->_commCV->Signal(CisLock);
+    CisLock->Release();
 
 #undef myairline
 #undef checkinstaff
@@ -990,10 +969,9 @@ void Passenger::Start()
 #undef GlobalLock
 #undef CisLock
 
-	//----------------------------------------------
-	// END PASSENGER INTERACTS WITH CHECK-IN-STAFF
-	//----------------------------------------------
-
+    //----------------------------------------------
+    // END PASSENGER INTERACTS WITH CHECK-IN-STAFF
+    //----------------------------------------------
 
 
     //----------------------------------------------
@@ -1022,74 +1000,61 @@ void Passenger::Start()
     // END PASSENGER INTERACTS WITH SCREENING OFFICER
     //----------------------------------------------
 
-
-	// wait in boarding lounge until boarding announcement
+    // wait in boarding lounge until boarding announcement
 }
 
 void Liaison::Start()
 {
-//	printf("%s: Made it!\n", this->getName());
+//  printf("%s: Made it!\n", this->getName());
 
-	// while loop
-		// help passenger
-		
-		// receives ticket from passenger
-		// keeps track of passenger count and baggages
+    // while loop
+        // help passenger
+        
+        // receives ticket from passenger
+        // keeps track of passenger count and baggages
 
-	while (true) {
-		_lock->Acquire();
-		LiaisonGlobalLineLock->Acquire();
-		if (_lineSize == 0) {
-			LiaisonGlobalLineLock->Release();
-			_state = AVAIL;
-			_commCV->Wait(_lock);
-		}
-		else {
-			_lineCV->Signal(LiaisonGlobalLineLock);
-			LiaisonGlobalLineLock->Release();
-			_commCV->Wait(_lock);
-		}
+    while (true) {
+        _lock->Acquire();
+        LiaisonGlobalLineLock->Acquire();
+        if (_lineSize == 0) {
+            LiaisonGlobalLineLock->Release();
+            _state = AVAIL;
+            _commCV->Wait(_lock);
+            //for testing purposes(TEST2), in order to complete testing simulation first so that we can analyze the result at the end  
+            if(semaBool == true) {
+                t1.V();
+            }
+        }
+        else {
+            _lineCV->Signal(LiaisonGlobalLineLock);
+            LiaisonGlobalLineLock->Release();
+            _commCV->Wait(_lock);
+            //for testing purposes(TEST2), in order to complete testing simulation first so that we can analyze the result at the end  
+            if(semaBool == true) {
+                t1.V();
+            }
+        }
 
-		_state = BUSY;
+        _state = BUSY;
 
-		// guides them to proper airport terminal (based on airline)
-		printf("Airport Liaison %s directed passenger %s of airline %i\n", getName(), _currentPassenger->getName(), _currentPassenger->_myticket._airline);
+        // guides them to proper airport terminal (based on airline)
+        printf("Airport Liaison %s directed passenger %s of airline %i\n", getName(), _currentPassenger->getName(), _currentPassenger->_myticket._airline);
 
-		// print statement
+        // print statement
 
-		_commCV->Signal(_lock);
-		_commCV->Wait(_lock);
+        _commCV->Signal(_lock);
+        _commCV->Wait(_lock);
 
-		_lock->Release();
+        _lock->Release();
 
-	}
+    }
+
+
 
 }
 
 void CheckInStaff::Start()
 {
-//	printf("%s: Made it!\n", this->getName());
-
-	// while loop
-		// if an executive passenger is waiting, help them
-
-		// if there is no executive passenger, help the first person in current line
-
-		// if there are no passengers, go on break
-
-		// accepts passenger ticket
-		// accepts passenger baggage
-		// assigns passenger seat number (no overlaps)
-			// (make sure there are enough seats! each airplane must have at NUM_PASSENGERS seats to ensure enough)
-		// tags baggage with airline code and weight
-		// places baggage on conveyor system
-
-
-		
-		// .
-		// .
-		// .
-		// when all passengers checked in, close check-in counter
 
 #define myairline airlines[_airline]
 #define ExecLock airlines[_airline]->_execLineLock
@@ -1101,7 +1066,6 @@ void CheckInStaff::Start()
 		GlobalLock->Acquire();
 		ExecLock->Acquire();
 		if (_lineSize == 0 && myairline->_execLineSize == 0) {
-    //if (_lineSize == 0 && myairline->_execQueue->IsEmpty()) {
 			_state = ONBREAK;
 		  _currentPassenger = NULL;
 			GlobalLock->Release();
@@ -1109,32 +1073,46 @@ void CheckInStaff::Start()
 			_commCV->Wait(_lock); // wait for manager to wake me up
       GlobalLock->Acquire();
       ExecLock->Acquire();
-		}
-		_state = BUSY;
+        }
+        _state = BUSY;
 
 		// serving an executive passenger
 		if (myairline->_execLineSize > 0) {
-    //if (!myairline->_execQueue->IsEmpty()) {
 			executive = true;
 			Passenger* p = (Passenger*) myairline->_execQueue->Remove();
 			myairline->_execLineSize--;
 			p->myLine = _cisNum;
+      //incremeting total number of passenger!
+      _PassengerNumber++;
 
 			printf("Airline check-in staff %s of airline %i serves an executive class passenger and economy line length = %i\n", getName(), _airline, _lineSize);
 
-      std::cout << myairline->getName() << " 22222222222222222: " << myairline->_execLineSize << std::endl; 
-
 			myairline->_execLineCV->Signal(ExecLock);
 
-      std::cout << myairline->getName() << " 33333333333333333: " << myairline->_execLineSize << std::endl; 
+        //Testing 4. To wait all executive passengers are processes and to see what happends right after that.
+        if(semaExe == true) {
+            t4.V();
+        }
 		}
 		// serving an economy passenger
 		else if (_lineSize > 0) {
+      //stop point so that test 4 simulation can stop! and simulate at this point
+      if(stopSIM4) {
+          return;
+      }
 			executive = false;
 			
+      //incremeting total number of passenger!
+      _PassengerNumber++;
+
 			printf("Airline check-in staff %s of airline %i serves an economy class passenger and executive class line length = %i\n", getName(), _airline, myairline->_execLineSize);
 
 			_lineCV->Signal(GlobalLock);
+
+        //for testing purposes(TEST2), in order to complete testing simulation first so that we can analyze the result at the end  
+        if(semaBool == true) {
+            t1.V();
+        }
 		}
 		GlobalLock->Release();
 		ExecLock->Release();
@@ -1160,12 +1138,13 @@ void CheckInStaff::Start()
 			_lock->Release();
 
       _currentPassenger = NULL;
-		}
+        }
     else {
       printf("error: (in CIS) SHOULD NOT REACH HERE");
-    }	
-	
-	}
+    }   
+    
+    }
+
 
 #undef myairline
 #undef ExecLock
@@ -1175,7 +1154,7 @@ void CheckInStaff::Start()
 
 void CargoHandler::Start()
 {
-//	printf("%s: Made it!\n", this->getName());
+//  printf("%s: Made it!\n", this->getName());
 }
 
 void ScreeningOfficer::Start()
@@ -1218,17 +1197,17 @@ std::cout << "Screening officer finished one pass!" << std::endl;
 
 void SecurityInspector::Start()
 {
-//	printf("%s: Made it!\n", this->getName());
+//  printf("%s: Made it!\n", this->getName());
 }
 
 void Manager::Start()
 {
-//	printf("%s: Made it!\n", this->getName());
+//  printf("%s: Made it!\n", this->getName());
 
 
-	//----------------------------------------------
-	// MANAGER CHECKS CIS LINES
-	//----------------------------------------------
+    //----------------------------------------------
+    // MANAGER CHECKS CIS LINES
+    //----------------------------------------------
 
 #define ExecLock airlines[i]->_execLineLock
 #define GlobalLock airlines[i]->_CisGlobalLineLock
@@ -1237,32 +1216,35 @@ void Manager::Start()
 #define CisLine airlines[i]->_cis[j]->_lineSize
 #define Cis airlines[i]->_cis[j]
 
-	while (true) {
+    while (true) {
 
-		for (int i=0; i < 10; i++) {
-			currentThread->Yield();
-		}
+        for (int i=0; i < 10; i++) {
+            currentThread->Yield();
+        }
 
-		for (int i=0; i < NUM_AIRLINES; i++) {
-			ExecLock->Acquire();
-			GlobalLock->Acquire();
-			for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
-				CisLock->Acquire();
-				if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
+        for (int i=0; i < NUM_AIRLINES; i++) {
+            ExecLock->Acquire();
+            GlobalLock->Acquire();
+            for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+                CisLock->Acquire();
+                if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
           std::cout << "Manager is waking up a cis..." << std::endl;
-					Cis->_commCV->Signal(CisLock);
-				}
-				CisLock->Release();
-			}
-			GlobalLock->Release();
-			ExecLock->Release();
-		}
+                    Cis->_commCV->Signal(CisLock);
+                }
+                CisLock->Release();
+            }
+            GlobalLock->Release();
+            ExecLock->Release();
+        }
+
+        for (int i=0; i < 1000; i++) {
+            currentThread->Yield();
+        }
 
 		for (int i=0; i < 1000; i++) {
 			currentThread->Yield();
 		}
 
-	
 
 #undef ExecLock
 #undef GlobalLock
@@ -1275,7 +1257,7 @@ void Manager::Start()
 	// END MANAGER CHECKS CIS LINES
 	//----------------------------------------------
 
-            //----------------------------------------------
+        //----------------------------------------------
         // MANAGER CHECKS SCREENING OFFICERS
         //----------------------------------------------
 
@@ -1300,46 +1282,45 @@ void Manager::Start()
 
 
 
-
 //-----------------------
 // Run Airport Simulation
 //-----------------------
 
 void AirportSim()
 {
-	// Setup
-	char* name;
-	srand(time(NULL));
+    // Setup
+    char* name;
+    srand(time(NULL));
 
-	// Read in number of airport people
-	printf("Number of airport liaisons = ");
-	scanf("%i", &NUM_LIASONS);
-	printf("Number of airlines = ");
-	scanf("%i", &NUM_AIRLINES);
-	printf("Number of check-in-staff = ");
-	scanf("%i", &NUM_CIS_PER_AIRLINE);
-	printf("Number of cargo handlers = ");
-	scanf("%i", &NUM_CARGO_HANDLERS);
-	printf("Number of screening officers = ");
-	scanf("%i", &NUM_SCREENING_OFFICERS);
-	printf("Total number of passengers = ");
-	scanf("%i", &NUM_PASSENGERS);
+    // Read in number of airport people
+    printf("Number of airport liaisons = ");
+    scanf("%i", &NUM_LIASONS);
+    printf("Number of airlines = ");
+    scanf("%i", &NUM_AIRLINES);
+    printf("Number of check-in-staff = ");
+    scanf("%i", &NUM_CIS_PER_AIRLINE);
+    printf("Number of cargo handlers = ");
+    scanf("%i", &NUM_CARGO_HANDLERS);
+    printf("Number of screening officers = ");
+    scanf("%i", &NUM_SCREENING_OFFICERS);
+    printf("Total number of passengers = ");
+    scanf("%i", &NUM_PASSENGERS);
 
-	NUM_SECURITY_INSPECTORS = NUM_SCREENING_OFFICERS;
+    NUM_SECURITY_INSPECTORS = NUM_SCREENING_OFFICERS;
 
-	// Initializing global data
-	airlines = new Airline*[NUM_AIRLINES];
-	for (int i=0; i < NUM_AIRLINES; i++) {
-		name = new char[20];
-		sprintf(name, "airline%d", i);
-		airlines[i] = new Airline(name);
-	}
+    // Initializing global data
+    airlines = new Airline*[NUM_AIRLINES];
+    for (int i=0; i < NUM_AIRLINES; i++) {
+        name = new char[20];
+        sprintf(name, "airline%d", i);
+        airlines[i] = new Airline(name);
+    }
 
-	passengers = new Passenger*[NUM_PASSENGERS];
-	liaisons = new Liaison*[NUM_LIASONS];
-	cargohandlers = new CargoHandler*[NUM_CARGO_HANDLERS];
-	screeningofficers = new ScreeningOfficer*[NUM_SCREENING_OFFICERS];
-	securityinspectors = new SecurityInspector*[NUM_SECURITY_INSPECTORS];
+    passengers = new Passenger*[NUM_PASSENGERS];
+    liaisons = new Liaison*[NUM_LIASONS];
+    cargohandlers = new CargoHandler*[NUM_CARGO_HANDLERS];
+    screeningofficers = new ScreeningOfficer*[NUM_SCREENING_OFFICERS];
+    securityinspectors = new SecurityInspector*[NUM_SECURITY_INSPECTORS];
 
 	// Initialize locks
 	LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
@@ -1357,150 +1338,496 @@ void AirportSim()
     //----------------------------------------------
 
 
-	//----------------------------------------------
-	// INITIALIZING ALL THREADS
-	//----------------------------------------------
-	
-	// Initializing passenger threads
-	Passenger* p;
-	for (int i=0; i < NUM_PASSENGERS; i++) {
-		name = new char[20];
-		sprintf(name, "passenger%d", i);
+    //----------------------------------------------
+    // INITIALIZING ALL THREADS
+    //----------------------------------------------
+    
+    // Initializing passenger threads
+    Passenger* p;
+    for (int i=0; i < NUM_PASSENGERS; i++) {
+        name = new char[20];
+        sprintf(name, "passenger%d", i);
 
 		p = new Passenger(name, i);
 		passengers[i] = p;
 
-		// Track number of passengers expected per airline
-		airlines[p->_myticket._airline]->_numExpectedPassengers++;
-	}
+        // Track number of passengers expected per airline
+        airlines[p->_myticket._airline]->_numExpectedPassengers++;
+    }
 
-	// Initializing liaison threads
-	Liaison* l;
-	for (int i=0; i < NUM_LIASONS; i++) {
-		name = new char[20];
-		sprintf(name, "liaison%d", i);
+    // Initializing liaison threads
+    Liaison* l;
+    for (int i=0; i < NUM_LIASONS; i++) {
+        name = new char[20];
+        sprintf(name, "liaison%d", i);
 
-		l = new Liaison(name);
-		liaisons[i] = l;
-	}
+        l = new Liaison(name);
+        liaisons[i] = l;
+    }
 
-	// CIS
-	// kinda finicky
-	// gotta decide how to do this...
-	CheckInStaff* cis;
-	for (int i=0; i < NUM_AIRLINES; i++) {
-		for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
-			name = new char[20];
-			sprintf(name, "cis_%d_%d", i, j);
+    // CIS
+    // kinda finicky
+    // gotta decide how to do this...
+    CheckInStaff* cis;
+    for (int i=0; i < NUM_AIRLINES; i++) {
+        for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+            name = new char[20];
+            sprintf(name, "cis_%d_%d", i, j);
 
-			cis = new CheckInStaff(name, i, j);
-			airlines[i]->_cis[j] = cis;
-		}
-	}
+            cis = new CheckInStaff(name, i, j);
+            airlines[i]->_cis[j] = cis;
+        }
+    }
 
-	// Initializing cargo handler threads
-	CargoHandler* ch;
-	for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
-		name = new char[20];
-		sprintf(name, "cargo_handler%d", i);
+    // Initializing cargo handler threads
+    CargoHandler* ch;
+    for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
+        name = new char[20];
+        sprintf(name, "cargo_handler%d", i);
 
-		ch = new CargoHandler(name);
-		cargohandlers[i] = ch;
-	}
+        ch = new CargoHandler(name);
+        cargohandlers[i] = ch;
+    }
 
-	// Initializing screening officer threads
-	ScreeningOfficer* so;
-	for (int i=0; i < NUM_SCREENING_OFFICERS; i++) {
-		name = new char[25];
-		sprintf(name, "screening_officer%d", i);
+    // Initializing screening officer threads
+    ScreeningOfficer* so;
+    for (int i=0; i < NUM_SCREENING_OFFICERS; i++) {
+        name = new char[25];
+        sprintf(name, "screening_officer%d", i);
 
 		so = new ScreeningOfficer(name, i);
 		screeningofficers[i] = so;
 	}
 
-	// Initializing security inspector threads
-	SecurityInspector* si;
-	for (int i=0; i < NUM_SECURITY_INSPECTORS; i++) {
-		name = new char[25];
-		sprintf(name, "security_inspectors%d", i);
+    // Initializing security inspector threads
+    SecurityInspector* si;
+    for (int i=0; i < NUM_SECURITY_INSPECTORS; i++) {
+        name = new char[25];
+        sprintf(name, "security_inspectors%d", i);
 
-		si = new SecurityInspector(name);
-		securityinspectors[i] = si;
-	}
+        si = new SecurityInspector(name);
+        securityinspectors[i] = si;
+    }
 
-	// Initializing manager thread
-	name = new char[20];
-	sprintf(name, "manager");
-	manager = new Manager(name);
-
-
-	//----------------------------------------------
-	// END INITIALIZING ALL THREADS
-	//----------------------------------------------
+    // Initializing manager thread
+    name = new char[20];
+    sprintf(name, "manager");
+    manager = new Manager(name);
 
 
-	//----------------------------------------------
-	// PRINT INFORMATION
-	//----------------------------------------------
+    //----------------------------------------------
+    // END INITIALIZING ALL THREADS
+    //----------------------------------------------
 
 
-	// Print airline information
-	for (int i=0; i < NUM_AIRLINES; i++) {
-		printf("Number of passengers for airline %s = %i\n", airlines[i]->getName(), airlines[i]->_numExpectedPassengers);
-	}
+    //----------------------------------------------
+    // PRINT INFORMATION
+    //----------------------------------------------
 
-	// Print passenger information
-	for (int i=0; i < NUM_PASSENGERS; i++) {
-		printf("Passenger %s belongs to airline %i\n", passengers[i]->getName(), passengers[i]->_myticket._airline);
-		printf("Passenger %s : Number of bags = %i\n", passengers[i]->getName(), passengers[i]->_baggages.size());
-		printf("Passenger %s : Weight of bags = ", passengers[i]->getName());
-		for (unsigned int j=0; j < passengers[i]->_baggages.size(); j++) {
-			printf("%i ", passengers[i]->_baggages.at(j)->_weight);
-		}
-		printf("\n");
-	}
 
-	// Print cis information
-	for (int i=0; i < NUM_AIRLINES; i++) {
-		for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
-			printf("Airline check-in staff %s belongs to airline %s\n", airlines[i]->_cis[j]->getName(), airlines[i]->getName());
-		}
-	}
+    // Print airline information
+    for (int i=0; i < NUM_AIRLINES; i++) {
+        printf("Number of passengers for airline %s = %i\n", airlines[i]->getName(), airlines[i]->_numExpectedPassengers);
+    }
 
-	
-	//----------------------------------------------
-	// END PRINT INFORMATION
-	//----------------------------------------------
+    // Print passenger information
+    for (int i=0; i < NUM_PASSENGERS; i++) {
+        printf("Passenger %s belongs to airline %i\n", passengers[i]->getName(), passengers[i]->_myticket._airline);
+        printf("Passenger %s : Number of bags = %i\n", passengers[i]->getName(), passengers[i]->_baggages.size());
+        printf("Passenger %s : Weight of bags = ", passengers[i]->getName());
+        for (unsigned int j=0; j < passengers[i]->_baggages.size(); j++) {
+            printf("%i ", passengers[i]->_baggages.at(j)->_weight);
+        }
+        printf("\n");
+    }
 
-	//----------------------------------------------
-	// ACTIVATING ALL THREADS
-	//----------------------------------------------
+    // Print cis information
+    for (int i=0; i < NUM_AIRLINES; i++) {
+        for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+            printf("Airline check-in staff %s belongs to airline %s\n", airlines[i]->_cis[j]->getName(), airlines[i]->getName());
+        }
+    }
 
-	// Activating all threads
-	for (int i=0; i < NUM_PASSENGERS; i++) {
-		passengers[i]->Fork((VoidFunctionPtr)PassengerStart, i);
-	}
-	for (int i=0; i < NUM_LIASONS; i++) {
-		liaisons[i]->Fork((VoidFunctionPtr)LiaisonStart, i);
-	}
-	for (int i=0; i < NUM_AIRLINES; i++) {
-		for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
-			airlines[i]->_cis[j]->Fork((VoidFunctionPtr)CisStart, i*NUM_CIS_PER_AIRLINE+j);
-		}
-	}
-	for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
-		cargohandlers[i]->Fork((VoidFunctionPtr)CargoHandlerStart, i);
-	}
-	for (int i=0; i < NUM_SCREENING_OFFICERS; i++) {
-		screeningofficers[i]->Fork((VoidFunctionPtr)ScreeningOfficerStart, i);
-	}
-	for (int i=0; i < NUM_SECURITY_INSPECTORS; i++) {
-		securityinspectors[i]->Fork((VoidFunctionPtr)SecurityInspectorStart, i);
-	}
-	manager->Fork((VoidFunctionPtr)ManagerStart, 0);
+    
+    //----------------------------------------------
+    // END PRINT INFORMATION
+    //----------------------------------------------
 
-	//----------------------------------------------
-	// END ACTIVATING ALL THREADS
-	//----------------------------------------------
+    //----------------------------------------------
+    // ACTIVATING ALL THREADS
+    //----------------------------------------------
+
+    // Activating all threads
+    for (int i=0; i < NUM_PASSENGERS; i++) {
+        passengers[i]->Fork((VoidFunctionPtr)PassengerStart, i);
+    }
+    for (int i=0; i < NUM_LIASONS; i++) {
+        liaisons[i]->Fork((VoidFunctionPtr)LiaisonStart, i);
+    }
+    for (int i=0; i < NUM_AIRLINES; i++) {
+        for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+            airlines[i]->_cis[j]->Fork((VoidFunctionPtr)CisStart, i*NUM_CIS_PER_AIRLINE+j);
+        }
+    }
+    for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
+        cargohandlers[i]->Fork((VoidFunctionPtr)CargoHandlerStart, i);
+    }
+    for (int i=0; i < NUM_SCREENING_OFFICERS; i++) {
+        screeningofficers[i]->Fork((VoidFunctionPtr)ScreeningOfficerStart, i);
+    }
+    for (int i=0; i < NUM_SECURITY_INSPECTORS; i++) {
+        securityinspectors[i]->Fork((VoidFunctionPtr)SecurityInspectorStart, i);
+    }
+    manager->Fork((VoidFunctionPtr)ManagerStart, 0);
+
+    //----------------------------------------------
+    // END ACTIVATING ALL THREADS
+    //----------------------------------------------
+
+}
+void TEST1() {
+    
+    NUM_PASSENGERS = 2;
+    NUM_LIASONS = 2;
+    NUM_AIRLINES = 3;
+
+    // Create 4 Passengers for test
+
+    passengers = new Passenger*[NUM_PASSENGERS];
+    liaisons = new Liaison*[NUM_LIASONS];
+
+    Passenger* p1;
+    char * testName;
+    
+    // Initialize locks
+    LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
+
+    for (int i = 0; i < 2; i++) {
+        testName = new char[20];
+        sprintf(testName, "TPassenger%d", i);
+        
+        p1 = new Passenger(testName, i);
+        passengers[i] = p1;
+    }
+
+    // Create two Liaisons and assign two passengers to one Liaison
+    Liaison* l1;
+    
+    for (int i = 0; i < 2; i++) {
+        testName = new char[20];
+        sprintf(testName, "TLiaison%d", i);
+
+        l1 = new Liaison(testName);
+        liaisons[i] = l1;
+    }
+
+    liaisons[0]->_lineSize = 2;
+    passengers[0]->Fork((VoidFunctionPtr)PassengerStart, 0);
+    passengers[1]->Fork((VoidFunctionPtr)PassengerStart, 1);
+    
+    liaisons[0]->Fork((VoidFunctionPtr)LiaisonStart, 0);
+    liaisons[1]->Fork((VoidFunctionPtr)LiaisonStart, 1);
+    std::cout<<"ending"<<std::endl;
+}
+
+void TEST2() {
+
+    //initialize locks
+    LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
+    
+    //use fixed number so that we can test the implementation
+    NUM_PASSENGERS = 1;
+    NUM_LIASONS = 1;
+    NUM_AIRLINES = 3;
+    NUM_CIS_PER_AIRLINE = 1;
+
+    passengers = new Passenger*[NUM_PASSENGERS];
+    liaisons = new Liaison*[NUM_LIASONS];
+    airlines = new Airline*[NUM_AIRLINES];
+    
+    Passenger* p1;
+    char * testName;
+    
+
+    for (int i = 0; i < 3; i++) {
+        testName = new char[20];
+        sprintf(testName, "TPassenger%d", 1);
+        
+        p1 = new Passenger(testName, i);
+        passengers[i] = p1;
+    }
+
+
+    Liaison* l1;
+    testName = new char[20];
+    sprintf(testName, "TLiaison%d", 0);
+    l1 = new Liaison(testName);
+    liaisons[0] = l1;
+    
+
+    for (int i=0; i < NUM_AIRLINES; i++) {
+        testName = new char[20];
+        sprintf(testName, "TAirline%d", i);
+        airlines[i] = new Airline(testName);
+    }
+
+    CheckInStaff* cis;
+    for (int i=0; i < NUM_AIRLINES; i++) {
+        for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+            testName = new char[20];
+            sprintf(testName, "TCis_%d_%d", i, j);
+
+            cis = new CheckInStaff(testName, i, j);
+            airlines[i]->_cis[j] = cis;
+        }
+    }
+    //starting simulation
+    for (int i = 0; i < 1; i++) {
+        passengers[i]->Fork((VoidFunctionPtr)PassengerStart, i);
+    }
+        liaisons[0]->Fork((VoidFunctionPtr)LiaisonStart, 0);
+    for (int i=0; i < NUM_AIRLINES; i++) {
+        for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+            airlines[i]->_cis[j]->Fork((VoidFunctionPtr)CisStart, i*NUM_CIS_PER_AIRLINE+j);
+        }
+    }
+}
+void TEST3() {
+
+}
+void TEST4() {
+    //initialize locks
+    LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
+    
+    //use fixed number so that we can test the implementation
+    NUM_PASSENGERS = 6;
+    NUM_LIASONS = 1;
+    NUM_AIRLINES = 1;
+    NUM_CIS_PER_AIRLINE = 5;
+
+    passengers = new Passenger*[NUM_PASSENGERS];
+    liaisons = new Liaison*[NUM_LIASONS];
+    airlines = new Airline*[NUM_AIRLINES];
+
+    semaExe1 = true;
+    //initialize passengers, airport, cis, liaison for testing!
+    Passenger* p1;
+    char * testName;
+    std::cout<<NUM_AIRLINES<<std::endl;
+    
+    for (int i = 0; i < NUM_PASSENGERS; i++) {
+        testName = new char[20];
+        sprintf(testName, "TPassenger%d", i);
+
+        //for testing purposes, manually set the number of executive class passengers and economy passesngers
+        p1 = new Passenger(testName, i);
+        if (i < 5) {
+            p1->_myticket._executive = true;
+        }else {
+            p1->_myticket._executive = false;
+        }
+        passengers[i] = p1;
+    }
+
+    Liaison* l1;
+    testName = new char[20];
+    sprintf(testName, "TLiaison%d", 0);
+    l1 = new Liaison(testName);
+    liaisons[0] = l1;
+    
+    for (int i=0; i < NUM_AIRLINES; i++) {
+        testName = new char[20];
+        sprintf(testName, "TAirline%d", i);
+        airlines[i] = new Airline(testName);
+    }
+    CheckInStaff* cis;
+    for (int i=0; i < NUM_AIRLINES; i++) {
+        for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+            testName = new char[20];
+            sprintf(testName, "TCis_%d_%d", i, j);
+
+            cis = new CheckInStaff(testName, i, j);
+            airlines[i]->_cis[j] = cis;
+        }
+    }
+    //starting fork every element so we can start test simulation
+    for (int i = 0; i < NUM_PASSENGERS; i++) {
+        passengers[i]->Fork((VoidFunctionPtr)PassengerStart, i);
+    }
+        liaisons[0]->Fork((VoidFunctionPtr)LiaisonStart, 0);
+    //waiting for passengers so that they can be standing and waiting in CIS line.
+    for (int i = 0; i < 6; i++)
+            t4_1.P();
+
+    for (int i=0; i < NUM_AIRLINES; i++) {
+        for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+            airlines[i]->_cis[j]->Fork((VoidFunctionPtr)CisStart, i*NUM_CIS_PER_AIRLINE+j);
+        }
+    }
+}
+
+void AirTest() {
+
+    while(true) {
+        int testNum;
+        std::cout<<"Select TESTING Menu"<<std::endl;
+        std::cout<<"1.  Test 1  : Passenger selects the shortest line for the aiport liaison"<<std::endl;
+        std::cout<<"2.  Test 2  : Passenger is directed by the Liaison to the correct airline counters"<<std::endl;
+        std::cout<<"3.  Test 3  : Economy class passengers enter the shortest line while Executive class passengers enter their correct line"<<std::endl;
+        std::cout<<"4.  Test 4  : Executive class passengers are given priority over the economy class passengers at the check-in kiosks"<<std::endl;
+        std::cout<<"5.  Test 5  : Screening officer chooses an available security inspector each time a passenger comes in."<<std::endl;
+        std::cout<<"6.  Test 6  : Cargo handlers choose bags from the conveyor system each time and go on a break if there are no bags."<<std::endl;
+        std::cout<<"7.  Test 7  : Handing over of the hand luggage by the passenger to the screening officer."<<std::endl;
+        std::cout<<"8.  Test 8  : Passenger returns to the same security inspector after further questioning."<<std::endl;
+        std::cout<<"9.  Test 9  : Baggage weights of all the passengers of a particular airline should match the weights of the bags reported by the cargo handlers."<<std::endl;
+        std::cout<<"10. Test 10 : Handing over of boarding pass by the passenger to the security inspector"<<std::endl;
+        std::cout<<"11. QUIT "<<std::endl;
+
+        std::cin>>testNum;
+        if(testNum == 1) {
+            std::cout<<"TESTING 1"<<std::endl;
+            semaBool = true;
+            stopSIM1 = true;
+            // Passenger selects the shortest line for the airport liaison
+            printf("Test1 : Passenger selects the shortest line for the airport liaison\n");
+
+            //executes TEST 1 simulation!
+            Thread * t = new Thread("TEST1");
+            t->Fork((VoidFunctionPtr)TEST1,0);
+
+            //First two Passengers start going Liaison
+            //the for loop is waiting for the testing simulation done so that there is correct result/outcome
+            for (int i=0;i<4;i++) {
+                t1.P();
+            }
+                
+            if(liaisons[1]->_totalNumber == 2) {
+                printf("Test 1 passed!\n");
+            }else {
+                printf("Test 1 failed\n");
+            }
+            printf("Test1 over!\n");
+            //going back to initial case so that we can start over in initial condition
+            semaBool = false;
+            stopSIM1 = false;
+            NUM_PASSENGERS = 0;
+            NUM_LIASONS = 0;
+            liaisons[0]->_lineSize = 0;
+            Semaphore t1("t1",0);
+            continue;
+        }else if(testNum == 2) {
+            std::cout<<"TESTING 2"<<std::endl;
+            semaBool = true;
+            stopSIM1 = true;
+            printf("Test2 : Passenger is directed by the Liaison to the correct airline counters\n");
+
+            //executes TEST 2 simulation
+            Thread * t = new Thread("TEST2");
+            t->Fork((VoidFunctionPtr)TEST2,0);
+
+            //waiting test simulation before getting results and compare the results 
+            for (int i = 0;i < 2; i++)
+                t1.P();
+
+            int temp2 = 0;
+            for (int i=0; i < NUM_AIRLINES; i++) {
+                int temp = 0;
+                for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+                    temp += airlines[i]->_cis[j]->_passCount;
+                }
+                if(temp == 1) {
+                    temp2 = i;
+                }
+            }
+            if(passengers[0]->_myticket._airline == temp2) {
+                printf("Test 2 passed!\n");
+            }else {
+                printf("Test 2 failed\n");
+            }
+            //going back to initial case so that we can start over in initial condition
+            semaBool = false;
+            stopSIM1 = false;
+            NUM_PASSENGERS = 0;
+            NUM_LIASONS = 0;
+            NUM_AIRLINES = 0;
+            NUM_CIS_PER_AIRLINE = 0;
+            Semaphore t1("t1",0);
+            temp2 = 0;
+            continue;
+        }else if(testNum == 3) {
+            std::cout<<"TESTING 3"<<std::endl;
+            //put function      
+            continue;
+        }else if(testNum == 4) {
+            std::cout<<"TESTING 4"<<std::endl;
+            semaExe = true; 
+            printf("Test4 : Executive class passengers are given priority over the economy class passengers at the check-in kiosks\n");
+
+            //executes TEST 1 simulation!
+            Thread * t = new Thread("TEST4");
+            t->Fork((VoidFunctionPtr)TEST4,0);
+
+            //waiting test simulation before getting results and compare the results
+            for (int i = 0; i < 5; i++) {
+                t4.P();
+            }
+
+            //if there is a passenger waiting in economy line, then test passes
+            int total_number_passenger = 0;
+            for (int i=0; i < NUM_AIRLINES; i++) {
+                for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+                    total_number_passenger += airlines[i]->_cis[j]->_PassengerNumber;
+                }
+            }
+            if(total_number_passenger == 5) {
+                printf("Test 4 passes!\n");
+            }else{
+                printf("Test 4 failed!\n");
+            }
+            //going back to initial case so that we can start over in initial condition
+            NUM_PASSENGERS = 0;
+            NUM_LIASONS = 0;
+            NUM_AIRLINES = 0;
+            NUM_CIS_PER_AIRLINE = 0;
+            semaExe = false;
+            semaExe1 = false; 
+            Semaphore t4("t4",0);
+            Semaphore t1("t1",0);
+            Semaphore t4_1("t4_1",0);     
+            continue;
+        }else if(testNum == 5) {
+            std::cout<<"TESTING 5"<<std::endl;
+            //put function      
+            continue;
+        }else if(testNum == 6) {
+            std::cout<<"TESTING 6"<<std::endl;  
+            //put function  
+            continue;
+        }else if(testNum == 7) {
+            std::cout<<"TESTING 7"<<std::endl;  
+            //put function  
+            continue;
+        }else if(testNum == 8) {
+            std::cout<<"TESTING 8"<<std::endl;  
+            //put function  
+            continue;
+        }else if(testNum == 9) {
+            std::cout<<"TESTING 9"<<std::endl;
+            //put function      
+            continue;
+        }else if(testNum == 10) {
+            std::cout<<"TESTING 10"<<std::endl; 
+            //put function  
+            continue;
+        }else if(testNum == 11) {
+            std::cout<<"QUIT"<<std::endl;   
+            break;
+        }else{
+            std::cout<<"You select wrong number try again."<<std::endl;
+            continue;
+        }
+    }   
+
+
 
 }
