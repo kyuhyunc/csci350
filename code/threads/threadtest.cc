@@ -1004,7 +1004,6 @@ void Passenger::Start()
     // Wait in line
     officersLineLock->Acquire();
     officersLine->Append(this);
-    std::cout << "Waiting in line" << std::endl;
     officersLineCV->Wait(officersLineLock); // myOfficer gets updated
     printf("Passenger %s gives the hand-luggage to screening officer %s\n", getName(), screeningofficers[myOfficer]->getName());
     officer->_lock->Acquire();
@@ -1168,7 +1167,7 @@ void CheckInStaff::Start()
       _currentPassenger = NULL;
         }
     else {
-      printf("error: (in CIS) SHOULD NOT REACH HERE");
+      // printf("error: (in CIS) SHOULD NOT REACH HERE");
     }   
     
     }
@@ -1231,8 +1230,7 @@ void ScreeningOfficer::Start()
             _commCV->Signal(_lock);
             _commCV->Wait(_lock); // wait for goodbye signal
             _lock->Release();
-std::cout << "Screening officer finished one pass!" << std::endl;
-//            printf("Screening officer %s directs passenger %s to security inspector %s\n", getName(), _currentPassenger->getName(), );
+           printf("Screening officer %s directs passenger %s to security inspector\n", getName(), _currentPassenger->getName());
         }
         else {
             officersLineLock->Release();
@@ -1273,7 +1271,6 @@ void Manager::Start()
             for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
                 CisLock->Acquire();
                 if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
-          std::cout << "Manager is waking up a cis..." << std::endl;
                     Cis->_commCV->Signal(CisLock);
                 }
                 CisLock->Release();
@@ -1687,7 +1684,47 @@ void TEST2() {
     }
 }
 void TEST3() {
+    NUM_PASSENGERS = 2;
+    NUM_LIASONS = 2;
+    NUM_AIRLINES = 3;
 
+    // Create 4 Passengers for test
+
+    passengers = new Passenger*[NUM_PASSENGERS];
+    liaisons = new Liaison*[NUM_LIASONS];
+
+    Passenger* p1;
+    char * testName;
+    
+    // Initialize locks
+    LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
+
+    for (int i = 0; i < 2; i++) {
+        testName = new char[20];
+        sprintf(testName, "TPassenger%d", i);
+        
+        p1 = new Passenger(testName, i);
+        passengers[i] = p1;
+    }
+
+    // Create two Liaisons and assign two passengers to one Liaison
+    Liaison* l1;
+    
+    for (int i = 0; i < 2; i++) {
+        testName = new char[20];
+        sprintf(testName, "TLiaison%d", i);
+
+        l1 = new Liaison(testName);
+        liaisons[i] = l1;
+    }
+
+    liaisons[0]->_lineSize = 2;
+    passengers[0]->Fork((VoidFunctionPtr)PassengerStart, 0);
+    passengers[1]->Fork((VoidFunctionPtr)PassengerStart, 1);
+    
+    liaisons[0]->Fork((VoidFunctionPtr)LiaisonStart, 0);
+    liaisons[1]->Fork((VoidFunctionPtr)LiaisonStart, 1);
+    std::cout<<"ending"<<std::endl;
 }
 void TEST4() {
     //initialize locks
@@ -1759,11 +1796,72 @@ void TEST4() {
         }
     }
 }
+void TEST5() {
 
+    //initialize locks
+    LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
+    
+    //use fixed number so that we can test the implementation
+    NUM_PASSENGERS = 1;
+    NUM_LIASONS = 1;
+    NUM_AIRLINES = 3;
+    NUM_CIS_PER_AIRLINE = 1;
+
+    passengers = new Passenger*[NUM_PASSENGERS];
+    liaisons = new Liaison*[NUM_LIASONS];
+    airlines = new Airline*[NUM_AIRLINES];
+    
+    Passenger* p1;
+    char * testName;
+    
+
+    for (int i = 0; i < 3; i++) {
+        testName = new char[20];
+        sprintf(testName, "TPassenger%d", 1);
+        
+        p1 = new Passenger(testName, i);
+        passengers[i] = p1;
+    }
+
+
+    Liaison* l1;
+    testName = new char[20];
+    sprintf(testName, "TLiaison%d", 0);
+    l1 = new Liaison(testName);
+    liaisons[0] = l1;
+    
+
+    for (int i=0; i < NUM_AIRLINES; i++) {
+        testName = new char[20];
+        sprintf(testName, "TAirline%d", i);
+        airlines[i] = new Airline(testName);
+    }
+
+    CheckInStaff* cis;
+    for (int i=0; i < NUM_AIRLINES; i++) {
+        for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+            testName = new char[20];
+            sprintf(testName, "TCis_%d_%d", i, j);
+
+            cis = new CheckInStaff(testName, i, j);
+            airlines[i]->_cis[j] = cis;
+        }
+    }
+    //starting simulation
+    for (int i = 0; i < 1; i++) {
+        passengers[i]->Fork((VoidFunctionPtr)PassengerStart, i);
+    }
+        liaisons[0]->Fork((VoidFunctionPtr)LiaisonStart, 0);
+    for (int i=0; i < NUM_AIRLINES; i++) {
+        for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+            airlines[i]->_cis[j]->Fork((VoidFunctionPtr)CisStart, i*NUM_CIS_PER_AIRLINE+j);
+        }
+    }
+}
 void AirTest() {
 
     while(true) {
-        int testNum;
+        int i;
         std::cout<<"Select TESTING Menu"<<std::endl;
         std::cout<<"1.  Test 1  : Passenger selects the shortest line for the aiport liaison"<<std::endl;
         std::cout<<"2.  Test 2  : Passenger is directed by the Liaison to the correct airline counters"<<std::endl;
@@ -1777,8 +1875,8 @@ void AirTest() {
         std::cout<<"10. Test 10 : Handing over of boarding pass by the passenger to the security inspector"<<std::endl;
         std::cout<<"11. QUIT "<<std::endl;
 
-        std::cin>>testNum;
-        if(testNum == 1) {
+        std::cin>>i;
+        if(i == 1) {
             std::cout<<"TESTING 1"<<std::endl;
             semaBool = true;
             stopSIM1 = true;
@@ -1809,7 +1907,7 @@ void AirTest() {
             liaisons[0]->_lineSize = 0;
             Semaphore t1("t1",0);
             continue;
-        }else if(testNum == 2) {
+        }else if(i == 2) {
             std::cout<<"TESTING 2"<<std::endl;
             semaBool = true;
             stopSIM1 = true;
@@ -1848,11 +1946,37 @@ void AirTest() {
             Semaphore t1("t1",0);
             temp2 = 0;
             continue;
-        }else if(testNum == 3) {
-            std::cout<<"TESTING 3"<<std::endl;
-            //put function      
+        }else if(i == 3) {
+          std::cout<<"TESTING 3"<<std::endl;
+            semaBool = true;
+            stopSIM1 = true;
+            // Passenger selects the shortest line for the airport liaison
+            printf("Test3 : Economy class passengers enter the shortest line while Executive class passengers enter their correct line\n");
+
+            //executes TEST 1 simulation!
+            Thread * t = new Thread("TEST3");
+            t->Fork((VoidFunctionPtr)TEST3,0);
+
+            //First two Passengers start going Liaison
+            //the for loop is waiting for the testing simulation done so that there is correct result/outcome
+            for (int i=0;i<4;i++) {
+                t1.P();
+            }
+                
+            if(liaisons[1]->_totalNumber == 2) {
+                printf("Test 3 passed!\n");
+            }else {
+                printf("Test 3 failed\n");
+            }
+            //going back to initial case so that we can start over in initial condition
+            semaBool = false;
+            stopSIM1 = false;
+            NUM_PASSENGERS = 0;
+            NUM_LIASONS = 0;
+            liaisons[0]->_lineSize = 0;
+            Semaphore t1("t1",0);
             continue;
-        }else if(testNum == 4) {
+        }else if(i == 4) {
             std::cout<<"TESTING 4"<<std::endl;
             semaExe = true; 
             printf("Test4 : Executive class passengers are given priority over the economy class passengers at the check-in kiosks\n");
@@ -1889,31 +2013,66 @@ void AirTest() {
             Semaphore t1("t1",0);
             Semaphore t4_1("t4_1",0);     
             continue;
-        }else if(testNum == 5) {
+        }else if(i == 5) {
             std::cout<<"TESTING 5"<<std::endl;
-            //put function      
+            semaBool = true;
+            stopSIM1 = true;
+            printf("Test5 : Screening officer chooses an available security inspector each time a passenger comes in.\n");
+
+            //executes TEST 5 simulation
+            Thread * t = new Thread("TEST5");
+            t->Fork((VoidFunctionPtr)TEST5,0);
+
+            //waiting test simulation before getting results and compare the results 
+            for (int i = 0;i < 2; i++)
+                t1.P();
+
+            int temp2 = 0;
+            for (int i=0; i < NUM_AIRLINES; i++) {
+                int temp = 0;
+                for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+                    temp += airlines[i]->_cis[j]->_passCount;
+                }
+                if(temp == 1) {
+                    temp2 = i;
+                }
+            }
+            if(passengers[0]->_myticket._airline == temp2) {
+                printf("Test 5 passed!\n");
+            }else {
+                printf("Test 5 failed\n");
+            }
+            //going back to initial case so that we can start over in initial condition
+            semaBool = false;
+            stopSIM1 = false;
+            NUM_PASSENGERS = 0;
+            NUM_LIASONS = 0;
+            NUM_AIRLINES = 0;
+            NUM_CIS_PER_AIRLINE = 0;
+            Semaphore t1("t1",0);
+            temp2 = 0;
             continue;
-        }else if(testNum == 6) {
+        }else if(i == 6) {
             std::cout<<"TESTING 6"<<std::endl;  
             //put function  
             continue;
-        }else if(testNum == 7) {
+        }else if(i == 7) {
             std::cout<<"TESTING 7"<<std::endl;  
             //put function  
             continue;
-        }else if(testNum == 8) {
+        }else if(i == 8) {
             std::cout<<"TESTING 8"<<std::endl;  
             //put function  
             continue;
-        }else if(testNum == 9) {
+        }else if(i == 9) {
             std::cout<<"TESTING 9"<<std::endl;
             //put function      
             continue;
-        }else if(testNum == 10) {
+        }else if(i == 10) {
             std::cout<<"TESTING 10"<<std::endl; 
             //put function  
             continue;
-        }else if(testNum == 11) {
+        }else if(i == 11) {
             std::cout<<"QUIT"<<std::endl;   
             break;
         }else{

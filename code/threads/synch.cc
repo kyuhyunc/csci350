@@ -114,10 +114,6 @@ Lock::~Lock() {
 void Lock::Acquire() {
 	// disable interrupts
 	IntStatus old = interrupt->SetLevel(IntOff);
-
-//std::cout << "CurrentThread: " << currentThread->getName() << std::endl;
-//if (owner == NULL) { std::cout << "CurrentLockOwner: NULL" << std::endl; }
-//else { std::cout << "CurrentLockOwner: " << owner->getName() << std::endl; }
 	// checks if I'm the lock owner
 	// if I'm the lock owner, I already "acquired" this lock
 	// this can happen if class functions are nested
@@ -139,7 +135,6 @@ void Lock::Acquire() {
 	else {
 		// add myself to queue and put myself to sleep
     //if (strcmp(currentThread->getName(), "manager"))
-    // std::cout << "MANAGER GOING TO SLEEP" << std::endl;
 		waitQueue->Append((void *)currentThread);
 		currentThread->Sleep();
 	}
@@ -156,14 +151,6 @@ void Lock::Release() {
 	// a non-lock owner cannot release a lock they don't own...
 	if (!isHeldByCurrentThread()) {
 		printf("Error in Lock::Release -- only lock owners can release locks...\n");
-		printf("Thread name: %s\n", currentThread->getName());
-		printf("Lock name: %s\n", getName());
-		if (owner == NULL) {
-			printf("Owner name: NULL\n");
-		}
-		else {
-			printf("Owner name: %s\n", owner->getName());
-		}
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
@@ -224,10 +211,6 @@ void Condition::Wait(Lock* conditionLock) {
 	// if conditionLock does not match waitingLock, print error
 	if (waitingLock != conditionLock) {
 		printf("Error in Condition::Wait -- conditionLock does not match waitingLock...\n");
-		printf("Thread name: %s\n", currentThread->getName());
-		printf("Condition name: %s\n", getName());
-		printf("waitingLock name: %s\n", waitingLock->getName());
-		printf("conditionLock name: %s\n", conditionLock->getName());
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
@@ -257,10 +240,6 @@ void Condition::Signal(Lock* conditionLock) {
 	// if conditionLock does not match waitingLock, print error
 	if (waitingLock != conditionLock) {
 		printf("Error in Condition::Signal -- conditionLock does not match waitingLock...\n");
-		printf("Thread name: %s\n", currentThread->getName());
-		printf("Condition name: %s\n", getName());
-		printf("waitingLock name: %s\n", waitingLock->getName());
-		printf("conditionLock name: %s\n", conditionLock->getName());
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
@@ -283,10 +262,6 @@ void Condition::Broadcast(Lock* conditionLock) {
 	// if conditionLock does not match waitingLock, print error
 	if (waitingLock != conditionLock) {
 		printf("Error in Condition::Broadcast -- conditionLock does not match waitingLock...\n");
-		printf("Thread name: %s\n", currentThread->getName());
-		printf("Condition name: %s\n", getName());
-		printf("waitingLock name: %s\n", waitingLock->getName());
-		printf("conditionLock name: %s\n", conditionLock->getName());
 		return;
 	}
 
