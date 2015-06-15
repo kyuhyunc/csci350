@@ -11,13 +11,13 @@
 #
 
 # If you are running on SunOS 5.x machines, uncomment the next line
-GCCDIR = /home/scf-22/csci350/testgnu/decstation-ultrix/bin/
+GCCDIR = 
 LDFLAGS = -T newscript -N
 ASFLAGS = -mips1
 CPPFLAGS = $(INCDIR)
 
 # if you aren't cross-compiling:
-# GCCDIR =
+# GCCDIR = 
 # LDFLAGS = -N -T 0
 # ASFLAGS =
 # CPPFLAGS = -P $(INCDIR)
@@ -64,3 +64,5 @@ testfiles: testfiles.o start.o
 
 clean:
 	rm -f *.o *.coff
+	rm halt sort matmult testfiles
+	rm *~
