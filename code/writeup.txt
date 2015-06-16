@@ -1,0 +1,797 @@
+Writeup for Project 1, Summer 2015
+6/10/15
+Greg Berger		grberger@usc.edu	4180-9551-49
+Kyu Chang		kyuhyunc@usc.edu	5668-6984-00
+Taegyum Kim		taegyumk@usc.edu	3726-2416-03
+Jerry Zhang		jerryzha@usc.edu	1699-6550-17
+
+
+I. Requirements:
+	+ Part 1 - Locks and Condition Variables (10 points)
+		Using primitive thread functions, or semaphores as a building block, implement the Lock and Semaphore classes. Tests code is provided to ensure proper implementation. 
+	+ Part 2 - Airport Simulation (25 points)
+		Using the classes implemented in Part 1, implement a multi-threaded airport simulation involving the following characters: passengers, liasons, check-in staff, cargo handlers, screening officers, security inspectors, and an airport manager. The purpose of this exercise is to help us internalize the interplay between threads when using locks and condition variables. 
+
+
+II. Assumptions:
+	+ Part 2
+		+ Airlines only have one aircraft.
+
+
+III. Design:
+	+ Part 1
+		+ Lock
+			+ Description
+				A Lock is a synchronization mechanism that allows for mutual exlcusion on blocks of code, called critical sections, between threads in a multi-threading environment. Only one thread can have access to a lock at a time. If another thread attempts to access a pre-occupied lock, that thread will go to sleep until the lock is released. 
+			+ Public Interface
+				+ Acquire
+					The first thread to call Acquire will be set as the lock owner, essentially locking the lock. For as long as there is a lock owner, if any other thread calls Acquire, that thread will be set on a queue, and put to sleep.
+				+ Release
+					When the current lock owner calls release, the lock will be passed on to the next thread in the queue, if any exist, otherwise the lock will have no owner - essentially become available.
+				+ isHeldByCurrentThread
+					This method simply checks if the current thread being run in the processor just so happens to be the lock owner.
+		+ Condition
+			+ Description
+				A condition variable is a synchronization tools that allows programmers to put a thread to sleep until another thread signals that thread to wake up. To get this functionality to work, you must have both a lock and a condition variable. The pattern looks like so:
+					lock->Acquire();
+					// some code
+					condition->Wait(lock); // Wait until another thread signal wakes you up
+					// some more code
+					lock->Release();
+				Note: the condition methods must be called within a critical section to avoid potential race coniditions.
+			+ Public Interface
+				+ Wait
+					Puts the thread to sleep, but before it does, this thread is added to a queue, and it more importantly, it releases its hold on the critical section. Once the thread is awoken from its catnap, it re-acquires the critical section lock. 
+				+ Signal
+					Removes the next thread from the stack, and lets the CPU sceduler know that this thread is ready to run again. If no threads exist in the queue, the lock is set to null.
+				+ Broadcast
+					Simply calls Signal on all threads in waitQueue.
+
+	+ Part 2
+		+ Passenger
+			The passengers must traverse through the rough landscape called the airport. Who will survive?? 
+		+ Liasons
+			Liasons are the gate keepers to the airport. Each liason has their own line of passengers. When a passenger reaches a liason, the passenger gives the liason their ticket information. The liason directs the passenger to the correct airline. Liasons also keep count of passengers and baggages that each passenger carries. 
+		+ Check-in Staff
+			Each airline has multiple check in staff, eeach with their own line. Each airline also has an executive line that always has priority over the economy passengers. The check in staff takes the passenger's ticket and baggage, then they give the passenger a boarding pass with a seat number. The baggage is weighed, tagged, then placed on a conveyor belt. Check in staff may go on break if there are no passengers in their lines. Once passengers get into their line, the manager must notify the check in staff to return to work. Check in staff also keep track of the number of passengers and the baggages they have. Once all passengers have come through, check in staff will die a slow and painful death.
+		+ Cargo handlers
+			Cargo Handlers (CH) pick up the baggage from a conveyor belt, read the airline code, and drop off the baggage to the correct place. CH keep track of how many bags leave the conveyor belt. When there are no bags on the conveyor belt, cargo handlers go to sleep, until they are woken up by the manager. 
+		+ Screening Officers
+			Screening officers scan the carry-on bags of a passenger. Based on what they see, they generate a PASS/FAIL report. The PASS/FAIL report must be hidden from the passenger. The passenger is then passed onto the security inspector. 
+		+ Security Inspectors
+			Security inspectors (SI) will do a hand-wand inspection of the passengers, generating their own PASS/FAIL report. At this point, if either the screening officer OR the security inspector generated a FAIL, the passenger will continue to further questioning. 
+		+ Manager
+			The manager has several jobs:
+				- Monitor passenger statistics.
+				- Make sure the lazy cargo handlers all go back to work when bags are on the conveyor belt.
+				- Make sure check in staff go back to work when a passenger gets into their line.
+				- Managers never go on break. 
+				- Once all passengers for a flight have been checked through the airport, the manager initiates the boarding of the flight.
+		+ Data
+			+ Global
+				+ Airport Crew
+					Passengers
+					Liaisons
+					Cargo Handlers
+					Screening Officers
+					Security Inspectors
+					Manager
+					Airlines
+					Liaison Global Lock
+					Conveyor Belt
+					Conveyor Lock
+					Conveyor CV
+			+ Airline
+				Since there are many things associated with Airlines, we created a class to house all of these data types. See implementation to see the details.
+
+
+IV. Implementation:
+	+ Part 1
+		+ Lock
+			+ File ./code/threads/sync.h
+				class Lock {
+					... 
+					private:
+						Thread* owner;
+						List* waitQueue;
+					...
+				}
+			+ File ./code/threads/sync.cc
+				...
+				Lock::Lock(char* debugName) {
+					name = debugName;
+					owner = NULL;
+					waitQueue = new List;
+				}
+
+				Lock::~Lock() {
+					delete waitQueue;
+				}
+
+				void Lock::Acquire() {
+					// disable interrupts
+					IntStatus old = interrupt->SetLevel(IntOff);
+
+					// checks if I'm the lock owner
+					// if I'm the lock owner, I already "acquired" this lock
+					// this can happen if class functions are nested
+					// in this case, the lock will never be released without this check
+					if (owner == currentThread) {
+						// restore interrupts
+						(void) interrupt->SetLevel(old);
+						return;
+					}
+
+					// checks if lock is available
+					// if nobody owns the lock, I can have it!
+					if (owner == NULL) {
+						owner = currentThread;
+					}
+					
+					// checks if lock is not available
+					// if somebody else knows the lock, I can't have it :(
+					else {
+						// add myself to queue and put myself to sleep
+						waitQueue->Append((void *)currentThread);
+						currentThread->Sleep();
+					}
+
+					// restore interrupts
+					(void) interrupt->SetLevel(old);
+				}
+
+				void Lock::Release() {
+					// disable interrupts
+					IntStatus old = interrupt->SetLevel(IntOff);
+
+					// checks if I'm not the lock owner
+					// a non-lock owner cannot release a lock they don't own...
+					if (!isHeldByCurrentThread()) {
+						printf("Error in Lock::Release -- only lock owners can release locks...\n");
+						// restore interrupts and return
+						(void) interrupt->SetLevel(old);
+						return;
+					}
+
+					// checks if any thread is waiting for this lock
+					// if there are, give it to them based on queue order
+					if (!waitQueue->IsEmpty()) {
+						Thread* t = (Thread*) waitQueue->Remove();
+						scheduler->ReadyToRun(t); // wake up sleepy thread
+						owner = t;
+					}
+
+					// if there are no threads waiting for this lock,
+					// simply free it so other threads can use it when necessary
+					else {
+						owner = NULL;
+					}
+
+					// restore interrupts
+					(void) interrupt->SetLevel(old);
+				}
+
+				bool Lock::isHeldByCurrentThread() {
+					return (owner == currentThread);
+				}
+				...
+
+		+ Condition
+			+ File ./code/threads/sync.h
+				class Condition {
+					...
+					List* waitQueue;
+					Lock* waitingLock;
+					...
+				}
+			+ File ./code/threads/sync.cc
+				...
+				Condition::Condition(char* debugName) {
+					name = debugName;
+					waitQueue = new List;
+				}
+
+				Condition::~Condition() {
+					delete waitQueue;
+				}
+
+				void Condition::Wait(Lock* conditionLock) {
+					// disable interrupts
+					IntStatus old = interrupt->SetLevel(IntOff);
+
+					// if programmer irresponsibly passes in null printer, print error
+					if (conditionLock == NULL) {
+						printf("Error in Condition::Wait -- parameter conditionLock cannot be NULL...\n");
+						// restore interrupts and return
+						(void) interrupt->SetLevel(old);
+						return;
+					}
+
+					// if no lock is attached to this condition yet,
+					// attach it!
+					// this block will execute if the first thread with a lock calls wait
+					// or if no lock is attached to this condition variable
+					if (waitingLock == NULL) {
+						waitingLock = conditionLock;
+					}
+
+					// if conditionLock does not match waitingLock, print error
+					if (waitingLock != conditionLock) {
+						printf("Error in Condition::Wait -- conditionLock does not match waitingLock...\n");
+						// restore interrupts and return
+						(void) interrupt->SetLevel(old);
+						return;
+					}
+
+					conditionLock->Release(); // exit critical section
+					waitQueue->Append((void *)currentThread);
+					currentThread->Sleep();
+
+					conditionLock->Acquire(); // enter critical section again
+
+					// restore interrupts and return
+					(void) interrupt->SetLevel(old);
+				}
+				void Condition::Signal(Lock* conditionLock) {
+					// disable interrupts
+					IntStatus old = interrupt->SetLevel(IntOff);
+
+					// if no waiting threads, then nothing to do
+					if (waitQueue->IsEmpty()) {
+						// restore interrupts and return
+						(void) interrupt->SetLevel(old);
+						return;
+					}
+
+
+					// if conditionLock does not match waitingLock, print error
+					if (waitingLock != conditionLock) {
+						printf("Error in Condition::Signal -- conditionLock does not match waitingLock...\n");
+						// restore interrupts and return
+						(void) interrupt->SetLevel(old);
+						return;
+					}
+
+					// Wakeup 1 waiting thread
+					Thread* t = (Thread*) waitQueue->Remove();
+					scheduler->ReadyToRun(t); // wake up sleepy thread
+
+					// if after waking up this thread there are none left,
+					// release the lock
+					if (waitQueue->IsEmpty()) {
+						waitingLock = NULL;
+					}
+
+					// restore interrupts and return
+					(void) interrupt->SetLevel(old);
+				}
+				void Condition::Broadcast(Lock* conditionLock) {
+					// if conditionLock does not match waitingLock, print error
+					if (waitingLock != conditionLock) {
+						printf("Error in Condition::Broadcast -- conditionLock does not match waitingLock...\n");
+						return;
+					}
+
+					while (!waitQueue->IsEmpty()) {
+						Signal(conditionLock);
+					}
+				}
+				...
+
+	+ Part 2
+		+ Files Modified
+			Everything is implemented in threadtest.cc, God have mercy on our souls. 
+		+ Global Data
+			+ Airport Crew
+				Passenger** passengers;
+				Liaison** liaisons;
+				CargoHandler** cargohandlers;
+				ScreeningOfficer** screeningofficers;
+				SecurityInspector** securityinspectors;
+				Manager* manager;
+			+ Other
+				Airline** airlines;
+				List* ConveyorBelt;
+			+ Locks
+				Lock* LiaisonGlobalLineLock;
+		+ We will explain the code based on specific interactions: Passenger v. Employee
+			+ Passenger v. Liaison
+				+ Passenger::Start()
+					...
+					// enter terminal
+					// goes to Airport Liaison, choosing shortest line
+					int myLine = 0;
+					LiaisonGlobalLineLock->Acquire();
+					int lineSize = liaisons[0]->_lineSize;
+
+					// find shortest line
+					for (int i=0; i < NUM_LIASONS; i++) {
+						if (liaisons[i]->_lineSize < lineSize) {
+							lineSize = liaisons[i]->_lineSize;
+							myLine = i;
+						}
+					}
+
+					printf("Passenger %s chose Liaison %s with a line length %i\n", getName(), liaisons[myLine]->getName(), lineSize);
+
+					if (liaisons[myLine]->_state == BUSY) {
+						liaisons[myLine]->_lineSize++;
+					printf("Passenger %s summed to %i\n", getName(), liaisons[myLine]->_lineSize);
+						liaisons[myLine]->_lineCV->Wait(LiaisonGlobalLineLock);
+						liaisons[myLine]->_lineSize--;
+					}
+
+					liaisons[myLine]->_lock->Acquire();
+					LiaisonGlobalLineLock->Release();
+
+					// hands ticket to Liaison
+					liaisons[myLine]->updatePassengerInfo(this);
+
+					liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
+					liaisons[myLine]->_commCV->Wait(liaisons[myLine]->_lock);
+
+					// receives instruction from Liaison on which terminal to go to
+					printf("Passenger %s of Airline %i is directed to the check-in counter\n", getName(), _myticket._airline);
+
+					liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
+
+					liaisons[myLine]->_lock->Release();
+					...
+				+ Liaison
+			+ Passenger v. Check In Staff v. Manager
+				+ Passenger
+					while(true)
+						GlobalLock->Acquire();
+						if (_myticket._executive) {
+							ExecLock->Acquire();
+							myairline->_execQueue->Append((void*) this);
+							myairline->_execLineSize++;
+
+							printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
+							
+							GlobalLock->Release();
+							myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
+							GlobalLock->Acquire();
+
+							ExecLock->Release();
+						}
+						else {
+							// find shortest line
+							lineSize = checkinstaff[0]->_lineSize;
+							myLine = 0;
+							for (int i=0; i < NUM_CIS_PER_AIRLINE; i++) {
+								if (checkinstaff[i]->_lineSize < lineSize) {
+									lineSize = airlines[_myticket._airline]->_cis[i]->_lineSize;
+									myLine = i;
+								}
+							}
+
+							printf("Passenger %s of Airline %i chose Airline Check-In staff %s with a line length %i\n", getName(), _myticket._airline, myCis->getName(), lineSize);
+
+							myCis->_lineSize++;
+							myCis->_lineCV->Wait(GlobalLock);
+							myCis->_lineSize--;
+						}
+						CisLock->Acquire();
+						GlobalLock->Release();
+
+						// give baggage + ticket to cis
+						myCis->updatePassengerInfo(this);
+
+						myCis->_commCV->Signal(CisLock);
+						myCis->_commCV->Wait(CisLock); // wait for cis for boarding pass
+
+						// receives boarding pass with seat number
+						printf("Passenger %s of Airline %i was informed to board at gate %i\n", getName(), _myticket._airline, _myticket._airline);
+
+						myCis->_commCV->Signal(CisLock);
+						CisLock->Release();
+				+ Checkin Staff
+					bool executive = false;
+					while (true) {
+						_lock->Acquire();
+						ExecLock->Acquire();
+						GlobalLock->Acquire();
+						if (_lineSize == 0 && myairline->_execLineSize == 0) {
+							GlobalLock->Release();
+							ExecLock->Release();
+							_state = ONBREAK;
+							_commCV->Wait(_lock); // wait for manager to wake me up
+						}
+						else {
+							GlobalLock->Release();
+							ExecLock->Release();
+						}
+						_state = BUSY;
+						GlobalLock->Acquire();
+						ExecLock->Acquire();
+						_currentPassenger = NULL;
+
+						// serving an executive passenger
+						if (myairline->_execLineSize > 0) {
+							executive = true;
+							Passenger* p = (Passenger*) myairline->_execQueue->Remove();
+							myairline->_execLineSize--;
+							p->myLine = _cisNum;
+
+							printf("Airline check-in staff %s of airline %i serves an executive class passenger and economy line length = %i\n", getName(), _airline, _lineSize);
+
+							myairline->_execLineCV->Signal(ExecLock);
+						}
+						// serving an economy passenger
+						else if (_lineSize > 0) {
+							executive = false;
+							
+							printf("Airline check-in staff %s of airline %i serves an economy class passenger and executive class line length = %i\n", getName(), _airline, myairline->_execLineSize);
+
+							_lineCV->Signal(GlobalLock);
+						}
+						GlobalLock->Release();
+						ExecLock->Release();
+
+
+						_commCV->Wait(_lock); // wait for passenger to hand over bags and ticket
+						// if serving any passenger
+						if (_currentPassenger != NULL) {
+
+							// weigh bags, tag bags, check ticket
+							// give passenger boarding pass, seat number
+							// put bags on conveyor belt
+
+							if (executive) {
+								printf("Airline check-in staff %s of airline %i informs executive class passenger %s to board at gate %i\n", getName(), _airline, _currentPassenger->getName(), _airline);
+							}
+							else {
+								printf("Airline check-in staff %s of airline %i informs economy class passenger %s to board at gate %i\n", getName(), _airline, _currentPassenger->getName(), _airline);
+							}
+
+							_commCV->Signal(_lock);
+							_commCV->Wait(_lock);
+							_lock->Release();
+						}
+						
+					}
+				+ Manager
+					for (int i=0; i < NUM_AIRLINES; i++) {
+						ExecLock->Acquire();
+						GlobalLock->Acquire();
+						for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+							CisLock->Acquire();
+							if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
+								Cis->_commCV->Signal(CisLock);
+							}
+							CisLock->Release();
+						}
+						GlobalLock->Release();
+						ExecLock->Release();
+					}
+			+ Passenger v. Screening Officer
+				+ Passenger
+					...
+					officersLineLock->Acquire()
+					++officersLineSize
+					officersLine.Add(this)
+					officerLineCV->Wait(officerLineLock)
+					--officersLineSize
+					// Here is my carry on baggage
+					officers[myOff]->commVC->Signal(officers[myOff]->lock)
+					officers[myOff]->commVC->Wait(officers[myOff]->lock)
+					// Thanks!
+					officers[myOff]->commVC->Signal(officers[myOff]->lock)
+					officers[myOff]->lock->Release()
+					...
+				+ Screening Officer
+					while (true) {
+						lock->Acquire()
+						officerLineLock->Acquire()
+						if (officersLineSize > 0) {
+							officersLineLock->Release()
+							state = Avail
+							commCV->Wait(lock)
+						}
+						state = BUSY
+						myPassenger = officersLine.Remove()
+						myPassenger->UpdateOfficerInfo()
+						lineCV->Signal(officersLineLock)
+						officersLineLock->Release()
+						commCV->Wait(lock)
+						// Generate PASS/FAIL
+						// print go to security inspector 
+						commCV->Signal(lock)
+						commCV->Wait(lock)
+						lock->Release()
+					}
+			+ Passenger v. Security Inspector
+				+ Passenger
+					SILineLock->Acquire()
+					SILineSize++
+					SILine.Add(this)
+					SILiveCV->Wait(SILineLock)
+					SILineSize--
+					Si[mySI]->Lock->Acquire()
+					SILineLock->Release()
+					// print "Approaching SI"
+					SI[mySI]->commCV->Signal(SI[mySI]->lock)
+					SI[mySI]->commCV->Wait(SI[mySI]->lock)
+					if (furtherQuestions == true) {
+						SI[mySI]->commCV->Signal(SI[mySI]->lock)
+						SI[mySI]->lock->Release()
+						for (a few times) {
+							this.Yield()
+						}
+						SI[mySI]->RtnLineLock->Acquire()
+						SI[mySI]->RtnLine.Add(this)
+						SI[mySI]->RtnLineSize++
+						SI[mySI]->RtnLineCV->Wait(SI[mySI]->RtnLineLock)
+						SI[mySI]->lock->Acquire()
+						SI[mySI]->RtnLineLock->Release()
+						// print statement "I'm back, and I'm not arrested"
+						SI[mySI]->commCV->Signal(SI[mySI]->lock)
+						SI[mySI]->commCV->Wait(SI[mySI]->lock)
+					}
+					// print = "Thanks, mom"
+					SI[mySI]->commCV->Signal(SI[mySI]->lock)
+					SI[mySI]->commCV->Wait(SI[mySI]->lock)
+					SI[mySI]->lock->Release()
+
+				+ Security Inspector 
+					while (true) {
+						SILineLock->Acquire()
+						RtnLineLock->Acquire()
+						lock->Acquire()
+						if (RtnLineSize == 0 && SILineSize == 0) {
+							state = Avail
+							SILineLock->Release()
+							RtnLineLock->Release()
+							commCV->Wait(lock)
+							state = BUSY
+						} else if(RtnLineSize > 0) {
+							state = BUSY
+							RtnLineCV->Signal(RtnLineLock)
+							RtnLineLock->Release()
+							SILineLock->Release()
+							commCV->Wait(lock) // nice to see you again
+							// print thanks have a nice flight
+							commCV->Signal(lock)
+							commCV->Wait(lock)
+						} else if(SILineSize > 0) {
+							myPassenger = SILine.Remove()
+							myPassenger->UpdateSIInfo()
+							SILineCV-Signal(SILineLock)
+							RtnLineLock->Release()
+							SILineLock->Release()
+							commCV->Wait(lock)
+							// Generate Pass/Fail
+							if (either failed) {
+								myPassenger->furtherQuestions()
+							} else {
+								print have a nice trip
+							}
+							commCV->Signal(lock)
+							commCV->Wait(lock)
+							lock->Release()
+						}
+					}
+				+ Manager
+					SILineLock->Acquire()
+					for each inspector {
+						SI[i]->lock->Acquire()
+						S[i]->RtnLineLock->Acquire()
+						if ( (SI[i]->LineSize > 0 || Si[i]->RtnLineSize > 0) && SI[i]->state == AVAIL ) {
+							SI[mySI]->commCV->Signal(SI[mySI]->lock)
+						}
+						SI[i]->lock->Release()
+						S[i]->RtnLineLock->Release()
+					}
+					SILineLock->Acquire()
+			+ Cargo Handler v. Manager
+				+ Cargo Handler
+					while(true) {
+						conveyorLock->Acquire()
+						if ( conveyorSize == 0 ) { // go to sleep
+							cargoHandlerState = OnBreak
+							conveyorVC->Wait(conveyorLock)
+						} // woken up
+						cargoHandlerState = Working
+						conveyorSize--
+						Baggage b = conveyor->Remove()
+						// determine which airline, give to airline
+						conveyorLock->Release()
+					}
+				+ Manager
+					...
+					conveyorLock->Acquire()
+					if (conveyorSize > 0 && cargoHandlerState == OnBreak) {
+						conveyorVC->Broadcast(conveyorLock)
+					}
+					...
+		+ Data Structures
+			+ struct Ticket
+				{
+					bool _executive;
+					int _airline; // choices between 0, 1, and 2
+					int _seat; // uninitialized--done by cis
+				};
+
+			+ struct Baggage
+				{
+					int _airline; // uninitialized--done by cis
+					int _weight; // between 30 and 60
+					
+				};
+			+ class Airline
+				{
+				public:
+					Airline(char* debugName) {}
+					char* getName() {}
+					friend class Manager;
+
+				public:
+					CheckInStaff** _cis;
+
+					Lock* _execLineLock;
+					Condition* _execLineCV;
+					int _execLineSize;
+					List* _execQueue;
+
+					Lock* _CisGlobalLineLock;
+
+					int _numExpectedPassengers;
+					int _numCheckedinPassengers;
+					int _numReadyPassengers;
+					int _numExpectedBaggages;
+					int _numLoadedBaggages;
+
+				private:
+					char* _name;
+					bool _allPassengersCheckedIn;
+					bool _allBaggagesCheckedIn;
+				};
+				
+
+V. Testing: 
+	+ How to test
+		Simply run "nachos" in the command line. All the tests held in threadtest.cc will automatically run.
+	+ Test Output
+		+ Part 1
+			+ Test 1
+				- The first test checks whether a lock's Release() statement can be called by anybody.
+				- Only the lock's owner should be able to call Release().
+				- There are 3 threads invoked to check this:
+					- Thread 1 is the rightful lock owner.
+					- Thread 2 will try to Acquire() Thread 1's lock, but won't be able to do so until Thread 1 Release() it.
+					- Thread 3 will try to unsuccessfully Release() Thread 1's lock.
+				- Thread 1 will Acquire() the Lock and allow Thread 2 to attempt to Acquire the Lock but fail.
+				- Thread 3 will Release() the Lock but an error message will print.
+				- Thread 1 will then Release(), and Thread 2 should be able to Acquire().
+			+ Test 2
+				- The second test shows that Signal()'s are not stored and will be ignored if no Thread is waiting.
+				- There are 2 threads invoked to check this:
+					- Thread 1 will Signal() a Condition Variable that has no Thread waiting.
+					- Thread 2 will Wait() on a pre-signaled variable
+				- Thread 2 will never complete because the Condition Variable was signalled too early by Thread 1.
+			+ Test 3
+				- The third test checks that Signal() only release one Thread.
+				- There are 6 threads invoked to check this:
+					- Thread 1 to 5 are will call Wait()
+					- Thread 6 will call Signal()
+				- The Thread that calls Wait() first will be woken up while the others will all still remain asleep.
+			+ Test 4
+				- The fourth test checks that Broadcase() will wake up all Threads.
+				- There are 6 threads invoked to check this:
+					- Thread 1 to 5 are will call Wait()
+					- Thread 6 will call Broadcast()
+				- All Threads 1-5 will be woken up.
+			+ Test 5
+				- The fifth test shows that Signaling a Condition with the incorrect lock is a fatal error.
+				- There are 2 threads invoked to check this:
+					- Thread 1 will hold Lock 1 and call Wait()
+					- Thread 2 will Signal with Lock 2
+				- The result should be an error message from Signal()
+		+ Part 2
+			+ Test 1 - Passenger selects the shortest line for the airport liaison
+				1) Create two passengers, two liasons, and three airlines.
+				2) Manually set two passengers in first liaison line.
+				3) Start simulation(Fork passenger thread and liaisons thread so that they can start their work)
+				4) Put int count so that we know how many passengers are in each liaison line.
+				5) If initial two passengers go to second liaison line(the line counter of second liaison line is two), the test success.
+				6) In our simulation, the two initial passengers go to the second liaison line
+				7) Test passed!
+			+ Test 2 - Passenger is directed by the Liaison to the correct airline counters
+				1) Create one passenger, one liason, three airlines, and one CIS per airline.
+				2) Start simulation.
+				3) If randomly generated passenger's airline has one passaneger that goes throught the airline, the test passes since there is one passenger goes to airline.
+			+ Test 3 - Economy class passengers enter the shortest line while Executive class passengers enter their correct line
+				1) Create two passenger with economy pass and 1 executive passenger
+				2) Create two CIS
+				3) Manually assign one passenger to one CIS.
+				4) Start Simulation
+				5) Check if the second passenger goes to the line of the other CIS by counting how many economy passengers has been though each CIS
+				6) Check if the executive passenger goes to the executive line by checking executive queue, which is done after fork economy passenger first.
+			+ Test 4 - Executive class passengers are given priority over the economy class passengers at the check-in kiosks
+				1) Create six Passenger, one liason, one airline, and five CIS per airline.
+				2) Manually set five passengers with executive pass and one passenger with economy pass
+				3) Start simulation, which all passengers will stop at the CIS so that we can see executive passengers get service first.
+				4) Resume the simulation after CIS.
+				5) Stop the simulation again after five executive passenger pass through CIS.
+				6) If there are only five passengers get though the CIS and one passenger left at CIS, then the test passes. 
+				7) It pasaes
+			+ Test 5 - Screening officer chooses an available security inspector each time a passenger comes in.
+				1) Create one passenger, one liaison, one airline, one CIS, one Screening, and three security inspector
+				2) Manually set two security inspector busy.
+				3) Every security inspector has count so that we know how many passengers each inspector meets.
+				4) Check the counter and if the counter of free security inspector is one, the test paases
+			+ Test 6 - Cargo handlers choose bags from the conveyor system each time and go on a break if there are no bags.
+				1) Create all variables(passengers, CIS...).
+				2) Add two baggages in conveyor belt queue and set cargo handlers status to BUSY
+				3) check the baggage counter and check baggage queue when the number of baggage counter bacomes zero
+				4) if the baggage queue is empty, then pass the test.
+				5) Then, check the Cargo Handlers' status, if the status is BREAK, pass the test.
+				6) Put more baggage after step five, and then check if the Cargo handlers go back to work when put more baggage in the queue.
+				7) if the status is BUSY, the test passes
+			+ Test 7 - Handing over of the hand luggage by the passenger to the screening officer.
+				1) Create all variable(passenger, CIS .. etc..) by one each.
+				2) Manually set one passenger has two handy luggage(counter = 2).
+				3) Start the simulation.
+				4) Stop the simulation when the passenger leaves screen officer
+				5) Check handy luggage counter of passenger and screen officer
+				6) If passenger's counter is zero and screen officer's counter is two, the test passes.
+			+ Test 8 - Passenger returns to the same security inspector after further questioning.
+				1) Create all variable(passenger, CIS .. etc..) by one each security inspector.(there are three security inspector)
+				2) Set that passenger gets fail for questioning.
+				3) Create and put two variable(one for saving first inspector and one for second inspector) in passenger
+				3) Start simulation.
+				4) Stop the simulation when passenger going back to inspector after questioning
+				5) Compare two variable and if they are matched each other, test passes
+			+ Test 9 - Baggage weights of all the passengers of a particular airline should match the weights of the bags reported by the cargo handlers.
+				1) Create variable(int) that can have total weight of each airline
+				2) Create four passengers and two airline.
+				3) Assign two passengers each airline.
+				4) Get total initial weight of baggages of each airline
+				5) Put int variable in cargo handlers so that they can save total weight of baggages of each airline
+				5) Start the simulation.
+				6) After the simulation is done, compare initial weight and weight that cargo handlers have
+				7) If they are matched each other, the test success
+			+ Test 10 - Handing over of boarding pass by the passenger to the security inspector
+				1) Create all variable(passenger, CIS .. etc..) by one each.
+				2) Manually set one passenger has boarding pass counter that is going to be zero when passenger meet security inspector
+				4) Stop the simulation when the passenger meets security inspector
+				5) Check boarding pass counter of passenger and security inspector
+				6) If passenger's counter is zero and security inspector counter is on, the test passes.
+
+
+
+VI. Discussion:
+	+ Experiment expectation.  (What you hope will happen.)
+		We expected this project to be just like any other Computer Science Programming Assignment, maybe a little harder. We estimated that if we as a group put about 30 hours each into this project, we would get it done.
+	+ Experiment result.  (What actually happens.)
+		In reality, this project was a LOT harder than we anticipated it to be. We completely underestimated this project. Even though we as a team put over 60 hours, we were still not able to completely finish this project. We were able to finish the Lock and Condition class fairly easily by following the pseudocode, and we got that done in about 5 hours. We thought that maybe this was the first Operating Systems assignment and would be like a warmup, and completely underestimated the Airport Simulation portion. In the end, we did not have enough time to implement the Security Inspector or finish the Manager despite using 2 late days.
+	+ Explanation
+		Debugging a multi-threaded program is especially difficult! The amount of Locks and Condition Variables to keep track makes it tough to solve deadlock and race condition issues. Gdb helped us find segmentation faults and helped us solve some race conditions with pointers. Print statements were also helpful in helping us identify which portions of our code executes and which parts of our code didn't execute.
+		I think in order for us to do better next time, we need to start earlier and go seek help from the instructor's and TA's office hours. This was a good learning experience and definitely confirmed the difficulty of programming operating systems!
+			
+
+
+VII. Miscellaneous:
+	+ Forking Threads Using Member Functions
+		+ Problem
+			When starting a thread, you must pass in a function pointer, NOT a class method. So when if you wanted to start a Passenger thread using a Passenger method, you cannot directly pass in a pointer to that method.
+		+ Solution
+			To solve, we defined functions like this:
+				function void PassengerStart(int index) {
+					passengers[index]->startMethod();
+				}
+			Since this function is defined outside of a class, fork will accept this as a parameter. Essentially what this function does is call the method for a specific passenger. 
+
+			In summary, instead of passing a method pointer to the fork method, we pass a function pointer that calls that method. This is kind of a round-a-bout way of implementing this, but it works nonetheless.
+
+	+ Atomic methods
+		To ensure methods are atomic, the code block must follow this pattern:
+			// Disable Interrupts
+			IntStatus old = interrupt->SetLevel(IntOff);
+			// Do task
+			// Restore Interrupts
+			(void) interrupt->SetLevel(old);
+		Note: You must RESTORE interrupts to it's previous state, rather than setting it to enabled. 
+
+Q.E.D.
