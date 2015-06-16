@@ -1150,7 +1150,7 @@ void CheckInStaff::Start()
         _currentPassenger->_baggages.at(i)->_airline = _airline; // tags baggage
         ConveyorBelt->Append((void*) _currentPassenger->_baggages.at(i)); // put bags on conveyor belt
 
-				printf("Airline check-in staff %s of airline %i dropped bags to the conveyor system ", getName(), _airline);
+				printf("Airline check-in staff %s of airline %i dropped bags to the conveyor system \n", getName(), _airline);
       }
       ConveyorLock->Release();
 
