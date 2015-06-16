@@ -1262,11 +1262,8 @@ void Manager::Start()
 #define Cis airlines[i]->_cis[j]
 
     while (true) {
-
-        for (int i=0; i < 10; i++) {
-            currentThread->Yield();
-        }
-
+      if (!_cisDone) {
+          
         for (int i=0; i < NUM_AIRLINES; i++) {
             ExecLock->Acquire();
             GlobalLock->Acquire();
@@ -1282,12 +1279,9 @@ void Manager::Start()
         }
 
         for (int i=0; i < 1000; i++) {
-            currentThread->Yield();
-        }
-
-		for (int i=0; i < 1000; i++) {
-			currentThread->Yield();
-		}
+          currentThread->Yield();
+		  }
+    }
 
 
 #undef ExecLock
