@@ -715,13 +715,16 @@ public:
     Manager(char* debugName) : Thread(debugName) {
         _cisDone = false;
         _cargoDone = false;
-        
+        _soDone = false;
+        _siDone = false;       
     }
     void Start(); // starts the thread
 
 private:
     bool _cisDone;
     bool _cargoDone;
+    bool _soDone;
+    bool _siDone;
 };
 
 //-----------------------
@@ -1335,9 +1338,6 @@ void Manager::Start()
                 }
             }
 */          
-//          if (!ConveyorBelt->IsEmpty() && cargohandlers[0]->_state == ONBREAK) {
-//          if (!ConveyorBelt->IsEmpty() && CargoHandlerState == ONBREAK) {
-//              ConveyorCV->Broadcast(ConveyorLock);
             for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
                 if (!ConveyorBelt->IsEmpty() && cargohandlers[i]->_state == ONBREAK) {
                     cargohandlers[i]->_commCV->Signal(ConveyorLock);
@@ -1354,9 +1354,9 @@ void Manager::Start()
 
         // if all manager tasks are done, break!
         if (_cisDone && _cargoDone) { // ADD CASES AS THE PROJECT GOES ALONG
-            break;
+          printf("Manager: SHUTTING DOWN THE AIRPORT\n");  
+          return;
         }
-
 
     } // end while(true) for Manager
 } // end Manager::Start()
