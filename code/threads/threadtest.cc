@@ -501,6 +501,7 @@ public:
 	Ticket _myticket;
 	int myLine;
     int myOfficer;
+    int _myInspector;
     int _id;
 };
 
@@ -696,11 +697,31 @@ private:
 class SecurityInspector : public Thread
 {
 public:
-    SecurityInspector(char* debugName) : Thread(debugName) {
-        
+    SecurityInspector(char* debugName, int i) : Thread(debugName) {
+        _id = i;
+
+        char* myname;
+        myname = new char[20];
+        sprintf(myname, "%s_lock", debugName);
+        _lock = new Lock(myname);
+
+        myname = new char[20];
+        sprintf(myname, "%s_commCV", debugName);
+        _commCV = new Condition(myname);
+
+        myname = new char[20];
+        sprintf(myname, "%s_lineCV", debugName);
+        _lineCV = new Condition(myname);
+
+        _lineSize = 0;
     }
     void Start(); // starts the thread
-
+public:
+    int _id;
+    int _lineSize;
+    Lock* _lock;
+    Condition* _commCV;
+    Condition* _lineCV;
 private:
 
 };
@@ -837,6 +858,10 @@ int CargoHandlerState = BUSY;
 
 // Security
 SecurityData* securityCloud;
+
+// Security Inspector
+Lock* inspectorsLineLock;
+List* inspectors;
 
 Semaphore t1("t1",0);
 Semaphore t4_1("t4_1",0);
@@ -996,10 +1021,11 @@ void Passenger::Start()
 
 
     //----------------------------------------------
-    // PASSENGER INTERACTS WITH SCREENING OFFICER
+    // PASSENGER INTERACTS WITH SCREENING OFFICER/SECURITY INSPECTOR
     //----------------------------------------------
 
 #define officer screeningofficers[myOfficer]
+#define inspector screeningofficers[myOfficer]
     
     // Wait in line
     officersLineLock->Acquire();
@@ -1008,13 +1034,16 @@ void Passenger::Start()
     printf("Passenger %s gives the hand-luggage to screening officer %s\n", getName(), screeningofficers[myOfficer]->getName());
     officer->_lock->Acquire();
     officer->_commCV->Signal(officer->_lock);
-    officer->_commCV->Wait(officer->_lock);
-    // Thanks - moving along to security inspector
-    officer->_commCV->Signal(officer->_lock);
+    officer->_commCV->Wait(officer->_lock); // moving along to inspector
+    // INSPECTOR
+    // acquire the lock
+    // cv
+    // release the lock
     officer->_lock->Release();
     officersLineLock->Release();
 
 #undef officer 
+#undef inspector
 
     //----------------------------------------------
     // END PASSENGER INTERACTS WITH SCREENING OFFICER
@@ -1227,8 +1256,30 @@ void ScreeningOfficer::Start()
             } else {
                 printf("Screening officer %s is not suspicious of the hand luggage of passenger %s\n", getName(), _currentPassenger->getName());
             }
-            _commCV->Signal(_lock);
-            _commCV->Wait(_lock); // wait for goodbye signal
+            // FIND SHORTEST LINE
+            // Acquire global line lock
+            inspectorsLineLock->Acquire();
+            int shortLineSize = NUM_PASSENGERS + 1; // impossible size
+            int shortLineIndex = -1;
+            for (int i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
+                #define inspector securityinspectors[i]
+                inspector->_lock->Acquire();
+                if (inspector->_lineSize < shortLineSize) {
+                    shortLineSize = inspector->_lineSize;
+                    shortLineIndex = i;
+                }
+                inspector->_lock->Release();
+                #undef inspector
+            }
+            #define inspector securityinspectors[shortLineIndex]
+            inspector->_lock->Acquire();
+            inspectorsLineLock->Release();
+            // update Passenger code
+            _currentPassenger->_myInspector = _id;
+            inspector->_lineCV->Wait(inspector->_lock); // wait for this inspector to become available
+            inspector->_lock->Release();
+            #undef inspector
+            _commCV->Signal(_lock); // wake up 
             _lock->Release();
            printf("Screening officer %s directs passenger %s to security inspector\n", getName(), _currentPassenger->getName());
         }
@@ -1393,7 +1444,11 @@ void AirportSim()
 
     NUM_SECURITY_INSPECTORS = NUM_SCREENING_OFFICERS;
 
-    // Initializing global data
+    /*
+    *   Initializing global data
+    */
+
+    // Airlines
     airlines = new Airline*[NUM_AIRLINES];
     for (int i=0; i < NUM_AIRLINES; i++) {
         name = new char[20];
@@ -1401,25 +1456,31 @@ void AirportSim()
         airlines[i] = new Airline(name);
     }
 
+    // Passenger
     passengers = new Passenger*[NUM_PASSENGERS];
-    liaisons = new Liaison*[NUM_LIASONS];
-    cargohandlers = new CargoHandler*[NUM_CARGO_HANDLERS];
-    screeningofficers = new ScreeningOfficer*[NUM_SCREENING_OFFICERS];
-    securityinspectors = new SecurityInspector*[NUM_SECURITY_INSPECTORS];
 
-	// Initialize locks
+	// Initialize Liaison
+    liaisons = new Liaison*[NUM_LIASONS];
 	LiaisonGlobalLineLock = new Lock("liason_global_line_lock");
 
     // Init Security Cloud data
     securityCloud = new SecurityData();
+
+    // Screening Officer
+    screeningofficers = new ScreeningOfficer*[NUM_SCREENING_OFFICERS];
 
     // Init Screening Officer Globals
     officersLineLock = new Lock("screening_officer_line_lock");
     officersLineCV = new Condition("screening_officer_line_cv");
     officersLine = new List();
 
+    // Security Inspector 
+    securityinspectors = new SecurityInspector*[NUM_SECURITY_INSPECTORS];
+    inspectorsLineLock = new Lock("security_inspectors_line_lock");
 
-    // Initialize Conveyor Belt Globals
+
+    // Initialize Cargo Handler
+    cargohandlers = new CargoHandler*[NUM_CARGO_HANDLERS];
     ConveyorBelt = new List();
     ConveyorLock = new Lock("conveyor_belt_lock");
     ConveyorCV = new Condition("conveyor_belt_cv");
@@ -1496,7 +1557,7 @@ void AirportSim()
         name = new char[25];
         sprintf(name, "security_inspectors%d", i);
 
-        si = new SecurityInspector(name);
+        si = new SecurityInspector(name, i);
         securityinspectors[i] = si;
     }
 
