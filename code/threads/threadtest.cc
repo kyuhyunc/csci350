@@ -1145,14 +1145,16 @@ void CheckInStaff::Start()
 			// weigh bags, tag bags, check ticket
 			// give passenger boarding pass, seat number
 			// put bags on conveyor belt
-            ConveyorLock->Acquire();
-            for (unsigned int i=0; i < _currentPassenger->_baggages.size(); i++) {
-                _currentPassenger->_baggages.at(i)->_airline = _airline; // tags baggage
-                ConveyorBelt->Append((void*) _currentPassenger->_baggages.at(i)); // put bags on conveyor belt
-            }
-            ConveyorLock->Release();
+      ConveyorLock->Acquire();
+      for (unsigned int i=0; i < _currentPassenger->_baggages.size(); i++) {
+        _currentPassenger->_baggages.at(i)->_airline = _airline; // tags baggage
+        ConveyorBelt->Append((void*) _currentPassenger->_baggages.at(i)); // put bags on conveyor belt
 
-            // Direct th passenger
+				printf("Airline check-in staff %s of airline %i dropped bags to the conveyor system ", getName(), _airline);
+      }
+      ConveyorLock->Release();
+
+      // Direct th passenger
 			if (executive) {
 				printf("Airline check-in staff %s of airline %i informs executive class passenger %s to board at gate %i\n", getName(), _airline, _currentPassenger->getName(), _airline);
 			}
@@ -1219,10 +1221,10 @@ void ScreeningOfficer::Start()
             officersLineLock->Release();
             _commCV->Wait(_lock); // signal Passenger to come
             // observe passenger, generate pass/fail
-            int result = rand() % 2;
+            int result = rand() % 4;
             securityCloud->_officerResults[_currentPassenger->_id] = result;
             // "direct" the passenger to the security inspector
-            if (result) {
+            if (result == 1) {
                 printf("Screening officer %s is suspicious of the hand luggage of passenger %s\n", getName(), _currentPassenger->getName());
             } else {
                 printf("Screening officer %s is not suspicious of the hand luggage of passenger %s\n", getName(), _currentPassenger->getName());
