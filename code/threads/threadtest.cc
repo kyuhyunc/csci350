@@ -1194,14 +1194,16 @@ void CheckInStaff::Start()
 			// weigh bags, tag bags, check ticket
 			// give passenger boarding pass, seat number
 			// put bags on conveyor belt
-            ConveyorLock->Acquire();
-            for (unsigned int i=0; i < _currentPassenger->_baggages.size(); i++) {
-                _currentPassenger->_baggages.at(i)->_airline = _airline; // tags baggage
-                ConveyorBelt->Append((void*) _currentPassenger->_baggages.at(i)); // put bags on conveyor belt
-            }
-            ConveyorLock->Release();
+      ConveyorLock->Acquire();
+      for (unsigned int i=0; i < _currentPassenger->_baggages.size(); i++) {
+        _currentPassenger->_baggages.at(i)->_airline = _airline; // tags baggage
+        ConveyorBelt->Append((void*) _currentPassenger->_baggages.at(i)); // put bags on conveyor belt
 
-            // Direct th passenger
+				printf("Airline check-in staff %s of airline %i dropped bags to the conveyor system \n", getName(), _airline);
+      }
+      ConveyorLock->Release();
+
+      // Direct th passenger
 			if (executive) {
 				printf("Airline check-in staff %s of airline %i informs executive class passenger %s to board at gate %i\n", getName(), _airline, _currentPassenger->getName(), _airline);
 			}
