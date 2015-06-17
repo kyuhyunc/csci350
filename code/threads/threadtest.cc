@@ -769,11 +769,15 @@ public:
         _numExpectedBaggages = 0;
         _numLoadedBaggages = 0;
 
+        _numOnBreakCIS = 0;
+
         _allPassengersCheckedIn = false;
+        _CISclosed = false;
     }
     char* getName() { return _name; }
     
     friend class Manager;
+    friend class CheckInStaff; 
 
 public:
     CheckInStaff** _cis;
@@ -793,10 +797,13 @@ public:
     int _numExpectedBaggages;
     int _numLoadedBaggages;
 
+    int _numOnBreakCIS;
 
 private:
     char* _name;
     bool _allPassengersCheckedIn;
+    bool _CISclosed;
+
 };
 
 //-----------------------
@@ -1106,9 +1113,11 @@ void CheckInStaff::Start()
 		if (_lineSize == 0 && myairline->_execLineSize == 0) {
 			_state = ONBREAK;
 		  _currentPassenger = NULL;
+      myairline->_numOnBreakCIS++;
 			GlobalLock->Release();
 			ExecLock->Release();
 			_commCV->Wait(_lock); // wait for manager to wake me up
+      myairline->_numOnBreakCIS--;
 
       // if there are no more passengers, cis can exit and be done!
       if (_done) {
@@ -1303,26 +1312,24 @@ void Manager::Start()
           // airline is done with checking in the passengers
           airLock->Acquire();
           if (airlines[i]->_numExpectedPassengers == airlines[i]->_numCheckedinPassengers) {
-            airlines[i]->_allPassengersCheckedIn = true;
-            for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
-              if (Cis->_state != ONBREAK) {
-                airlines[i]->_allPassengersCheckedIn = false;
-                break;
-              }
-            }
+            if (airlines[i]->_numOnBreakCIS == NUM_CIS_PER_AIRLINE) 
+              airlines[i]->_allPassengersCheckedIn = true;
+            else
+              airlines[i]->_allPassengersCheckedIn = false;
           }
           airLock->Release();
 
           // If all passengers have checked in, signal CISes to make them go home
-          if (airlines[i]->_allPassengersCheckedIn == true) {
+          if (airlines[i]->_allPassengersCheckedIn == true && airlines[i]->_CISclosed == false) {
             for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
               CisLock->Acquire();
               Cis->_done = true;
               Cis->_commCV->Signal(CisLock);
               CisLock->Release();
             }
+            airlines[i]->_CISclosed = true;
           }
-          else {
+          else if (airlines[i]->allPassengersCheckedIn == false && airlines[i]->_CISclosed == false) {
             // Check if all airlines have checked in the passengers
             _cisDone = false;
 
