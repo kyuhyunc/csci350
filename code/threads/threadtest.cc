@@ -1349,31 +1349,7 @@ void Manager::Start()
             return;
           }
         }        
-  
-        // tell cis to get off break!
-        // if there are passengers waiting in their line
-        //for (int i=0; i < NUM_AIRLINES; i++) {
-        //    if (airlines[i]->_allPassengersCheckedIn)
-        //      continue;
-
-        //    ExecLock->Acquire();
-        //    GlobalLock->Acquire();
-        //    for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
-        //        CisLock->Acquire();
-        //        if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
-        //            Cis->_commCV->Signal(CisLock);
-        //        }
-        //        CisLock->Release();
-        //    }
-        //    GlobalLock->Release();
-        //    ExecLock->Release();
-        //}
-
-        //for (int i=0; i < 1000; i++) {
-        //  currentThread->Yield();
-		    //}
       }
-
 
 #undef ExecLock
 #undef GlobalLock
@@ -1427,9 +1403,14 @@ void Manager::Start()
                 }
             }
 */          
+            bool msg_to_cargos = true;
             for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
                 if (!ConveyorBelt->IsEmpty() && cargohandlers[i]->_state == ONBREAK) {
                     cargohandlers[i]->_commCV->Signal(ConveyorLock);
+                    if (msg_to_cargos) {
+                      printf("Airport manager calls back all the cargo handlers from break\n");
+                      msg_to_cargos = false;
+                    }
                 }
             }
 
