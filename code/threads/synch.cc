@@ -133,6 +133,7 @@ void Lock::Acquire() {
 	// checks if lock is not available
 	// if somebody else knows the lock, I can't have it :(
 	else {
+    std::cout << currentThread->getName() << " is trying to acquire but it's owned by " << owner->getName() << std::endl;
 		// add myself to queue and put myself to sleep
     //if (strcmp(currentThread->getName(), "manager"))
 		waitQueue->Append((void *)currentThread);
