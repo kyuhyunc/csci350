@@ -475,6 +475,7 @@ public:
 		//------------
 		myLine = 0;
         _id = id;
+        _furtherQuestioning = false;
 
 		// 2 or 3 baggages 30-60 lbs
 		Baggage* mybag;
@@ -503,6 +504,7 @@ public:
     int myOfficer;
     int _myInspector;
     int _id;
+    bool _furtherQuestioning;
 };
 
 //-----------------------
@@ -699,6 +701,8 @@ class SecurityInspector : public Thread
 public:
     SecurityInspector(char* debugName, int i) : Thread(debugName) {
         _id = i;
+        _state = BUSY;
+        _lineSize = 0;
 
         char* myname;
         myname = new char[20];
@@ -712,16 +716,16 @@ public:
         myname = new char[20];
         sprintf(myname, "%s_lineCV", debugName);
         _lineCV = new Condition(myname);
-
-        _lineSize = 0;
     }
     void Start(); // starts the thread
 public:
     int _id;
     int _lineSize;
+    int _state;
     Lock* _lock;
     Condition* _commCV;
     Condition* _lineCV;
+    Passenger* _currentPassenger;
 private:
 
 };
@@ -975,7 +979,7 @@ void Passenger::Start()
         ExecLock->Release();
     }
     else {
-    GlobalLock->Acquire();
+        GlobalLock->Acquire();
         // find shortest line
         lineSize = checkinstaff[0]->_lineSize;
         myLine = 0;
@@ -992,7 +996,7 @@ void Passenger::Start()
         myCis->_lineCV->Wait(GlobalLock);
         myCis->_lineSize--;
 
-    GlobalLock->Release();
+        GlobalLock->Release();
     }
     CisLock->Acquire();
 
@@ -1025,7 +1029,7 @@ void Passenger::Start()
     //----------------------------------------------
 
 #define officer screeningofficers[myOfficer]
-#define inspector screeningofficers[myOfficer]
+#define inspector securityinspectors[_myInspector]
     
     // Wait in line
     officersLineLock->Acquire();
@@ -1033,14 +1037,30 @@ void Passenger::Start()
     officersLineCV->Wait(officersLineLock); // myOfficer gets updated
     printf("Passenger %s gives the hand-luggage to screening officer %s\n", getName(), screeningofficers[myOfficer]->getName());
     officer->_lock->Acquire();
-    officer->_commCV->Signal(officer->_lock);
-    officer->_commCV->Wait(officer->_lock); // moving along to inspector
-    // INSPECTOR
-    // acquire the lock
-    // cv
-    // release the lock
-    officer->_lock->Release();
     officersLineLock->Release();
+    officer->_commCV->Signal(officer->_lock);
+    officer->_commCV->Wait(officer->_lock); // after, moving along to inspector
+    // INSPECTOR
+    inspector->_lock->Acquire();
+    officer->_lock->Release();
+    // 
+    inspector->_currentPassenger = (Passenger*)currentThread;
+    inspector->_commCV->Signal(inspector->_lock); // initial alert to officer
+    inspector->_commCV->Wait(inspector->_lock); // wait for security results
+    if (_furtherQuestioning) {
+        inspector->_lock->Release();
+        for (int i = 0; i < 10; ++i) {
+            currentThread->Yield(); // simulate further questioning
+        }
+        // Go see the same security inspector
+        inspector->_lock->Acquire();
+        inspector->_lineSize++;
+        if (inspector->_state == AVAIL) {
+            inspector->_commCV->Signal(inspector->_lock);        
+        }
+        inspector->_commCV->Wait(inspector->_lock); // wait to be released by inspector
+    }
+    inspector->_lock->Release();
 
 #undef officer 
 #undef inspector
@@ -1248,10 +1268,10 @@ void ScreeningOfficer::Start()
             officersLineLock->Release();
             _commCV->Wait(_lock); // signal Passenger to come
             // observe passenger, generate pass/fail
-            int result = rand() % 2;
-            securityCloud->_officerResults[_currentPassenger->_id] = result;
+            int result = rand() % 10;
+            securityCloud->_officerResults[_currentPassenger->_id] = result > 8;
             // "direct" the passenger to the security inspector
-            if (result) {
+            if (result > 8) {
                 printf("Screening officer %s is suspicious of the hand luggage of passenger %s\n", getName(), _currentPassenger->getName());
             } else {
                 printf("Screening officer %s is not suspicious of the hand luggage of passenger %s\n", getName(), _currentPassenger->getName());
@@ -1261,27 +1281,29 @@ void ScreeningOfficer::Start()
             inspectorsLineLock->Acquire();
             int shortLineSize = NUM_PASSENGERS + 1; // impossible size
             int shortLineIndex = -1;
-            for (int i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
-                #define inspector securityinspectors[i]
-                inspector->_lock->Acquire();
-                if (inspector->_lineSize < shortLineSize) {
-                    shortLineSize = inspector->_lineSize;
-                    shortLineIndex = i;
+            while (shortLineIndex == -1) {
+                for (int i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
+                    #define inspector securityinspectors[i]
+                    inspector->_lock->Acquire();
+                    if (inspector->_state == AVAIL) {
+                        shortLineSize = inspector->_lineSize;
+                        shortLineIndex = inspector->_id;
+                    }
+                    inspector->_lock->Release();
+                    #undef inspector
                 }
-                inspector->_lock->Release();
-                #undef inspector
+                if (shortLineIndex == -1) {
+                    shortLineSize = NUM_PASSENGERS + 1; // reset search
+                    currentThread->Yield();
+                }
             }
-            #define inspector securityinspectors[shortLineIndex]
-            inspector->_lock->Acquire();
-            inspectorsLineLock->Release();
+            securityinspectors[shortLineIndex]->_state = BUSY;
             // update Passenger code
-            _currentPassenger->_myInspector = _id;
-            inspector->_lineCV->Wait(inspector->_lock); // wait for this inspector to become available
-            inspector->_lock->Release();
-            #undef inspector
-            _commCV->Signal(_lock); // wake up 
+            _currentPassenger->_myInspector = shortLineIndex;
+            _commCV->Signal(_lock); // wake up the passenger
+            inspectorsLineLock->Release();
             _lock->Release();
-           printf("Screening officer %s directs passenger %s to security inspector\n", getName(), _currentPassenger->getName());
+           printf("Screening officer %s directs passenger %s to security inspector %s\n", getName(), _currentPassenger->getName(), securityinspectors[shortLineIndex]->getName());
         }
         else {
             officersLineLock->Release();
@@ -1291,7 +1313,36 @@ void ScreeningOfficer::Start()
 
 void SecurityInspector::Start()
 {
-//  printf("%s: Made it!\n", this->getName());
+    while (true) {
+        _lock->Acquire();
+        _state = AVAIL;
+        _commCV->Wait(_lock);
+        if (_lineSize == 0) { // nobody returned from further questions
+            _state = BUSY;
+            // bool result = rand() % 10 > 7;
+            bool result = true;
+            bool guilty = result || securityCloud->_officerResults[_currentPassenger->_id];
+            // securityCloud->_officerResults[_currentPassenger->_id] = result;
+            // "direct" the passenger to the security inspector
+            if (result) {
+                printf("Security Inspector %s is suspicious of the hand luggage of passenger %s\n", getName(), _currentPassenger->getName());
+            } else {
+                printf("Security Inspector %s is not suspicious of the hand luggage of passenger %s\n", getName(), _currentPassenger->getName());
+            }
+            if (guilty) {
+                _currentPassenger->_furtherQuestioning = true;
+                printf("Security inspector %s asks passenger %s to go for further examination\n", getName(), _currentPassenger->getName());
+            }
+            _commCV->Signal(_lock);
+        }
+        else {
+            _state = BUSY;
+            printf("Security inspector %s permits returning passenger %s to board\n", getName(), _currentPassenger->getName());
+            --_lineSize;
+            _commCV->Signal(_lock);
+        }
+        _lock->Release();
+    }
 }
 
 void Manager::Start()
