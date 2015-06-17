@@ -118,6 +118,7 @@ SwapHeader (NoffHeader *noffH)
 //----------------------------------------------------------------------
 
 AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
+//printf("In address constructor...\n");
     NoffHeader noffH;
     unsigned int i, size;
 
@@ -159,21 +160,20 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     
 // zero out the entire address space, to zero the unitialized data segment 
 // and the stack segment
-    bzero(machine->mainMemory, size);
+//	memlock->Acquire();
+//    bzero(machine->mainMemory, size);
 
 // then, copy in the code and data segments into memory
 
 
-printf("In address constructor...\n");
 	for (i=0; i < numPages; i++) {
-printf("Initializing code segment page number %d, at 0x%x, size %d, reading from %d\n", 
-	i, noffH.code.virtualAddr+i*PageSize, PageSize, noffH.code.inFileAddr+i*PageSize);
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			noffH.code.virtualAddr, noffH.code.size);
-		executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr + i*PageSize]),
+		executable->ReadAt(&(machine->mainMemory[i*PageSize]),
 			PageSize,
 			noffH.code.inFileAddr + i*PageSize);
 	}
+//	memlock->Release();
 
 /*
     if (noffH.code.size > 0) {
@@ -232,6 +232,7 @@ AddrSpace::InitRegisters()
    // allocated the stack; but subtract off a bit, to make sure we don't
    // accidentally reference off the end!
     machine->WriteRegister(StackReg, numPages * PageSize - 16);
+//printf("%d\n", numPages*PageSize-16);
     DEBUG('a', "Initializing stack register to %x\n", numPages * PageSize - 16);
 }
 
@@ -269,7 +270,7 @@ void AddrSpace::AddStack()
 	// deallocate old one
 	TranslationEntry* oldPT = pageTable;
 	pageTable = new TranslationEntry[numPages + 8];
-	int i;
+	unsigned int i;
 	for (i=0; i < numPages; i++) {
 		pageTable[i].virtualPage = oldPT[i].virtualPage;
 		pageTable[i].physicalPage = oldPT[i].physicalPage;
@@ -283,6 +284,7 @@ void AddrSpace::AddStack()
 	numPages += 8;
 
 	for (i; i < numPages; i++) {
+//printf("i=%d\n", i);
 		pageTable[i].virtualPage = i;
 		pageTable[i].physicalPage = i;
 		pageTable[i].valid = TRUE;
@@ -291,6 +293,7 @@ void AddrSpace::AddStack()
 		pageTable[i].readOnly = FALSE;
 	}
 
+	machine->pageTable = pageTable;
 
 	delete oldPT;
 }

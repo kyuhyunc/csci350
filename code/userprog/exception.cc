@@ -232,7 +232,7 @@ void Close_Syscall(int fd) {
 }
 
 void kernel_fork(int pc) {
-printf("In kernel_fork with currentThread=%s\n", currentThread->getName());
+//printf("In kernel_fork with currentThread=%s\n", currentThread->getName());
 	currentThread->space->InitRegisters();
 	machine->WriteRegister(PCReg, pc);
 	machine->WriteRegister(NextPCReg, pc+4);
@@ -244,7 +244,7 @@ printf("In kernel_fork with currentThread=%s\n", currentThread->getName());
 
 void Fork_Syscall(int pc) {
 	// validate data
-printf("In Fork_Syscall with currentThread=%s, pc=%d\n", currentThread->getName(), pc);
+//printf("In Fork_Syscall with currentThread=%s, pc=%d\n", currentThread->getName(), pc);
 
 	// if null, print error
 
@@ -259,14 +259,15 @@ printf("In Fork_Syscall with currentThread=%s, pc=%d\n", currentThread->getName(
 
 
 	// actual implementation
-	Thread* t = new Thread("filler_name");
+	Thread* t = new Thread("kernel_forker");
 	t->space = currentThread->space; // all threads of same process has same AddrSpace
 	t->Fork((VoidFunctionPtr)kernel_fork, pc);
 
-	// for some reason, if I remove this line, it won't work
-	currentThread->Yield();
 
+}
 
+void Exit_Syscall(int status) {
+	currentThread->Finish();
 }
 
 void Yield_Syscall() {
@@ -342,6 +343,10 @@ void ExceptionHandler(ExceptionType which) {
 			case SC_Halt:
 				DEBUG('a', "Shutdown, initiated by user program.\n");
 				interrupt->Halt();
+				break;
+			case SC_Exit:
+				DEBUG('a', "Exit Syscall.\n");
+				Exit_Syscall(machine->ReadRegister(4));
 				break;
 			case SC_Create:
 				DEBUG('a', "Create syscall.\n");
