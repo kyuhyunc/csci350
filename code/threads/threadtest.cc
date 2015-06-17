@@ -761,6 +761,8 @@ public:
         sprintf(myname, "%s_globallock", debugName);
         _CisGlobalLineLock = new Lock(myname);
 
+        myname = new char[20];
+        sprintf(myname, "%s_airlinelock", debugName);
         _airlineLock = new Lock(myname);        
 
         _numExpectedPassengers = 0;
@@ -1093,9 +1095,6 @@ void Liaison::Start()
         _lock->Release();
 
     }
-
-
-
 }
 
 void CheckInStaff::Start()
@@ -1145,10 +1144,10 @@ void CheckInStaff::Start()
 
 			myairline->_execLineCV->Signal(ExecLock);
 
-        //Testing 4. To wait all executive passengers are processes and to see what happends right after that.
-        if(semaExe == true) {
-            t4.V();
-        }
+      //Testing 4. To wait all executive passengers are processes and to see what happends right after that.
+      if(semaExe == true) {
+          t4.V();
+      }
 		}
 		// serving an economy passenger
 		else if (_lineSize > 0) {
@@ -1166,9 +1165,9 @@ void CheckInStaff::Start()
 			_lineCV->Signal(GlobalLock);
 
         //for testing purposes(TEST2), in order to complete testing simulation first so that we can analyze the result at the end  
-        if(semaBool == true) {
-            t1.V();
-        }
+      if(semaBool == true) {
+          t1.V();
+      }
 		}
 		GlobalLock->Release();
 		ExecLock->Release();
@@ -1208,14 +1207,11 @@ void CheckInStaff::Start()
 			_lock->Release();
 
       _currentPassenger = NULL;
-        }
+    }
     else {
       // printf("error: (in CIS) SHOULD NOT REACH HERE");
     }   
-    
-    }
-
-
+  }
 #undef myairline
 #undef ExecLock
 #undef GlobalLock
@@ -1310,14 +1306,17 @@ void Manager::Start()
           // If checked in passengers and expected passengers are the same
           // And all CISes are on break
           // airline is done with checking in the passengers
-          airLock->Acquire();
-          if (airlines[i]->_numExpectedPassengers == airlines[i]->_numCheckedinPassengers) {
-            if (airlines[i]->_numOnBreakCIS == NUM_CIS_PER_AIRLINE) 
-              airlines[i]->_allPassengersCheckedIn = true;
-            else
-              airlines[i]->_allPassengersCheckedIn = false;
+         
+          if (airlines[i]->_CISclosed == false) { 
+            airLock->Acquire();
+            if (airlines[i]->_numExpectedPassengers == airlines[i]->_numCheckedinPassengers) {
+              if (airlines[i]->_numOnBreakCIS == NUM_CIS_PER_AIRLINE) 
+                airlines[i]->_allPassengersCheckedIn = true;
+              else
+                airlines[i]->_allPassengersCheckedIn = false;
+            }
+            airLock->Release();
           }
-          airLock->Release();
 
           // If all passengers have checked in, signal CISes to make them go home
           if (airlines[i]->_allPassengersCheckedIn == true && airlines[i]->_CISclosed == false) {
