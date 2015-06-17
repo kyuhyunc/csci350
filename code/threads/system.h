@@ -32,6 +32,10 @@ extern Timer *timer;				// the hardware alarm clock
 #ifdef USER_PROGRAM
 #include "machine.h"
 extern Machine* machine;	// user program memory and registers
+#include "synch.h"
+extern Lock* memlock;		// prevent race condition b/c memory is shared among processes
+#include "bitmap.h"
+extern BitMap* bitmap;		// keeps track of pages in pageTable
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 
