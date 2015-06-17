@@ -1329,7 +1329,7 @@ void Manager::Start()
             }
             airlines[i]->_CISclosed = true;
           }
-          else if (airlines[i]->allPassengersCheckedIn == false && airlines[i]->_CISclosed == false) {
+          else if (airlines[i]->_allPassengersCheckedIn == false && airlines[i]->_CISclosed == false) {
             // Check if all airlines have checked in the passengers
             _cisDone = false;
 
