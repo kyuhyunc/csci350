@@ -1323,16 +1323,8 @@ void Manager::Start()
             }
           }
           else {
-            // Check if all airline has checked in the passengers
+            // Check if all airlines have checked in the passengers
             _cisDone = false;
-          }
-        }        
-  
-        // tell cis to get off break!
-        // if there are passengers waiting in their line
-        for (int i=0; i < NUM_AIRLINES; i++) {
-            if (airlines[i]->_allPassengersCheckedIn)
-              continue;
 
             ExecLock->Acquire();
             GlobalLock->Acquire();
@@ -1345,10 +1337,30 @@ void Manager::Start()
             }
             GlobalLock->Release();
             ExecLock->Release();
-        }
+          }
+        }        
+  
+        // tell cis to get off break!
+        // if there are passengers waiting in their line
+        //for (int i=0; i < NUM_AIRLINES; i++) {
+        //    if (airlines[i]->_allPassengersCheckedIn)
+        //      continue;
 
-        for (int i=0; i < 1000; i++) {
-          currentThread->Yield();
+        //    ExecLock->Acquire();
+        //    GlobalLock->Acquire();
+        //    for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+        //        CisLock->Acquire();
+        //        if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
+        //            Cis->_commCV->Signal(CisLock);
+        //        }
+        //        CisLock->Release();
+        //    }
+        //    GlobalLock->Release();
+        //    ExecLock->Release();
+        //}
+
+        //for (int i=0; i < 1000; i++) {
+        //  currentThread->Yield();
 		  }
     }
 
