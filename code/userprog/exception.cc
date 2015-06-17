@@ -231,9 +231,65 @@ void Close_Syscall(int fd) {
     }
 }
 
+void kernel_fork(int pc) {
+printf("In kernel_fork with currentThread=%s\n", currentThread->getName());
+	currentThread->space->InitRegisters();
+	machine->WriteRegister(PCReg, pc);
+	machine->WriteRegister(NextPCReg, pc+4);
+
+	currentThread->space->RestoreState();
+
+	machine->Run();
+}
+
+void Fork_Syscall(int pc) {
+	// validate data
+printf("In Fork_Syscall with currentThread=%s, pc=%d\n", currentThread->getName(), pc);
+
+	// if null, print error
+
+	// retrieve program counter
+
+	// allocate memory
+	// create 8 extra pages for new thread's stack
+	// copy over all old data
+	currentThread->space->AddStack(); // calls AddrSpace's private function as a friend
+
+	// update process table for multiprogramming part
+
+
+	// actual implementation
+	Thread* t = new Thread("filler_name");
+	t->space = currentThread->space; // all threads of same process has same AddrSpace
+	t->Fork((VoidFunctionPtr)kernel_fork, pc);
+
+
+}
+
 void Yield_Syscall() {
-	printf("currentThread yielded\n");
+	printf("Current thread yielded\n");
 	currentThread->Yield();
+}
+
+void Printf_Syscall(int buffer, int num1, int num2, int num3) {
+	char* buf = (char*) buffer;
+	printf(buf);
+/*	if (buf == NULL || num1 == NULL || num2 == NULL || num3 == NULL) {
+		printf("Illegal operation: cannot pass a NULL pointer into Printf\n");
+	}
+
+	if (num1 == -1 && num2 == -1 && num3 == -1) { // no arguments
+		printf(buf);
+	}
+	else if (num2 == -1 && num3 == -1) { // one arg
+		printf(buf, num1);
+	}
+	else if (num3 == -1) { // two args
+		printf(buf, num1, num2);
+	}
+	else { // three args
+		printf(buf, num1, num2, num3);
+	}*/
 }
 
 void ExceptionHandler(ExceptionType which) {
@@ -241,48 +297,60 @@ void ExceptionHandler(ExceptionType which) {
     int rv=0; 	// the return value from a syscall
 
     if ( which == SyscallException ) {
-	switch (type) {
-	    default:
-			DEBUG('a', "Unknown syscall - shutting down.\n");
-	    case SC_Halt:
-			DEBUG('a', "Shutdown, initiated by user program.\n");
-			interrupt->Halt();
-			break;
-	    case SC_Create:
-			DEBUG('a', "Create syscall.\n");
-			Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-			break;
-	    case SC_Open:
-			DEBUG('a', "Open syscall.\n");
-			rv = Open_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-			break;
-	    case SC_Write:
-			DEBUG('a', "Write syscall.\n");
-			Write_Syscall(machine->ReadRegister(4),
-					  machine->ReadRegister(5),
-					  machine->ReadRegister(6));
-			break;
-	    case SC_Read:
-			DEBUG('a', "Read syscall.\n");
-			rv = Read_Syscall(machine->ReadRegister(4),
-					  machine->ReadRegister(5),
-					  machine->ReadRegister(6));
-			break;
-	    case SC_Close:
-			DEBUG('a', "Close syscall.\n");
-			Close_Syscall(machine->ReadRegister(4));
-			break;
-		case SC_Yield:
-			DEBUG('a', "Yield syscall.\n");
-			Yield_Syscall();
-	}
+		switch (type) {
+			default:
+				DEBUG('a', "Unknown syscall - shutting down.\n");
+			case SC_Halt:
+				DEBUG('a', "Shutdown, initiated by user program.\n");
+				interrupt->Halt();
+				break;
+			case SC_Create:
+				DEBUG('a', "Create syscall.\n");
+				Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_Open:
+				DEBUG('a', "Open syscall.\n");
+				rv = Open_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_Write:
+				DEBUG('a', "Write syscall.\n");
+				Write_Syscall(machine->ReadRegister(4),
+						  machine->ReadRegister(5),
+						  machine->ReadRegister(6));
+				break;
+			case SC_Read:
+				DEBUG('a', "Read syscall.\n");
+				rv = Read_Syscall(machine->ReadRegister(4),
+						  machine->ReadRegister(5),
+						  machine->ReadRegister(6));
+				break;
+			case SC_Close:
+				DEBUG('a', "Close syscall.\n");
+				Close_Syscall(machine->ReadRegister(4));
+				break;
+			case SC_Fork:
+				DEBUG('a', "Fork syscall.\n");
+				Fork_Syscall(machine->ReadRegister(4));
+				break;
+			case SC_Yield:
+				DEBUG('a', "Yield syscall.\n");
+				Yield_Syscall();
+				break;
+			case SC_Printf:
+				DEBUG('a', "Printf syscall.\n");
+				Printf_Syscall(machine->ReadRegister(4),
+							machine->ReadRegister(5),
+							machine->ReadRegister(6),
+							machine->ReadRegister(7));
+				break;
+		}
 
-	// Put in the return value and increment the PC
-	machine->WriteRegister(2,rv);
-	machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
-	machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
-	machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
-	return;
+		// Put in the return value and increment the PC
+		machine->WriteRegister(2,rv);
+		machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
+		machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
+		machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
+		return;
     } else {
       cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
       interrupt->Halt();

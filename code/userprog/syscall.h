@@ -30,6 +30,8 @@
 #define SC_Fork		9
 #define SC_Yield	10
 
+#define SC_Printf	30
+
 #define MAXFILENAME 256
 
 #ifndef IN_ASM
@@ -125,6 +127,9 @@ void Fork(void (*func)());
  * or not. 
  */
 void Yield();		
+
+/*void Printf(char* buf, int num1 = -1, int num2 = -1, int num3 = -1);*/
+void Printf(char* buf, int num1, int num2, int num3);
 
 #endif /* IN_ASM */
 

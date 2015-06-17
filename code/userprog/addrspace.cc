@@ -147,14 +147,14 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 // first, set up the translation 
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
-	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-	pageTable[i].physicalPage = i;
-	pageTable[i].valid = TRUE;
-	pageTable[i].use = FALSE;
-	pageTable[i].dirty = FALSE;
-	pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
-					// a separate page, we could set its 
-					// pages to be read-only
+		pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+		pageTable[i].physicalPage = i;
+		pageTable[i].valid = TRUE;
+		pageTable[i].use = FALSE;
+		pageTable[i].dirty = FALSE;
+		pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
+						// a separate page, we could set its 
+						// pages to be read-only
     }
     
 // zero out the entire address space, to zero the unitialized data segment 
@@ -162,6 +162,20 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     bzero(machine->mainMemory, size);
 
 // then, copy in the code and data segments into memory
+
+
+printf("In address constructor...\n");
+	for (i=0; i < numPages; i++) {
+printf("Initializing code segment page number %d, at 0x%x, size %d, reading from %d\n", 
+	i, noffH.code.virtualAddr+i*PageSize, PageSize, noffH.code.inFileAddr+i*PageSize);
+        DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
+			noffH.code.virtualAddr, noffH.code.size);
+		executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr + i*PageSize]),
+			PageSize,
+			noffH.code.inFileAddr + i*PageSize);
+	}
+
+/*
     if (noffH.code.size > 0) {
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			noffH.code.virtualAddr, noffH.code.size);
@@ -174,7 +188,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
         executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
-
+*/
 }
 
 //----------------------------------------------------------------------
@@ -244,4 +258,39 @@ void AddrSpace::RestoreState()
 {
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
+}
+
+void AddrSpace::AddStack()
+{
+	// keep track of old page table
+	// make a new one with 8 extra pages
+	// copy all old pages to new pages
+	// allocate 8 new pages
+	// deallocate old one
+	TranslationEntry* oldPT = pageTable;
+	pageTable = new TranslationEntry[numPages + 8];
+	int i;
+	for (i=0; i < numPages; i++) {
+		pageTable[i].virtualPage = oldPT[i].virtualPage;
+		pageTable[i].physicalPage = oldPT[i].physicalPage;
+		pageTable[i].valid = oldPT[i].valid;
+		pageTable[i].use = oldPT[i].use;
+		pageTable[i].dirty = oldPT[i].dirty;
+		pageTable[i].readOnly = oldPT[i].readOnly;
+	}
+
+	// update page table size (increase it by 8)
+	numPages += 8;
+
+	for (i; i < numPages; i++) {
+		pageTable[i].virtualPage = i;
+		pageTable[i].physicalPage = i;
+		pageTable[i].valid = TRUE;
+		pageTable[i].use = FALSE;
+		pageTable[i].dirty = FALSE;
+		pageTable[i].readOnly = FALSE;
+	}
+
+
+	delete oldPT;
 }

@@ -36,11 +36,15 @@ class AddrSpace {
     void RestoreState();		// info on a context switch
     Table fileTable;			// Table of openfiles
 
+
  private:
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!
     unsigned int numPages;		// Number of pages in the virtual 
 					// address space
+	
+	friend void Fork_Syscall(int pc);
+	void AddStack(); // called by Fork_Syscall
 };
 
 #endif // ADDRSPACE_H

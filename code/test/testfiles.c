@@ -4,6 +4,10 @@
 
 #include "syscall.h"
 
+void test_fxn() {
+	Write("abcde\n", 6, ConsoleOutput);
+}
+
 int main() {
   OpenFileId fd;
   int bytesread;
@@ -20,6 +24,9 @@ int main() {
     bytesread = Read( buf, 100, fd );
     Write( buf, bytesread, ConsoleOutput );
     Close(fd);
+
+
+  Fork(test_fxn);
+
   
-  yield();
 }
