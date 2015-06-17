@@ -1333,8 +1333,8 @@ void Manager::Start()
             // Check if all airlines have checked in the passengers
             _cisDone = false;
 
-            ExecLock->Acquire();
             GlobalLock->Acquire();
+            ExecLock->Acquire();
             for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
                 CisLock->Acquire();
                 if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
