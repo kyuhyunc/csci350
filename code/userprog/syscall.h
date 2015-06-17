@@ -30,6 +30,16 @@
 #define SC_Fork		9
 #define SC_Yield	10
 
+#define SC_CreateLock	11
+#define SC_DestroyLock	12
+#define SC_Acquire		13
+#define SC_Release		14
+#define SC_CreateCV		15
+#define SC_DestroyCV	16
+#define SC_Wait			17
+#define SC_Signal		18
+#define SC_Broadcast	19
+
 #define SC_Printf	30
 
 #define MAXFILENAME 256
@@ -127,6 +137,21 @@ void Fork(void (*func)());
  * or not. 
  */
 void Yield();		
+
+/*	User-program Lock
+ */
+void CreateLock(char* name, int size);
+void DestroyLock(char* name, int size);
+void Acquire(char* name, int size);
+void Release(char* name, int size);
+
+/*	User-program Condition Variables
+ */
+void CreateCV(char* name, int size);
+void DestroyCV(char* name, int size);
+void Wait(char* name, int size);
+void Signal(char* name, int size);
+void Broadcast(char* name, int size);
 
 /*void Printf(char* buf, int num1 = -1, int num2 = -1, int num3 = -1);*/
 void Printf(char* buf, int num1, int num2, int num3);

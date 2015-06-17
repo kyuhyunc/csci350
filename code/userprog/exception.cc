@@ -263,12 +263,51 @@ printf("In Fork_Syscall with currentThread=%s, pc=%d\n", currentThread->getName(
 	t->space = currentThread->space; // all threads of same process has same AddrSpace
 	t->Fork((VoidFunctionPtr)kernel_fork, pc);
 
+	// for some reason, if I remove this line, it won't work
+	currentThread->Yield();
+
 
 }
 
 void Yield_Syscall() {
 	printf("Current thread yielded\n");
 	currentThread->Yield();
+}
+
+void CreateLock_Syscall(int, int) {
+	
+}
+
+void DestroyLock_Syscall(int, int) {
+	
+}
+
+void Acquire_Syscall(int, int) {
+	
+}
+
+void Release_Syscall(int, int) {
+	
+}
+
+void CreateCV_Syscall(int, int) {
+	
+}
+
+void DestroyCV_Syscall(int, int) {
+	
+}
+
+void Wait_Syscall(int, int) {
+	
+}
+
+void Signal_Syscall(int, int) {
+	
+}
+
+void Broadcast_Syscall(int, int) {
+	
 }
 
 void Printf_Syscall(int buffer, int num1, int num2, int num3) {
@@ -334,7 +373,43 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_Yield:
 				DEBUG('a', "Yield syscall.\n");
-				Yield_Syscall();
+				Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_CreateLock:
+				DEBUG('a', "CreateLock syscall.\n");
+				CreateLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_DestroyLock:
+				DEBUG('a', "DestroyLock syscall.\n");
+				DestroyLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_Acquire:
+				DEBUG('a', "Acquire syscall.\n");
+				Acquire_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_Release:
+				DEBUG('a', "Release syscall.\n");
+				Release_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_CreateCV:
+				DEBUG('a', "CreateCV syscall.\n");
+				CreateCV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_DestroyCV:
+				DEBUG('a', "DestroyCV syscall.\n");
+				DestroyCV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_Wait:
+				DEBUG('a', "Wait syscall.\n");
+				Wait_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_Signal:
+				DEBUG('a', "Signal syscall.\n");
+				Signal_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_Broadcast:
+				DEBUG('a', "Broadcast syscall.\n");
+				Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
 			case SC_Printf:
 				DEBUG('a', "Printf syscall.\n");
