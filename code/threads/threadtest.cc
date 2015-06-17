@@ -1361,8 +1361,8 @@ void Manager::Start()
 
         //for (int i=0; i < 1000; i++) {
         //  currentThread->Yield();
-		  }
-    }
+		    //}
+      }
 
 
 #undef ExecLock
@@ -1382,13 +1382,13 @@ void Manager::Start()
         //----------------------------------------------
 
 #define officer screeningofficers[i]       
-        officersLineLock->Acquire();
-        for (int i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
-            if (!officersLine->IsEmpty() && officer->_state == ONBREAK) {
-                officer->_commCV->Signal(officersLineLock);
-            }
-        }
-        officersLineLock->Release();
+      officersLineLock->Acquire();
+      for (int i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
+          if (!officersLine->IsEmpty() && officer->_state == ONBREAK) {
+              officer->_commCV->Signal(officersLineLock);
+          }
+      }
+      officersLineLock->Release();
 
 #undef officer
 
