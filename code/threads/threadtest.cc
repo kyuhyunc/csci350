@@ -603,6 +603,8 @@ public:
         _bagCount += pass->_baggages.size();
         _currentPassenger = pass;
     }
+  
+    friend class Manager;
 
 public:
     Lock* _lock;
@@ -766,13 +768,12 @@ public:
         _numReadyPassengers = 0;
         _numExpectedBaggages = 0;
         _numLoadedBaggages = 0;
-        
-
-        _totalPassenger = 0;
 
         _allPassengersCheckedIn = false;
     }
     char* getName() { return _name; }
+    
+    friend class Manager;
 
 public:
     CheckInStaff** _cis;
@@ -1169,10 +1170,10 @@ void CheckInStaff::Start()
 		if (_currentPassenger != NULL) {
 
 			// give passenger boarding pass, seat number
-      myairline->_airlineLock->acquire();
+      myairline->_airlineLock->Acquire();
       _currentPassenger->_myticket._seat = myairline->_numCheckedinPassengers;
       myairline->_numCheckedinPassengers++;
-      myairline->_airlineLock->release();
+      myairline->_airlineLock->Release();
 
   		// weigh bags, tag bags, check ticket
 			// put bags on conveyor belt
@@ -1300,31 +1301,33 @@ void Manager::Start()
           // If checked in passengers and expected passengers are the same
           // And all CISes are on break
           // airline is done with checking in the passengers
-          airLock->acquire();
+          airLock->Acquire();
           if (airlines[i]->_numExpectedPassengers == airlines[i]->_numCheckedinPassengers) {
             airlines[i]->_allPassengersCheckedIn = true;
             for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
               if (Cis->_state != ONBREAK) {
                 airlines[i]->_allPassengersCheckedIn = false;
-                // Check if all airline has checked in the passengers
-                _cisDone = false;
                 break;
               }
             }
           }
-          airLock->release();
+          airLock->Release();
+
+          // If all passengers have checked in, signal CISes to make them go home
+          if (airlines[i]->_allPassengersCheckedIn == true) {
+            for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+              CisLock->Acquire();
+              Cis->_done = true;
+              Cis->_commCV->Signal(CisLock);
+              CisLock->Release();
+            }
+          }
+          else {
+            // Check if all airline has checked in the passengers
+            _cisDone = false;
+          }
         }        
   
-        // If all passengers have checked in, signal CISes to make them go home
-        if (airlines[i]->_allPassengersCheckedIn == true) {
-          for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
-            CisLock->Acquire();
-            Cis->_done = true;
-            Cis->_commCV->Signal(CisLock);
-            CisLock->Release();
-          }
-        }
-
         // tell cis to get off break!
         // if there are passengers waiting in their line
         for (int i=0; i < NUM_AIRLINES; i++) {
