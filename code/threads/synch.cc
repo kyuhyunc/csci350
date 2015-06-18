@@ -248,7 +248,6 @@ void Condition::Signal(Lock* conditionLock) {
 
 	// Wakeup 1 waiting thread
 	Thread* t = (Thread*) waitQueue->Remove();
-	std::cout << currentThread->getName() << " properly signaled " << t->getName() << std::endl;
 	scheduler->ReadyToRun(t); // wake up sleepy thread
 
 	// if after waking up this thread there are none left,
