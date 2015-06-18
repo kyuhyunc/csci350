@@ -702,7 +702,7 @@ public:
     SecurityInspector(char* debugName, int i) : Thread(debugName) {
         _id = i;
         _state = BUSY;
-        _lineSize = 0;
+        _rtnPassSize = 0;
 
         char* myname;
         myname = new char[20];
@@ -714,17 +714,22 @@ public:
         _commCV = new Condition(myname);
 
         myname = new char[20];
-        sprintf(myname, "%s_lineCV", debugName);
-        _lineCV = new Condition(myname);
+        sprintf(myname, "%s_rtnPassCV", debugName);
+        _rtnPassCV = new Condition(myname);
+
+        myname = new char[20];
+        sprintf(myname, "%s_newPassCV", debugName);
+        _newPassCV = new Condition(myname);
     }
     void Start(); // starts the thread
 public:
     int _id;
-    int _lineSize;
+    int _rtnPassSize;
     int _state;
     Lock* _lock;
     Condition* _commCV;
-    Condition* _lineCV;
+    Condition* _rtnPassCV;
+    Condition* _newPassCV;
     Passenger* _currentPassenger;
 private:
 
@@ -1029,7 +1034,6 @@ void Passenger::Start()
     //----------------------------------------------
 
 #define officer screeningofficers[myOfficer]
-#define inspector securityinspectors[_myInspector]
     
     // Wait in line
     officersLineLock->Acquire();
@@ -1043,13 +1047,19 @@ void Passenger::Start()
     //
     // INSPECTOR
     //
+#define inspector securityinspectors[_myInspector]
     printf("Passenger %s moves to security inspector %s\n", getName(), inspector->getName());
+    inspectorsLineLock->Acquire();
     inspector->_lock->Acquire();
+    std::cout << getName() << " Acquired dat lock!" << std::endl;    
     officer->_lock->Release();
+#undef officer 
     // 
     inspector->_currentPassenger = (Passenger*)currentThread;
     inspector->_commCV->Signal(inspector->_lock); // initial alert to officer
-    inspector->_commCV->Wait(inspector->_lock); // wait for security results
+    std::cout << getName() << " signaled the inspector, now about to wait for dat mother fucker " << inspector->getName() << std::endl;
+    inspector->_newPassCV->Wait(inspector->_lock); // wait for security results
+    std::cout << "_furtherQuestioning: " << _furtherQuestioning << std::endl;
     if (_furtherQuestioning) {
         printf("Passenger %s got for futher questioning\n", getName());
         inspector->_lock->Release();
@@ -1058,27 +1068,28 @@ void Passenger::Start()
         }
         printf("Passenger %s comes back to security inspector %s after further examination\n", getName(), inspector->getName());
         // Go see the same security inspector
+        inspectorsLineLock->Acquire();
         inspector->_lock->Acquire();
-        inspector->_lineSize++;
+        inspector->_rtnPassSize++;
         if (inspector->_state == AVAIL) {
             inspector->_commCV->Signal(inspector->_lock);        
         }
-        inspector->_lineCV->Wait(inspector->_lock); // wait to be released by inspector
+        inspector->_rtnPassCV->Wait(inspector->_lock); // wait to be released by inspector
         inspector->_currentPassenger = (Passenger*)currentThread;
-        inspector->_lineCV->Signal(inspector->_lock);
-        inspector->_lineCV->Wait(inspector->_lock);
+        inspector->_rtnPassCV->Signal(inspector->_lock);
+        inspector->_rtnPassCV->Wait(inspector->_lock);
     }
     inspector->_lock->Release();
+    inspectorsLineLock->Release();
 
-#undef officer 
 #undef inspector
 
     //----------------------------------------------
     // END PASSENGER INTERACTS WITH SCREENING OFFICER
     //----------------------------------------------
-
+    std::cout << std::endl;
     printf("Passenger %s of Airline %d reached the gate\n", getName(), _myticket._airline, airlines[_myticket._airline]->getName());
-
+    std::cout << std::endl;
     // wait in boarding lounge until boarding announcement
 }
 
@@ -1290,15 +1301,16 @@ void ScreeningOfficer::Start()
             }
             // FIND SHORTEST LINE
             // Acquire global line lock
-            inspectorsLineLock->Acquire();
             int shortLineIndex = -1;
             while (shortLineIndex == -1) {
+                inspectorsLineLock->Acquire();
                 for (int i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
                     #define inspector securityinspectors[i]
                     inspector->_lock->Acquire();
                     if (inspector->_state == AVAIL) {
                         shortLineIndex = inspector->_id;
                         securityinspectors[shortLineIndex]->_state = BUSY;
+                        std::cout << "Found an inspector: " << inspector->getName() << " for passenger " << _currentPassenger->getName() << std::endl;
                     }
                     else {
                         std::cout << inspector->getName() << " is busy" << std::endl;
@@ -1309,12 +1321,12 @@ void ScreeningOfficer::Start()
                 if (shortLineIndex == -1) {
                     currentThread->Yield();
                 }
+                inspectorsLineLock->Release();
             }
             // update Passenger code
             _currentPassenger->_myInspector = shortLineIndex;
             printf("Screening officer %s directs passenger %s to security inspector %s\n", getName(), _currentPassenger->getName(), securityinspectors[shortLineIndex]->getName());
             _commCV->Signal(_lock); // wake up the passenger
-            inspectorsLineLock->Release();
             _lock->Release();
         }
         else {
@@ -1327,13 +1339,15 @@ void SecurityInspector::Start()
 {
     while (true) {
         _lock->Acquire();
-        if (_lineSize == 0) {
+        if (_rtnPassSize == 0) {
             _state = AVAIL;
             std::cout << "    >>>>    " << getName() << " is waiting" << std::endl;
             _commCV->Wait(_lock);
             std::cout << "    >>>>    " << getName() << " woke up" << std::endl;
+        } else {
+            std::cout << "Skipping the wait because there is someone returning... DAMN CONTEXT SWITHCES" << std::endl;
         }
-        if (_lineSize == 0) { // nobody returned from further questions
+        if (_rtnPassSize == 0) { // nobody returned from further questions
             _state = BUSY;
             // bool result = rand() % 10 > 7;
             bool result = true;
@@ -1351,17 +1365,17 @@ void SecurityInspector::Start()
             } else {
                 printf("Security inspector %s allows passenger %s to board \n", getName(), _currentPassenger->getName());
             }
-            _commCV->Signal(_lock);
+            _newPassCV->Signal(_lock);
         }
         else {
-            while (_lineSize > 0) {
+            while (_rtnPassSize > 0) {
                 _state = BUSY;
-                _lineCV->Signal(_lock);
-                _lineCV->Wait(_lock); // currentPassenger will get updated...
+                _rtnPassCV->Signal(_lock);
+                _rtnPassCV->Wait(_lock); // currentPassenger will get updated...
                 printf("Security inspector %s permits returning passenger %s to board\n", getName(), _currentPassenger->getName());
-                std::cout << "There are " << _lineSize << " passengers" << std::endl;
-                --_lineSize;
-                _lineCV->Signal(_lock);
+                --_rtnPassSize;
+                std::cout << "There are " << _rtnPassSize << " more passengers" << std::endl;
+                _rtnPassCV->Signal(_lock);
             }
         }
         _lock->Release();
