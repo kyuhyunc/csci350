@@ -1166,9 +1166,9 @@ void CheckInStaff::Start()
 // CHECK-IN-STAFF
 	bool executive = false;
 	while (true) {
+    _lock->Acquire();
     GlobalLock->Acquire();
 		ExecLock->Acquire();
-    _lock->Acquire();
 		if (_lineSize == 0 && myairline->_execLineSize == 0) {
 			_state = ONBREAK;
 		  _currentPassenger = NULL;
