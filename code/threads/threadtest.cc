@@ -1446,9 +1446,13 @@ void Manager::Start()
             }
             airLock->Release();
           }
+          else {
+            continue;
+          }
 
           // If all passengers have checked in, signal CISes to make them go home
           if (airlines[i]->_allPassengersCheckedIn == true && airlines[i]->_CISclosed == false) {
+            printf(" >>>>>>>>>>>>>>>>> %s \n", airlines[i]->getName());
             for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
               CisLock->Acquire(); // should be able to acquire, as CIS must be on break
               Cis->_done = true;
@@ -1559,7 +1563,12 @@ void Manager::Start()
           return;
         }
         else {
-          //printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+            //printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+            for (int i=0; i < NUM_AIRLINES; i++) {
+                if (airlines[i]->_numCheckedinPassengers != airlines[i]->_numExpectedPassengers) {
+                  printf("  >>>>>>>>  Airline %s and checkedin passengers: %i\n", airlines[i]->getName(), airlines[i]->_numCheckedinPassengers);
+                }
+            }
         }
     } // end while(true) for Manager
 } // end Manager::Start()
