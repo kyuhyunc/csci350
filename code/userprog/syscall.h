@@ -40,7 +40,9 @@
 #define SC_Signal		18
 #define SC_Broadcast	19
 
-#define SC_Printf	30
+#define SC_Printf0	30
+#define SC_Printf1	31
+#define SC_Printf2	32
 
 #define MAXFILENAME 256
 
@@ -153,8 +155,11 @@ void Wait(char* name, int size);
 void Signal(char* name, int size);
 void Broadcast(char* name, int size);
 
-/*void Printf(char* buf, int num1 = -1, int num2 = -1, int num3 = -1);*/
-void Printf(char* buf, int num1, int num2, int num3);
+/*	Printf statements
+ */
+void Printf0(char* buf, int size);
+void Printf1(char* buf, int size, int num1);
+void Printf2(char* buf, int size, int num1, int num2);
 
 #endif /* IN_ASM */
 

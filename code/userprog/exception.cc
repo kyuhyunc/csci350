@@ -311,10 +311,39 @@ void Broadcast_Syscall(int, int) {
 	
 }
 
-void Printf_Syscall(int buffer, int num1, int num2, int num3) {
+void Printf0_Syscall(unsigned int vaddr, int len) {
+	
+	char* buf;
+	
+	if (!(buf = new char[len])) {
+		printf("Error allocating kernel buffer for write!\n");
+		return;
+	}
+	else {
+		if (copyin(vaddr, len, buf) == -1) {
+			printf("Bad pointer passed to write: data not written\n");
+			delete [] buf;
+			return;
+		}
+	}
+
+	printf(buf);
+
+	delete [] buf;
+}
+
+void Printf1_Syscall(unsigned int vaddr, int len, int num1) {
+	
+}
+
+void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
+	
+}
+
+/*void Printf_Syscall(int buffer, int num1, int num2, int num3) {
 	char* buf = (char*) buffer;
 	printf(buf);
-/*	if (buf == NULL || num1 == NULL || num2 == NULL || num3 == NULL) {
+	if (buf == NULL || num1 == NULL || num2 == NULL || num3 == NULL) {
 		printf("Illegal operation: cannot pass a NULL pointer into Printf\n");
 	}
 
@@ -329,8 +358,8 @@ void Printf_Syscall(int buffer, int num1, int num2, int num3) {
 	}
 	else { // three args
 		printf(buf, num1, num2, num3);
-	}*/
-}
+	}
+}*/
 
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
@@ -416,9 +445,18 @@ void ExceptionHandler(ExceptionType which) {
 				DEBUG('a', "Broadcast syscall.\n");
 				Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
-			case SC_Printf:
-				DEBUG('a', "Printf syscall.\n");
-				Printf_Syscall(machine->ReadRegister(4),
+			case SC_Printf0:
+				DEBUG('a', "Printf0 syscall.\n");
+				Printf0_Syscall(machine->ReadRegister(4),
+							machine->ReadRegister(5));
+			case SC_Printf1:
+				DEBUG('a', "Printf1 syscall.\n");
+				Printf1_Syscall(machine->ReadRegister(4),
+							machine->ReadRegister(5),
+							machine->ReadRegister(6));
+			case SC_Printf2:
+				DEBUG('a', "Printf2 syscall.\n");
+				Printf2_Syscall(machine->ReadRegister(4),
 							machine->ReadRegister(5),
 							machine->ReadRegister(6),
 							machine->ReadRegister(7));

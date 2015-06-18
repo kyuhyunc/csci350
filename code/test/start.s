@@ -202,13 +202,29 @@ Broadcast:
 	j	$31
 	.end Broadcast
 
-	.globl Printf
-	.ent	Printf
-Printf:
-	addiu $2,$0,SC_Printf
+	.globl Printf0
+	.ent	Printf0
+Printf0:
+	addiu $2,$0,SC_Printf0
 	syscall
 	j	$31
-	.end Printf
+	.end Printf0
+
+	.globl Printf1
+	.ent	Printf1
+Printf1:
+	addiu $2,$0,SC_Printf1
+	syscall
+	j	$31
+	.end Printf1
+
+	.globl Printf2
+	.ent	Printf2
+Printf2:
+	addiu $2,$0,SC_Printf2
+	syscall
+	j	$31
+	.end Printf2
 
 /* dummy function to keep gcc happy */
         .globl  __main

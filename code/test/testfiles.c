@@ -5,6 +5,7 @@
 #include "syscall.h"
 
 void a() {
+	Printf0("printf0", sizeof("printf0"));
 	Write("a\n", 2, ConsoleOutput);
 	Exit(0);
 }
