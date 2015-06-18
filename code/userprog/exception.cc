@@ -312,6 +312,11 @@ void Broadcast_Syscall(int, int) {
 }
 
 void Printf0_Syscall(unsigned int vaddr, int len) {
+	// Supposed to work similarly to a standard C printf function
+	// First check to see if allocation is possible
+	// Second check validity of pointer
+	// Printf0 has no additional arguments and is purely a char*
+	// Last, print out the statement
 	
 	char* buf;
 	
@@ -333,11 +338,57 @@ void Printf0_Syscall(unsigned int vaddr, int len) {
 }
 
 void Printf1_Syscall(unsigned int vaddr, int len, int num1) {
+	// Supposed to work similarly to a standard C printf function
+	// First check to see if allocation is possible
+	// Second check validity of pointer
+	// Printf1 has one additional argument
+	// Last, print out the statement
 	
+	char* buf;
+	
+	if (!(buf = new char[len])) {
+		printf("Error allocating kernel buffer for write!\n");
+		return;
+	}
+	else {
+		if (copyin(vaddr, len, buf) == -1) {
+			printf("Bad pointer passed to write: data not written\n");
+			delete [] buf;
+			return;
+		}
+	}
+
+//printf(buf);
+	printf(buf, num1);
+
+	delete [] buf;
 }
 
 void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
+	// Supposed to work similarly to a standard C printf function
+	// First check to see if allocation is possible
+	// Second check validity of pointer
+	// Printf2 has two additional arguments
+	// Last, print out the statement
 	
+	char* buf;
+	
+	if (!(buf = new char[len])) {
+		printf("Error allocating kernel buffer for write!\n");
+		return;
+	}
+	else {
+		if (copyin(vaddr, len, buf) == -1) {
+			printf("Bad pointer passed to write: data not written\n");
+			delete [] buf;
+			return;
+		}
+	}
+
+//printf(buf);
+	printf(buf, num1, num2);
+
+	delete [] buf;
 }
 
 /*void Printf_Syscall(int buffer, int num1, int num2, int num3) {
@@ -449,11 +500,13 @@ void ExceptionHandler(ExceptionType which) {
 				DEBUG('a', "Printf0 syscall.\n");
 				Printf0_Syscall(machine->ReadRegister(4),
 							machine->ReadRegister(5));
+				break;
 			case SC_Printf1:
 				DEBUG('a', "Printf1 syscall.\n");
 				Printf1_Syscall(machine->ReadRegister(4),
 							machine->ReadRegister(5),
 							machine->ReadRegister(6));
+				break;
 			case SC_Printf2:
 				DEBUG('a', "Printf2 syscall.\n");
 				Printf2_Syscall(machine->ReadRegister(4),

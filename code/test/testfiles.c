@@ -11,17 +11,19 @@ void a() {
 }
 
 void b() {
+	Printf1("printf%d", sizeof("printf%d"), 1);
 	Write("b\n", 2, ConsoleOutput);
 	Exit(0);
 }
 
 void c() {
+	Printf2("printf%d, works %d!", sizeof("printf%d, works %d!"), 2, 2);
 	Write("c\n", 2, ConsoleOutput);
 	Exit(0);
 }
 
 void d() {
-	Write("d\n", 2, ConsoleOutput);
+	Printf0("printf0d\n", sizeof("printf0d\n"));
 	Exit(0);
 }
 
