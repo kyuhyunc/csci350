@@ -1566,16 +1566,33 @@ void Manager::Start()
         }
         else {
             //printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+
+            for (int i=0; i < NUM_AIRLINES; i++) {
+              if (airlines[i]->_allPassengersCheckedIn == false) 
+                printf(" 11111111111111: not closed airport %s\n", airlines[i]->getName());
+            }
+  
             for (int i=0; i < NUM_AIRLINES; i++) {
                 if (airlines[i]->_numCheckedinPassengers != airlines[i]->_numExpectedPassengers) {
-                  printf("  >>>>>>>>  Airline %s and checkedin passengers: %i\n", airlines[i]->getName(), airlines[i]->_numCheckedinPassengers);
+                  printf(" 22222222222222: Airline %s and checkedin passengers: %i out of %i\n", airlines[i]->getName(), airlines[i]->_numCheckedinPassengers, airlines[i]->_numExpectedPassengers);
                 }
-                //else
-                //  printf("  ######### Airline %s and on break CIS: %i\n", airlines[i]->getName(), airlines[i]->_numOnBreakCIS);
-                //if (airlines[i]->_CISclosed) {
-                //  printf(" %%%%%%%%%%%%%% Airline %s is closed \n", airlines[i]->getName());
-                //}
             }
+
+#define CisLock airlines[i]->_cis[j]->_lock
+#define Cis airlines[i]->_cis[j]
+            for (int i=0; i < NUM_AIRLINES; i++) {
+              if (airlines[i]->_allPassengersCheckedIn == false) {
+                for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+                  //CisLock->Acquire();
+                  if (Cis->_state != ONBREAK) {
+                    printf(" 33333333333333: CIS %s is not on break and # of on breakCIS is %i\n", Cis->getName(), airlines[i]->_numOnBreakCIS);
+                  }
+                  //CisLock->Release();
+                }
+              } 
+            }
+#undef CisLock
+#undef Cis
         }
     } // end while(true) for Manager
 } // end Manager::Start()
