@@ -1166,7 +1166,7 @@ void CheckInStaff::Start()
 // CHECK-IN-STAFF
 	bool executive = false;
 	while (true) {
-		GlobalLock->Acquire();
+    GlobalLock->Acquire();
 		ExecLock->Acquire();
     _lock->Acquire();
 		if (_lineSize == 0 && myairline->_execLineSize == 0) {
@@ -1463,17 +1463,19 @@ void Manager::Start()
             // Check if all airlines have checked in the passengers
             _cisDone = false;
 
-            GlobalLock->Acquire();
-            ExecLock->Acquire();
+            // if airline has not been closed yet and all passengers have not checked in, wake up the CISes
+
             for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
                 CisLock->Acquire();
+                GlobalLock->Acquire();
+                ExecLock->Acquire();
                 if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
                     Cis->_commCV->Signal(CisLock);
                 }
                 CisLock->Release();
+                GlobalLock->Release();
+                ExecLock->Release();
             }
-            GlobalLock->Release();
-            ExecLock->Release();
           }
           else if (airlines[i]->_allPassengersCheckedIn == false && airlines[i]->_CISclosed == true) {
             printf("ERROR: should not reach here \n");
@@ -1543,7 +1545,7 @@ void Manager::Start()
                       msg_to_cargos = false;
                     }
                 }
-            }
+             }
 
             ConveyorLock->Release();
 
