@@ -1079,7 +1079,7 @@ void Passenger::Start()
     inspector->_commCV->Signal(inspector->_lock); // initial alert to officer
     inspector->_commCV->Wait(inspector->_lock); // wait for security results
     if (_furtherQuestioning) {
-        printf("Passenger %s got for futher questioning\n", getName());
+        printf("Passenger %s goes for futher questioning\n", getName());
         inspector->_lock->Release();
         for (int i = 0; i < 10; ++i) {
             currentThread->Yield(); // simulate further questioning
@@ -1344,7 +1344,7 @@ void ScreeningOfficer::Start()
                         securityinspectors[shortLineIndex]->_state = BUSY;
                     }
                     else {
-                        std::cout << inspector->getName() << " is busy" << std::endl;
+                        //std::cout << inspector->getName() << " is busy" << std::endl;
                     }
                     inspector->_lock->Release();
                     #undef inspector
@@ -1372,9 +1372,9 @@ void SecurityInspector::Start()
         _lock->Acquire();
         if (_lineSize == 0) {
             _state = AVAIL;
-            std::cout << "    >>>>    " << getName() << " is waiting" << std::endl;
+            //std::cout << "    >>>>    " << getName() << " is waiting" << std::endl;
             _commCV->Wait(_lock);
-            std::cout << "    >>>>    " << getName() << " woke up" << std::endl;
+            //std::cout << "    >>>>    " << getName() << " woke up" << std::endl;
         }
         if (_lineSize == 0) { // nobody returned from further questions
             _state = BUSY;
@@ -1705,7 +1705,7 @@ void AirportSim()
     SecurityInspector* si;
     for (int i=0; i < NUM_SECURITY_INSPECTORS; i++) {
         name = new char[25];
-        sprintf(name, "security_inspectors%d", i);
+        sprintf(name, "security_inspector%d", i);
 
         si = new SecurityInspector(name, i);
         securityinspectors[i] = si;
