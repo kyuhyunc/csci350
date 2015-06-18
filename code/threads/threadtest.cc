@@ -1427,7 +1427,9 @@ void Manager::Start()
           printf("Manager: SHUTTING DOWN THE AIRPORT\n");  
           return;
         }
-
+        else {
+          printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        }
     } // end while(true) for Manager
 } // end Manager::Start()
 
