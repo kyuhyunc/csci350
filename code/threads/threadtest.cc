@@ -922,16 +922,20 @@ void Passenger::Start()
 
     if (liaisons[myLine]->_state == BUSY) {
         liaisons[myLine]->_lineSize++;
+std::cout << getName() << " says liaison is busy: " << liaisons[myLine]->getName() << std::endl;
         liaisons[myLine]->_lineCV->Wait(LiaisonGlobalLineLock);
+std::cout << getName() << " made it past WAIT: " << liaisons[myLine]->getName() << std::endl;
         liaisons[myLine]->_lineSize--;
         liaisons[myLine]->_totalNumber++;
     }
+std::cout << getName() << " made it past liasion busy" << std::endl;
 
     liaisons[myLine]->_lock->Acquire();
     LiaisonGlobalLineLock->Release();
 
     // hands ticket to Liaison
     liaisons[myLine]->updatePassengerInfo(this);
+std::cout << getName() << " updated the liasison's info" << std::endl;
 
     liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
     liaisons[myLine]->_commCV->Wait(liaisons[myLine]->_lock);
@@ -1092,52 +1096,41 @@ void Passenger::Start()
 
 void Liaison::Start()
 {
-//  printf("%s: Made it!\n", this->getName());
-
-    // while loop
-        // help passenger
-        
-        // receives ticket from passenger
-        // keeps track of passenger count and baggages
-
+std::cout << getName() << " is starting" << std::endl;
     while (true) {
-        _lock->Acquire();
         LiaisonGlobalLineLock->Acquire();
+        _lock->Acquire();
         if (_lineSize == 0) {
             LiaisonGlobalLineLock->Release();
             _state = AVAIL;
+std::cout << getName() << " is going to SLEEP, nighty night" << std::endl;
             _commCV->Wait(_lock);
+std::cout << getName() << " woke up " << std::endl;
             //for testing purposes(TEST2), in order to complete testing simulation first so that we can analyze the result at the end  
             if(semaBool == true) {
                 t1.V();
             }
         }
         else {
+std::cout << getName() << " sees someone in line " << std::endl;
             _lineCV->Signal(LiaisonGlobalLineLock);
+std::cout << getName() << " signaled liason global line lock " << std::endl;
             LiaisonGlobalLineLock->Release();
+std::cout << getName() << " about to wait " << std::endl;
             _commCV->Wait(_lock);
+std::cout << getName() << " woke up from WAIT" << std::endl;
             //for testing purposes(TEST2), in order to complete testing simulation first so that we can analyze the result at the end  
             if(semaBool == true) {
                 t1.V();
             }
         }
-
         _state = BUSY;
-
         // guides them to proper airport terminal (based on airline)
         printf("Airport Liaison %s directed passenger %s of airline %i\n", getName(), _currentPassenger->getName(), _currentPassenger->_myticket._airline);
-
-        // print statement
-
         _commCV->Signal(_lock);
         _commCV->Wait(_lock);
-
         _lock->Release();
-
     }
-
-
-
 }
 
 void CheckInStaff::Start()
