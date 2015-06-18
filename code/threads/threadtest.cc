@@ -1179,10 +1179,6 @@ void CheckInStaff::Start()
       myairline->_airlineLock->Release();
 			_commCV->Wait(_lock); // wait for manager to wake me up
 
-      myairline->_airlineLock->Acquire();
-      myairline->_numOnBreakCIS--;
-      myairline->_airlineLock->Release();
-
       // if there are no more passengers, cis can exit and be done!
       if (_done) {
         _lock->Release();
@@ -1192,6 +1188,10 @@ void CheckInStaff::Start()
 
       GlobalLock->Acquire();
       ExecLock->Acquire();
+
+      myairline->_airlineLock->Acquire();
+      myairline->_numOnBreakCIS--;
+      myairline->_airlineLock->Release();
     }
     _state = BUSY;
 
@@ -1439,8 +1439,10 @@ void Manager::Start()
           if (airlines[i]->_CISclosed == false) { 
             airLock->Acquire();
             if (airlines[i]->_numExpectedPassengers == airlines[i]->_numCheckedinPassengers) {
-              if (airlines[i]->_numOnBreakCIS == NUM_CIS_PER_AIRLINE) 
+              if (airlines[i]->_numOnBreakCIS == NUM_CIS_PER_AIRLINE) { 
                 airlines[i]->_allPassengersCheckedIn = true;
+                printf(" ^^^^^^^^^^^^^^^^^ Airline %s has checked in all passengers \n", airlines[i]->getName());
+              }
               else
                 airlines[i]->_allPassengersCheckedIn = false;
             }
@@ -1568,6 +1570,11 @@ void Manager::Start()
                 if (airlines[i]->_numCheckedinPassengers != airlines[i]->_numExpectedPassengers) {
                   printf("  >>>>>>>>  Airline %s and checkedin passengers: %i\n", airlines[i]->getName(), airlines[i]->_numCheckedinPassengers);
                 }
+                //else
+                //  printf("  ######### Airline %s and on break CIS: %i\n", airlines[i]->getName(), airlines[i]->_numOnBreakCIS);
+                //if (airlines[i]->_CISclosed) {
+                //  printf(" %%%%%%%%%%%%%% Airline %s is closed \n", airlines[i]->getName());
+                //}
             }
         }
     } // end while(true) for Manager
