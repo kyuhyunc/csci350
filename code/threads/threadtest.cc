@@ -965,19 +965,19 @@ void Passenger::Start()
 #define GlobalLock airlines[_myticket._airline]->_CisGlobalLineLock
 #define CisLock airlines[_myticket._airline]->_cis[myLine]->_lock
 	
-	if (_myticket._executive) {
-		ExecLock->Acquire();
-		myairline->_execQueue->Append((void*) this);
-		myairline->_execLineSize++;
+	  if (_myticket._executive) {
+      ExecLock->Acquire();
+      myairline->_execQueue->Append((void*) this);
+      myairline->_execLineSize++;
 
-		printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
-		
-    myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
-    
-        ExecLock->Release();
+      printf("Passenger %s of Airline %i is waiting in the executive class line\n", getName(), _myticket._airline);
+      
+      myairline->_execLineCV->Wait(ExecLock); // wait for cis to help me out
+      
+      ExecLock->Release();
     }
     else {
-    GlobalLock->Acquire();
+      GlobalLock->Acquire();
         // find shortest line
         lineSize = checkinstaff[0]->_lineSize;
         myLine = 0;
@@ -1112,11 +1112,16 @@ void CheckInStaff::Start()
 		if (_lineSize == 0 && myairline->_execLineSize == 0) {
 			_state = ONBREAK;
 		  _currentPassenger = NULL;
+      myairline->_airlineLock->Acquire();
       myairline->_numOnBreakCIS++;
 			GlobalLock->Release();
 			ExecLock->Release();
+      myairline->_airlineLock->Release();
 			_commCV->Wait(_lock); // wait for manager to wake me up
+
+      myairline->_airlineLock->Acquire();
       myairline->_numOnBreakCIS--;
+      myairline->_airlineLock->Release();
 
       // if there are no more passengers, cis can exit and be done!
       if (_done) {
@@ -1321,7 +1326,9 @@ void Manager::Start()
           // If all passengers have checked in, signal CISes to make them go home
           if (airlines[i]->_allPassengersCheckedIn == true && airlines[i]->_CISclosed == false) {
             for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+              printf("1111111111111111111111111111\n");
               CisLock->Acquire();
+              printf("2222222222222222222222222222\n");
               Cis->_done = true;
               Cis->_commCV->Signal(CisLock);
               CisLock->Release();
@@ -1428,7 +1435,7 @@ void Manager::Start()
           return;
         }
         else {
-          printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+          //printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
         }
     } // end while(true) for Manager
 } // end Manager::Start()
