@@ -36,6 +36,11 @@ extern Machine* machine;	// user program memory and registers
 extern Lock* memlock;		// prevent race condition b/c memory is shared among processes
 #include "bitmap.h"
 extern BitMap* bitmap;		// keeps track of pages in pageTable
+#include "table.h"
+#define NumLocks	1000
+#define NumCVs		1000
+extern Table* locktable;
+extern Table* cvtable;
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 

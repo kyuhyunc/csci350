@@ -31,6 +31,9 @@ SynchDisk   *synchDisk;
 Machine *machine;	// user program memory and registers
 Lock* memlock;
 BitMap* bitmap;
+
+Table* locktable;
+Table* cvtable;
 #endif
 
 #ifdef NETWORK
@@ -151,8 +154,11 @@ Initialize(int argc, char **argv)
     
 #ifdef USER_PROGRAM
     machine = new Machine(debugUserProg);	// this must come first
-//	memlock = new Lock("MemoryLock");
-//	bitmap = new BitMap(NumPhysPages);
+	memlock = new Lock("MemoryLock");
+	bitmap = new BitMap(NumPhysPages);
+
+	locktable = new Table(NumLocks);
+	cvtable = new Table(NumCVs);
 #endif
 
 #ifdef FILESYS
