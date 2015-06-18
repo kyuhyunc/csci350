@@ -1274,7 +1274,7 @@ void CheckInStaff::Start()
       _currentPassenger = NULL;
     }
     else {
-      // printf("error: (in CIS) SHOULD NOT REACH HERE");
+       printf("error: (in CIS) SHOULD NOT REACH HERE");
     }   
   }
 #undef myairline
@@ -1450,9 +1450,7 @@ void Manager::Start()
           // If all passengers have checked in, signal CISes to make them go home
           if (airlines[i]->_allPassengersCheckedIn == true && airlines[i]->_CISclosed == false) {
             for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
-              printf("1111111111111111111111111111\n");
-              CisLock->Acquire();
-              printf("2222222222222222222222222222\n");
+              CisLock->Acquire(); // should be able to acquire, as CIS must be on break
               Cis->_done = true;
               Cis->_commCV->Signal(CisLock);
               CisLock->Release();
