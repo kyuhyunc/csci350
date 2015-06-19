@@ -1166,34 +1166,39 @@ void CheckInStaff::Start()
 // CHECK-IN-STAFF
 	bool executive = false;
 	while (true) {
-    _lock->Acquire();
-    GlobalLock->Acquire();
+std::cout << getName() << " is about acquire GlobalLock" << std::endl;
+        GlobalLock->Acquire();
+std::cout << getName() << " is about acquire exec" << std::endl;
 		ExecLock->Acquire();
+std::cout << getName() << " is about acquire his" << std::endl;
+        _lock->Acquire();
 		if (_lineSize == 0 && myairline->_execLineSize == 0) {
 			_state = ONBREAK;
-		  _currentPassenger = NULL;
-      myairline->_airlineLock->Acquire();
-      myairline->_numOnBreakCIS++;
+		      _currentPassenger = NULL;
+            myairline->_airlineLock->Acquire();
+            myairline->_numOnBreakCIS++;
 			GlobalLock->Release();
 			ExecLock->Release();
-      myairline->_airlineLock->Release();
+            myairline->_airlineLock->Release();
+std::cout << getName() << " is about to wait" << std::endl;
 			_commCV->Wait(_lock); // wait for manager to wake me up
+std::cout << getName() << " woke up" << std::endl;
 
-      // if there are no more passengers, cis can exit and be done!
-      if (_done) {
-        _lock->Release();
-        printf("Airline check-in staff %s is closing the counter\n", getName());
-        return; 
-      }
+            // if there are no more passengers, cis can exit and be done!
+            if (_done) {
+                _lock->Release();
+                printf("Airline check-in staff %s is closing the counter\n", getName());
+                return; 
+            }
 
-      GlobalLock->Acquire();
-      ExecLock->Acquire();
+            GlobalLock->Acquire();
+            ExecLock->Acquire();
 
-      myairline->_airlineLock->Acquire();
-      myairline->_numOnBreakCIS--;
-      myairline->_airlineLock->Release();
-    }
-    _state = BUSY;
+            myairline->_airlineLock->Acquire();
+            myairline->_numOnBreakCIS--;
+            myairline->_airlineLock->Release();
+        }
+        _state = BUSY;
 
 		// serving an executive passenger
 		if (myairline->_execLineSize > 0) {
@@ -1415,6 +1420,12 @@ void Manager::Start()
 {
 //  printf("%s: Made it!\n", this->getName());
 
+    //----------------------------------------------
+    // "BUSY WAIT" SO MANAGER DOESN'T HOG CPU 
+    //----------------------------------------------
+    for (int i = 0; i < 2000; ++i) {
+        currentThread->Yield(); // 
+    }
 
     //----------------------------------------------
     // MANAGER CHECKS CIS LINES
@@ -1430,63 +1441,59 @@ void Manager::Start()
 
     while (true) {
       if (!_cisDone) {
-        _cisDone = true;
+        int numDoneCIS = 0;
         for (int i=0; i < NUM_AIRLINES; i++) {
           // If checked in passengers and expected passengers are the same
           // And all CISes are on break
           // airline is done with checking in the passengers
-         
-          if (airlines[i]->_CISclosed == false) { 
-            airLock->Acquire();
-            if (airlines[i]->_numExpectedPassengers == airlines[i]->_numCheckedinPassengers) {
-              if (airlines[i]->_numOnBreakCIS == NUM_CIS_PER_AIRLINE) { 
-                airlines[i]->_allPassengersCheckedIn = true;
-                printf(" ^^^^^^^^^^^^^^^^^ Airline %s has checked in all passengers \n", airlines[i]->getName());
-              }
-              else
-                airlines[i]->_allPassengersCheckedIn = false;
-            }
-            airLock->Release();
-          }
-          else {
-            continue;
-          }
-
-          // If all passengers have checked in, signal CISes to make them go home
-          if (airlines[i]->_allPassengersCheckedIn == true && airlines[i]->_CISclosed == false) {
-            printf(" >>>>>>>>>>>>>>>>> %s \n", airlines[i]->getName());
-            for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
-              CisLock->Acquire(); // should be able to acquire, as CIS must be on break
-              Cis->_done = true;
-              Cis->_commCV->Signal(CisLock);
-              CisLock->Release();
-            }
-            airlines[i]->_CISclosed = true;
-          }
-          else if (airlines[i]->_allPassengersCheckedIn == false && airlines[i]->_CISclosed == false) {
-            // Check if all airlines have checked in the passengers
-            _cisDone = false;
-
-            // if airline has not been closed yet and all passengers have not checked in, wake up the CISes
-
-            for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
-                CisLock->Acquire();
-                GlobalLock->Acquire();
-                ExecLock->Acquire();
-                if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
-                    Cis->_commCV->Signal(CisLock);
+            if (airlines[i]->_CISclosed == false) {
+                airLock->Acquire();
+                if (airlines[i]->_numExpectedPassengers == airlines[i]->_numCheckedinPassengers) {
+                    if (airlines[i]->_numOnBreakCIS == NUM_CIS_PER_AIRLINE) { 
+                        numDoneCIS++;
+                        printf(" >>>>>>>>>>>>>>>>> %s \n", airlines[i]->getName());
+                        for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+                            CisLock->Acquire(); // should be able to acquire, as CIS must be on break
+                            Cis->_done = true;
+std::cout << "1" << std::endl;
+                            Cis->_commCV->Signal(CisLock);
+                            CisLock->Release();
+                        }
+                        airlines[i]->_CISclosed = true;
+                    }
+                    else { // not all CIS are on break
+std::cout << "    >>>>    Waiting for CIS of airline: " << i << " to finish with passengers " << std::endl;
+                    }
                 }
-                CisLock->Release();
-                GlobalLock->Release();
-                ExecLock->Release();
+                else { // THERE ARE STILL PASSENGERS TO SERVE
+                    for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+                        CisLock->Acquire();
+                        GlobalLock->Acquire();
+                        ExecLock->Acquire();
+                        if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
+std::cout << airlines[i]->getName() << " : CIS: " << j << "Needs to wake the fuck up!" << std::endl;                            
+                            Cis->_commCV->Signal(CisLock);
+                        }
+                        CisLock->Release();
+                        GlobalLock->Release();
+                        ExecLock->Release();
+                    }
+                }
+                airLock->Release();
             }
-          }
-          else if (airlines[i]->_allPassengersCheckedIn == false && airlines[i]->_CISclosed == true) {
-            printf("ERROR: should not reach here \n");
-            return;
-          }
-        }        
-      }
+            else { // airlines[i]->_CISclosed == TRUE. Already closed down
+// std::cout << "Airport: " << i << "airlines[i]->_CISclosed: " << airlines[i]->_CISclosed << " expected: " << airlines[i]->_numExpectedPassengers << " _numCheckedinPassengers: " << airlines[i]->_numCheckedinPassengers << std::endl;
+                // ALREADY SHUTDOWN CIS
+                numDoneCIS++;
+                continue;
+            }
+        } // end top for loop - for all airlines
+        if (numDoneCIS == NUM_AIRLINES) {
+            _cisDone = true;
+        } else {
+            _cisDone = false;
+        }
+      } // end !_cisDone if statement
 
 #undef ExecLock
 #undef GlobalLock
@@ -1508,6 +1515,7 @@ void Manager::Start()
       officersLineLock->Acquire();
       for (int i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
           if (!officersLine->IsEmpty() && officer->_state == ONBREAK) {
+std::cout << "3" << std::endl; 
               officer->_commCV->Signal(officersLineLock);
           }
       }
@@ -1543,6 +1551,7 @@ void Manager::Start()
             bool msg_to_cargos = true;
             for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
                 if (!ConveyorBelt->IsEmpty() && cargohandlers[i]->_state == ONBREAK) {
+std::cout << "4" << std::endl; 
                     cargohandlers[i]->_commCV->Signal(ConveyorLock);
                     if (msg_to_cargos) {
                       printf("Airport manager calls back all the cargo handlers from break\n");
@@ -1550,7 +1559,6 @@ void Manager::Start()
                     }
                 }
              }
-
             ConveyorLock->Release();
 
         }
@@ -1563,37 +1571,37 @@ void Manager::Start()
         if (_cisDone ) { // ADD CASES AS THE PROJECT GOES ALONG
           printf("Manager: SHUTTING DOWN THE AIRPORT\n");  
           return;
-        }
-        else {
-            //printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+//         }
+//         else {
+//             //printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 
-            for (int i=0; i < NUM_AIRLINES; i++) {
-              if (airlines[i]->_allPassengersCheckedIn == false) 
-                printf(" 11111111111111: not closed airport %s\n", airlines[i]->getName());
-            }
+//             for (int i=0; i < NUM_AIRLINES; i++) {
+//               if (airlines[i]->_allPassengersCheckedIn == false) 
+//                 printf(" 11111111111111: not closed airport %s\n", airlines[i]->getName());
+//             }
   
-            for (int i=0; i < NUM_AIRLINES; i++) {
-                if (airlines[i]->_numCheckedinPassengers != airlines[i]->_numExpectedPassengers) {
-                  printf(" 22222222222222: Airline %s and checkedin passengers: %i out of %i\n", airlines[i]->getName(), airlines[i]->_numCheckedinPassengers, airlines[i]->_numExpectedPassengers);
-                }
-            }
+//             for (int i=0; i < NUM_AIRLINES; i++) {
+//                 if (airlines[i]->_numCheckedinPassengers != airlines[i]->_numExpectedPassengers) {
+//                   printf(" 22222222222222: Airline %s and checkedin passengers: %i out of %i\n", airlines[i]->getName(), airlines[i]->_numCheckedinPassengers, airlines[i]->_numExpectedPassengers);
+//                 }
+//             }
 
-#define CisLock airlines[i]->_cis[j]->_lock
-#define Cis airlines[i]->_cis[j]
-            for (int i=0; i < NUM_AIRLINES; i++) {
-              if (airlines[i]->_allPassengersCheckedIn == false) {
-                for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
-                  //CisLock->Acquire();
-                  if (Cis->_state != ONBREAK) {
-                    printf(" 33333333333333: CIS %s is not on break and # of on breakCIS is %i\n", Cis->getName(), airlines[i]->_numOnBreakCIS);
-                  }
-                  //CisLock->Release();
-                }
-              } 
-            }
-#undef CisLock
-#undef Cis
-        }
+// #define CisLock airlines[i]->_cis[j]->_lock
+// #define Cis airlines[i]->_cis[j]
+//             for (int i=0; i < NUM_AIRLINES; i++) {
+//               if (airlines[i]->_allPassengersCheckedIn == false) {
+//                 for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
+//                   //CisLock->Acquire();
+//                   if (Cis->_state != ONBREAK) {
+//                     printf(" 33333333333333: CIS %s is not on break and # of on breakCIS is %i\n", Cis->getName(), airlines[i]->_numOnBreakCIS);
+//                   }
+//                   //CisLock->Release();
+//                 }
+//               } 
+//             }
+// #undef CisLock
+// #undef Cis
+        } // end _cisDone if/else statement
     } // end while(true) for Manager
 } // end Manager::Start()
 
