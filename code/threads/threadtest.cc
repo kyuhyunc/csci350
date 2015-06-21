@@ -1295,7 +1295,7 @@ void CheckInStaff::Start()
             _currentPassenger = NULL;
         }
         else {
-            printf("error: (in CIS) SHOULD NOT REACH HERE");
+            printf("error: (in CIS) SHOULD NOT REACH HERE\n");
         }   
     }
 #undef myairline
@@ -1620,7 +1620,7 @@ void Manager::Start()
             for (int i=0; i<NUM_SECURITY_INSPECTORS; i++) {
                 pass_cnt_SI += securityinspectors[i]->_passCount;
             }
-            printf("Passenger count reported by security inspector = %d\n", _pass_cnt_SI);
+            printf("Passenger count reported by security inspector = %d\n", pass_cnt_SI);
 
             
 //        _numExpectedPassengers = 0;
