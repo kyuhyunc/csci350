@@ -4,63 +4,6 @@
 
 #include "syscall.h"
 
-<<<<<<< HEAD
-/*void a() {
-=======
-
-void a() {
->>>>>>> 26e40d94e378085a4e5d491562464e45ed32fc18
-	Printf0("printf0", sizeof("printf0"));
-	Write("a\n", 2, ConsoleOutput);
-	Exit(0);
-}
-
-void b() {
-	Printf1("printf%d", sizeof("printf%d"), 1);
-	Write("b\n", 2, ConsoleOutput);
-	Exit(0);
-}
-
-void c() {
-	Printf2("printf%d, works %d!", sizeof("printf%d, works %d!"), 2, 2);
-	Write("c\n", 2, ConsoleOutput);
-	Exit(0);
-}
-
-void d() {
-	Printf0("printf0d\n", sizeof("printf0d\n"));
-	Exit(0);
-}
-
-void e() {
-	Write("e\n", 2, ConsoleOutput);
-	Exit(0);
-<<<<<<< HEAD
-}*/
-=======
-}
-void f() {
-	Acquire(0);
-	Wait(0, 0);
-	Write("f\n", 2, ConsoleOutput);
-	Release(0);
-	Exit(0);
-}
-void g() {
-	Acquire(0);
-	Write("g\n", 2, ConsoleOutput);
-	Signal(0, 0);
-	Release(0);
-	Exit(0);
-}
-
-int main() {
-
-	OpenFileId fd;
-	int bytesread;
-	char buf[20];
->>>>>>> 26e40d94e378085a4e5d491562464e45ed32fc18
-
 void newpf() {
 	Printf1("1:%d,2:%d,3:%d\n", sizeof("1:%d,2:%d,3:%d\n"), 1*1000000+2*1000+3);
 	Exit(0);
@@ -92,7 +35,6 @@ void test_print() {
 
 int main() {
 
-<<<<<<< HEAD
 /*	Fork(a);
 	Fork(b);
 	Fork(c);
@@ -104,23 +46,3 @@ int main() {
 	Fork(newpf);
 	Exec("../test/halt", sizeof("../test/halt"));
 }
-=======
-	
-	CreateLock("FirstLOCK", 9);
-	CreateCV("FirstCV", 7);
-	
-	/*
-	Fork(a);
-	Fork(b);
-	Fork(c);
-	Fork(d);
-	Fork(e);
-	*/
-	
-	Fork(f);
-	Fork(g);
-
-
-
-}
->>>>>>> 26e40d94e378085a4e5d491562464e45ed32fc18

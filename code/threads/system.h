@@ -39,6 +39,7 @@ extern BitMap* memMap;		// keeps track of pages in pageTable
 #include "table.h"
 #define NumLocks	1000
 #define NumCVs		1000
+#define NumProcesses	10
 #define lockCounter 0
 #define CVCounter	0
 extern Table* locktable;
@@ -57,16 +58,24 @@ extern Table* cvtable;
     	bool isToBeDeleted;
     };
 
+extern Table* processtable;
+
+	struct kernelProcess {
+		int PID;
+		AddrSpace * adds;
+		int threadCount;
+	};
+
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 
 #include "filesys.h"
-extern FileSystem  *fileSystem;
+extern FileSystem *fileSystem;
 #endif
 
 #ifdef FILESYS
 #include "synchdisk.h"
-extern SynchDisk   *synchDisk;
+extern SynchDisk *synchDisk;
 #endif
 
 #ifdef NETWORK

@@ -232,25 +232,17 @@ void Close_Syscall(int fd) {
 }
 
 void kernel_fork(int pc) {
-<<<<<<< HEAD
 	currentThread->space->InitRegisters();
 	machine->WriteRegister(PCReg, pc);
 	machine->WriteRegister(NextPCReg, pc+4);
 	machine->WriteRegister(StackReg, currentThread->stackreg);
-=======
-//printf("In kernel_fork with currentThread=%s\n", currentThread->getName());
-  currentThread->space->InitRegisters();
-  machine->WriteRegister(PCReg, pc);
-  machine->WriteRegister(NextPCReg, pc+4);
->>>>>>> 26e40d94e378085a4e5d491562464e45ed32fc18
 
-  currentThread->space->RestoreState();
+	currentThread->space->RestoreState();
 
-  machine->Run();
+	machine->Run();
 }
 
 void Fork_Syscall(int pc) {
-<<<<<<< HEAD
 	// The Fork Syscall takes in a user program's function pointer,
 	// creates a new Thread, allocates 8 pages in physical memory
 	// for the Thread's stack.
@@ -279,33 +271,11 @@ void kernel_exec(int pc) {
 //	machine->WriteRegister(PCReg, pc);
 //	machine->WriteRegister(NextPCReg, pc+4);
 //	machine->WriteRegister(StackReg, currentThread->stackreg);
-=======
-  // validate data
-//printf("In Fork_Syscall with currentThread=%s, pc=%d\n", currentThread->getName(), pc);
-
-  // if null, print error
-
-  // retrieve program counter
-
-  // allocate memory
-  // create 8 extra pages for new thread's stack
-  // copy over all old data
-  currentThread->space->AddStack(); // calls AddrSpace's private function as a friend
-
-  // update process table for multiprogramming part
->>>>>>> 26e40d94e378085a4e5d491562464e45ed32fc18
 
 	currentThread->space->RestoreState();
 
-<<<<<<< HEAD
 	machine->Run();
 }
-=======
-  // actual implementation
-  Thread* t = new Thread("kernel_forker");
-  t->space = currentThread->space; // all threads of same process has same AddrSpace
-  t->Fork((VoidFunctionPtr)kernel_fork, pc);
->>>>>>> 26e40d94e378085a4e5d491562464e45ed32fc18
 
 void Exec_Syscall(unsigned int vaddr, int len) {
 	// read in char*
@@ -354,12 +324,26 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 }
 
 void Exit_Syscall(int status) {
-  currentThread->Finish();
+	currentThread->Finish();
+
+	/*	Case 1: last executing thread in last process
+		completely stop nachos
+		interrupt->Halt();
+	*/
+
+	/*	Case 2: thread in process but not last thread
+		reclaim 8 stack pages
+	*/
+
+	/*	Case 3: last thread in process but not last process
+		reclaim all memory not reclaimed
+		reclaim all locks and cvs
+	*/
 }
 
 void Yield_Syscall() {
-  printf("Current thread yielded\n");
-  currentThread->Yield();
+	printf("Current thread yielded\n");
+	currentThread->Yield();
 }
 
 int CreateLock_Syscall(int vaddr, int size) {
@@ -676,7 +660,6 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 }
 
 void Printf0_Syscall(unsigned int vaddr, int len) {
-<<<<<<< HEAD
 	// Supposed to work similarly to a standard C printf function
 	// First check to see if allocation is possible
 	// Second check validity of pointer
@@ -777,62 +760,12 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
 
 	delete [] buf;
 }
-=======
-  
-  char* buf;
-  
-  if (!(buf = new char[len])) {
-    printf("Error allocating kernel buffer for write!\n");
-    return;
-  }
-  else {
-    if (copyin(vaddr, len, buf) == -1) {
-      printf("Bad pointer passed to write: data not written\n");
-      delete [] buf;
-      return;
-    }
-  }
-
-  printf(buf);
-
-  delete [] buf;
-}
-
-void Printf1_Syscall(unsigned int vaddr, int len, int num1) {
-  
-}
-
-void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
-  
-}
-
-/*void Printf_Syscall(int buffer, int num1, int num2, int num3) {
-  char* buf = (char*) buffer;
-  printf(buf);
-  if (buf == NULL || num1 == NULL || num2 == NULL || num3 == NULL) {
-    printf("Illegal operation: cannot pass a NULL pointer into Printf\n");
-  }
-  if (num1 == -1 && num2 == -1 && num3 == -1) { // no arguments
-    printf(buf);
-  }
-  else if (num2 == -1 && num3 == -1) { // one arg
-    printf(buf, num1);
-  }
-  else if (num3 == -1) { // two args
-    printf(buf, num1, num2);
-  }
-  else { // three args
-    printf(buf, num1, num2, num3);
-  }
-}*/
->>>>>>> 26e40d94e378085a4e5d491562464e45ed32fc18
 
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
     int rv=0;   // the return value from a syscall
 
     if ( which == SyscallException ) {
-<<<<<<< HEAD
 		switch (type) {
 			default:
 				DEBUG('a', "Unknown syscall - shutting down.\n");
@@ -886,15 +819,15 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_DestroyLock:
 				DEBUG('a', "DestroyLock syscall.\n");
-				DestroyLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				DestroyLock_Syscall(machine->ReadRegister(4));
 				break;
 			case SC_Acquire:
 				DEBUG('a', "Acquire syscall.\n");
-				Acquire_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				Acquire_Syscall(machine->ReadRegister(4));
 				break;
 			case SC_Release:
 				DEBUG('a', "Release syscall.\n");
-				Release_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				Release_Syscall(machine->ReadRegister(4));
 				break;
 			case SC_CreateCV:
 				DEBUG('a', "CreateCV syscall.\n");
@@ -902,7 +835,7 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_DestroyCV:
 				DEBUG('a', "DestroyCV syscall.\n");
-				DestroyCV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				DestroyCV_Syscall(machine->ReadRegister(4));
 				break;
 			case SC_Wait:
 				DEBUG('a', "Wait syscall.\n");
@@ -942,112 +875,8 @@ void ExceptionHandler(ExceptionType which) {
 		machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
 		machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
 		return;
-=======
-    switch (type) {
-      default:
-        DEBUG('a', "Unknown syscall - shutting down.\n");
-      case SC_Halt:
-        DEBUG('a', "Shutdown, initiated by user program.\n");
-        interrupt->Halt();
-        break;
-      case SC_Exit:
-        DEBUG('a', "Exit Syscall.\n");
-        Exit_Syscall(machine->ReadRegister(4));
-        break;
-      case SC_Create:
-        DEBUG('a', "Create syscall.\n");
-        Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-        break;
-      case SC_Open:
-        DEBUG('a', "Open syscall.\n");
-        rv = Open_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-        break;
-      case SC_Write:
-        DEBUG('a', "Write syscall.\n");
-        Write_Syscall(machine->ReadRegister(4),
-              machine->ReadRegister(5),
-              machine->ReadRegister(6));
-        break;
-      case SC_Read:
-        DEBUG('a', "Read syscall.\n");
-        rv = Read_Syscall(machine->ReadRegister(4),
-              machine->ReadRegister(5),
-              machine->ReadRegister(6));
-        break;
-      case SC_Close:
-        DEBUG('a', "Close syscall.\n");
-        Close_Syscall(machine->ReadRegister(4));
-        break;
-      case SC_Fork:
-        DEBUG('a', "Fork syscall.\n");
-        Fork_Syscall(machine->ReadRegister(4));
-        break;
-      case SC_Yield:
-        DEBUG('a', "Yield syscall.\n");
-        Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-        break;
-      case SC_CreateLock:
-        DEBUG('a', "CreateLock syscall.\n");
-        CreateLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-        break;
-      case SC_DestroyLock:
-        DEBUG('a', "DestroyLock syscall.\n");
-        DestroyLock_Syscall(machine->ReadRegister(4));
-        break;
-      case SC_Acquire:
-        DEBUG('a', "Acquire syscall.\n");
-        Acquire_Syscall(machine->ReadRegister(4));
-        break;
-      case SC_Release:
-        DEBUG('a', "Release syscall.\n");
-        Release_Syscall(machine->ReadRegister(4));
-        break;
-      case SC_CreateCV:
-        DEBUG('a', "CreateCV syscall.\n");
-        CreateCV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-        break;
-      case SC_DestroyCV:
-        DEBUG('a', "DestroyCV syscall.\n");
-        DestroyCV_Syscall(machine->ReadRegister(4));
-        break;
-      case SC_Wait:
-        DEBUG('a', "Wait syscall.\n");
-        Wait_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-        break;
-      case SC_Signal:
-        DEBUG('a', "Signal syscall.\n");
-        Signal_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-        break;
-      case SC_Broadcast:
-        DEBUG('a', "Broadcast syscall.\n");
-        Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-        break;
-      case SC_Printf0:
-        DEBUG('a', "Printf0 syscall.\n");
-        Printf0_Syscall(machine->ReadRegister(4),
-              machine->ReadRegister(5));
-      case SC_Printf1:
-        DEBUG('a', "Printf1 syscall.\n");
-        Printf1_Syscall(machine->ReadRegister(4),
-              machine->ReadRegister(5),
-              machine->ReadRegister(6));
-      case SC_Printf2:
-        DEBUG('a', "Printf2 syscall.\n");
-        Printf2_Syscall(machine->ReadRegister(4),
-              machine->ReadRegister(5),
-              machine->ReadRegister(6),
-              machine->ReadRegister(7));
-        break;
     }
-
-    // Put in the return value and increment the PC
-    machine->WriteRegister(2,rv);
-    machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
-    machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
-    machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
-    return;
->>>>>>> 26e40d94e378085a4e5d491562464e45ed32fc18
-    } else {
+    else {
       cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
       interrupt->Halt();
     }
