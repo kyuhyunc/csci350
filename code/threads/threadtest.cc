@@ -1548,41 +1548,6 @@ void Manager::Start()
         //----------------------------------------------
 
         //----------------------------------------------
-        // MANAGER CHECKS CONVEYOR BELT
-        //----------------------------------------------
-
-        if (!_cargoDone) {            
-            ConveyorLock->Acquire();
-
-            _cargoDone = true;
-            for (int i=0; i < NUM_AIRLINES; i++) {
-                // checks an airline if all baggages have been loaded
-                if (airlines[i]->_numExpectedBaggages != airlines[i]->_numLoadedBaggages) {
-                    _cargoDone = false;
-                    break;
-                }
-            }
-            
-            if (_cargoDone == false) {          
-                bool msg_to_cargos = true;
-                for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
-                    if (!ConveyorBelt->IsEmpty() && cargohandlers[i]->_state == ONBREAK) {
-                        cargohandlers[i]->_commCV->Signal(ConveyorLock);
-                        if (msg_to_cargos) {
-                          printf("Airport manager calls back all the cargo handlers from break\n");
-                          msg_to_cargos = false;
-                        }
-                    }
-                }
-            }
-            ConveyorLock->Release();
-        }
-
-        //----------------------------------------------
-        // END MANAGER CHECKS CONVEYOR BELT
-        //----------------------------------------------
-
-        //----------------------------------------------
         // MANAGER CHECKS BOARDING LOUNGE
         //----------------------------------------------
 
@@ -1604,10 +1569,45 @@ void Manager::Start()
                 }
                 numReadyAirlines++;
                 airlines[i]->_boarded = true;
-            }
+            } 
         }
 
         bool allFlightsBoarded = (numReadyAirlines == NUM_AIRLINES);
+
+        //----------------------------------------------
+        // MANAGER CHECKS CONVEYOR BELT
+        //----------------------------------------------
+
+        if (!allFlightsBoarded) {     
+            ConveyorLock->Acquire();
+            int numDone = 0;
+            for (int i=0; i < NUM_AIRLINES; i++) {
+                // checks an airline if all baggages have been loaded
+                if (airlines[i]->_numExpectedBaggages == airlines[i]->_numLoadedBaggages) {
+                    numDone++;
+                }
+            }
+                    
+            bool msg_to_cargos = true;
+            for (int i=0; i < NUM_CARGO_HANDLERS; i++) {
+                if (!ConveyorBelt->IsEmpty() && cargohandlers[i]->_state == ONBREAK) {
+                    cargohandlers[i]->_commCV->Signal(ConveyorLock);
+                    if (msg_to_cargos) {
+                      printf("Airport manager calls back all the cargo handlers from break\n");
+                      msg_to_cargos = false;
+                    }
+                }
+            }
+
+            if (numDone == NUM_AIRLINES) {
+                _cargoDone = true;
+            }
+            ConveyorLock->Release();
+        } 
+
+        //----------------------------------------------
+        // END MANAGER CHECKS CONVEYOR BELT
+        //----------------------------------------------
 
         //----------------------------------------------
         // END MANAGER CHECKS BOARDING LOUNGE
