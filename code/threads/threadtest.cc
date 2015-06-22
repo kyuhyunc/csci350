@@ -718,6 +718,7 @@ public:
         _state = BUSY;
         _passCount = 0;
         _rtnPassSize = 0;
+        _currentPassenger = NULL;
 
         char* myname;
         myname = new char[20];
@@ -1092,16 +1093,18 @@ std::cout << getName() << " updated the liasison's info" << std::endl;
     officersLineLock->Release();
     officer->_commCV->Signal(officer->_lock);
     officer->_commCV->Wait(officer->_lock); // after, moving along to inspector
+                                            // waiting to hear back from SO
+                                            // SO will tell which SI to go
     //
     // INSPECTOR
     //
 #define inspector securityinspectors[_myInspector]
     printf("Passenger %s moves to security inspector %s\n", getName(), inspector->getName());
-    inspectorsLineLock->Acquire();
+    //inspectorsLineLock->Acquire();
     inspector->_lock->Acquire();
     officer->_lock->Release();
 #undef officer 
-    // 
+
     inspector->_currentPassenger = (Passenger*)currentThread;
     inspector->_commCV->Signal(inspector->_lock); // initial alert to officer
     inspector->_newPassCV->Wait(inspector->_lock); // wait for security results
@@ -1113,7 +1116,7 @@ std::cout << getName() << " updated the liasison's info" << std::endl;
         }
         printf("Passenger %s comes back to security inspector %s after further examination\n", getName(), inspector->getName());
         // Go see the same security inspector
-        inspectorsLineLock->Acquire();
+        //inspectorsLineLock->Acquire();
         inspector->_lock->Acquire();
         inspector->_rtnPassSize++;
         if (inspector->_state == AVAIL) {
@@ -1125,7 +1128,7 @@ std::cout << getName() << " updated the liasison's info" << std::endl;
         inspector->_rtnPassCV->Wait(inspector->_lock);
     }
     inspector->_lock->Release();
-    inspectorsLineLock->Release();
+    //inspectorsLineLock->Release();
 
 #undef inspector
 
@@ -1367,16 +1370,18 @@ void ScreeningOfficer::Start()
             int shortLineIndex = -1;
             while (shortLineIndex == -1) {
                 inspectorsLineLock->Acquire();
+                #define inspector securityinspectors[i]
                 for (int i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
-                    #define inspector securityinspectors[i]
                     inspector->_lock->Acquire();
                     if (inspector->_state == AVAIL) {
                         shortLineIndex = inspector->_id;
                         securityinspectors[shortLineIndex]->_state = BUSY;
+                        inspector->_lock->Release();
+                        break;
                     }
                     inspector->_lock->Release();
-                    #undef inspector
                 }
+                #undef inspector
                 if (shortLineIndex == -1) {
                     currentThread->Yield();
                 }
@@ -1401,9 +1406,24 @@ void SecurityInspector::Start()
         if (_rtnPassSize == 0) {
             _state = AVAIL;
             _commCV->Wait(_lock);
-        }
-        if (_rtnPassSize == 0) { // nobody returned from further questions
             _state = BUSY;
+        }
+        if (_rtnPassSize > 0) {
+            Passenger *temp = _currentPassenger;   
+
+            while (_rtnPassSize > 0) {
+                _rtnPassCV->Signal(_lock);
+                _rtnPassCV->Wait(_lock); // currentPassenger will get updated...
+                printf("Security inspector %s permits returning passenger %s to board\n", getName(), _currentPassenger->getName());
+
+                _passCount++;
+                --_rtnPassSize;
+                _rtnPassCV->Signal(_lock);
+            }
+            
+            _currentPassenger = temp;
+        }
+        if (_rtnPassSize == 0 && _currentPassenger != NULL) { // nobody returned from further questions
             bool result = rand() % 10 > 7;
             //bool result = true;
             bool guilty = result || securityCloud->_officerResults[_currentPassenger->_id];
@@ -1423,18 +1443,7 @@ void SecurityInspector::Start()
             }
             _newPassCV->Signal(_lock);
         }
-        else {
-            while (_rtnPassSize > 0) {
-                _state = BUSY;
-                _rtnPassCV->Signal(_lock);
-                _rtnPassCV->Wait(_lock); // currentPassenger will get updated...
-                printf("Security inspector %s permits returning passenger %s to board\n", getName(), _currentPassenger->getName());
-
-                _passCount++;
-                --_rtnPassSize;
-                _rtnPassCV->Signal(_lock);
-            }
-        }
+        _currentPassenger = NULL;
         _lock->Release();
     }
 }
