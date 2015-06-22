@@ -4,6 +4,7 @@
 
 #include "syscall.h"
 
+
 void a() {
 	Printf0("printf0", sizeof("printf0"));
 	Write("a\n", 2, ConsoleOutput);
@@ -29,8 +30,23 @@ void e() {
 	Write("e\n", 2, ConsoleOutput);
 	Exit(0);
 }
+void f() {
+	Acquire(0);
+	Wait(0, 0);
+	Write("f\n", 2, ConsoleOutput);
+	Release(0);
+	Exit(0);
+}
+void g() {
+	Acquire(0);
+	Write("g\n", 2, ConsoleOutput);
+	Signal(0, 0);
+	Release(0);
+	Exit(0);
+}
 
 int main() {
+
 	OpenFileId fd;
 	int bytesread;
 	char buf[20];
@@ -47,9 +63,21 @@ int main() {
 	Write( buf, bytesread, ConsoleOutput );
 	Close(fd);
 
+	
+	CreateLock("FirstLOCK", 9);
+	CreateCV("FirstCV", 7);
+	
+	/*
 	Fork(a);
 	Fork(b);
 	Fork(c);
 	Fork(d);
 	Fork(e);
+	*/
+	
+	Fork(f);
+	Fork(g);
+
+
+
 }

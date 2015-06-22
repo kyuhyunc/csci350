@@ -278,68 +278,314 @@ void Yield_Syscall() {
 int CreateLock_Syscall(int vaddr, int size) {
   //it returns -1 when user can't create lock for some reason.
   //otherwise, it returns index of table where the lock that user creates is located. 
-
+  printf("ChreaLock starts\n");
   char *buf = new char[size+1]; // Kernel buffer to put the name in
    
     if (!buf) {
-    printf("%s","Can't allocate kernel buffer in Open\n");
+    printf("%s","Can't allocate kernel buffer CreateLock(CreateLock)\n");
     return -1;
     }
 
   if(copyin(vaddr, size, buf) == -1) {
     //check if the pointer is valid one. if pointer is not valid, then return.
-    printf("error: Pointer is invalid\n");
+    printf("error: Pointer is invalid(CreateLock)\n");
     return -1;
   }
-  
   char * name = currentThread->getName();
 
   if(name == buf) {
-    printf("it already exist in table. You can not create the lock\n");
+    printf("it already exist in table. You can not create the lock(CreateLock)\n");
     return -1;
   }
 
   //creating lock
   Lock * l = new Lock(name);
-  int index = locktable->Put(l);
+  kernelLock * kl = new kernelLock();
+  kl->lock = l;
+  kl->isToBeDeleted = false;
+  kl->adds = currentThread->space;
+
+  int index = locktable->Put((void * )kl);
   //return when you can't put lock in the table.
-  if(locktable->Put(l) == -1) {
+  if(index == -1) {
     return -1;
   }
 
   return index;
 }
 
-int DestroyLock_Syscall(int, int) {
-  
+int DestroyLock_Syscall(int index) {
+    // it returns -1 when lock can't be destroyed
+    // otherwise, it returns index.
+
+    //if it is ready to be destroyed, then set the boolean value true and make the lock pointer NULL
+    //it has to be checked whether the lock is already used or not AND the boolean(destroyed) is false;
+    if(index > NumLocks || index < 0) {
+      //invalid index passed in. Return -1 since it can't be deleted
+      printf("ERROR: invalid index passed in. (DestoryLock)\n");
+        return -1;
+
+    }
+    int temp = (int)locktable->Get(index);
+    if(temp == -1) {
+        //invalid index passed in. Return -1 since it can't be deleted
+      printf("ERROR: there is not lock that you can destroy in table(DestoryLock)\n");
+        return -1;
+    }
+
+    //if current thread is not the thread that create CV, then it can't be destroyed.
+    if(((kernelLock * )locktable->Get(index))->adds != currentThread->space) {
+        printf("ERROR: Current thread does not hold the lock. you can't destory!(DestoryLock)\n");
+        return -1;
+    }
+      //To check if the lock is ready to be deleted!, if it is, then you can delete it !
+    if(((kernelLock * )locktable->Get(index))->isToBeDeleted == TRUE) {
+        ((kernelLock * )locktable->Get(index))->lock= NULL;
+        
+
+    }
+    return index;
 }
 
-int Acquire_Syscall(int, int) {
-  
+int Acquire_Syscall(int index) {
+      printf("%d in Acquire\n", index);
+      //if there is error, return -1
+      //otherwise, it returns lock index that user tries to acquire
+
+      //first error checking, if index can't be larger then the maximum number of lock.
+      if(index > NumLocks || index < 0) {
+          printf("ERROR: invalid index number was passed in.(Acquire)\n");
+          return -1;
+      }
+      //if lock user try to acquire is NULL, then you can't acquire
+      if(((kernelLock * )locktable->Get(index))->lock == NULL) {
+          printf("ERROR: the lock you are trying to Acquire is NULL.(Acqurie)\n");
+          return -1;
+      }
+      //if the lock is not own by current thread, then do nothing!
+      if(((kernelLock * )locktable->Get(index))->adds != currentThread->space) {
+          printf("ERROR: the lock is not held by currentThread.(Acqurie) \n");
+          return -1;
+      }
+
+      ((kernelLock * )locktable->Get(index))->lock->Acquire();
+      return index;
 }
 
-int Release_Syscall(int, int) {
-  
+int Release_Syscall(int index) {
+      //if there is error, return -1
+      //otherwise, it returns lock index that user tries to Release
+      printf("%d in Release\n", index);
+      //first error checking, if index can't be larger then the maximum number of lock.
+      if(index > NumLocks) {
+          printf("ERROR: invalid index number was passed in.(Release)\n");
+          return -1;
+      }
+      //if lock user try to acquire is NULL, then you can't acquire
+      if(((kernelLock * )locktable->Get(index))->lock == NULL) {
+          printf("ERROR: the lock you are trying to Release is NULL.(Release)\n");
+          return -1;
+      }
+      //if the lock is not own by current thread, then do nothing!
+      if(((kernelLock * )locktable->Get(index))->adds != currentThread->space) {
+          printf("ERROR: the lock is not held by currentThread.(Release) \n");
+          return -1;
+      }
+
+      ((kernelLock * )locktable->Get(index))->lock->Release();
+      return index;
 }
 
-int CreateCV_Syscall(int, int) {
-  
+int CreateCV_Syscall(int vaddr, int size) {
+      //it returns -1 when user can't create CV for some reason.
+      //otherwise, it returns index of table where the lock that user creates is located. 
+      printf("createCV starts\n");
+      char *buf = new char[size+1]; // Kernel buffer to put the name in
+       
+        if (!buf) {
+        printf("%s","Can't allocate kernel buffer CreateCV.(CreateCV)\n");
+        return -1;
+        }
+
+      if(copyin(vaddr, size, buf) == -1) {
+        //check if the pointer is valid one. if pointer is not valid, then return.
+        printf("error: Pointer is invalid.(CreateCV)\n");
+        return -1;
+      }
+
+      char * name = currentThread->getName();
+
+      if(name == buf) {
+        printf("it already exist in table. You can not create the lock.(CreateCV)\n");
+        return -1;
+      }
+
+      //creating lock
+      Condition * c = new Condition(name);
+      kernelCV * kc = new kernelCV();
+      kc->condition = c;
+      kc->isToBeDeleted = false;
+      kc->adds = currentThread->space;
+
+      int index = cvtable->Put((void * )kc);
+      //return when you can't put lock in the table.
+      if(index == -1) {
+        return -1;
+      }
+
+      return index;
 }
 
-int DestroyCV_Syscall(int, int) {
-  
+int DestroyCV_Syscall(int index) {
+      // it returns -1 when lock can't be destroyed
+    // otherwise, it returns index.
+    
+      //if it is ready to be destroyed, then set the boolean value true and make the lock pointer NULL
+    //it has to be checked whether the lock is already used or not AND the boolean(destroyed) is false
+    if(index > NumCVs || index < 0) {
+        //invalid index passed in. Return -1 since it can't be deleted
+      printf("ERROR: invalid index passed in.(DestroyCV)\n");
+        return -1;
+    }
+
+    if(((int)cvtable->Get(index)) == 0) {
+        //invalid index passed in. Return -1 since it can't be deleted
+      printf("ERROR: There is no conditinon you can destroy in CV table.(DestroyCV)\n");
+        return -1;
+    }
+      //if current thread is not the thread that create CV, then it can't be destroyed.
+    if(((kernelCV * )cvtable->Get(index))->adds != currentThread->space) {
+
+        printf("ERROR: Current thread does not hold the lock. you can't destory!.(DestroyCV)\n");
+        return -1;
+    }
+      //if the lock is being used, it can't be destoryed
+      //To check if the lock is ready to be deleted!, if it is, then you can delete it !
+    if(((kernelCV * )cvtable->Get(index))->isToBeDeleted == TRUE) {
+        ((kernelCV * )cvtable->Get(index))->condition= NULL;
+    }
+    return index;
 }
 
-int Wait_Syscall(int, int) {
-  
+int Wait_Syscall(int lockIndex, int CVIndex) {
+    //if you can't call wait properly, then it returns -1 so we know if there is something wrong.
+    //Otherwise, it returns CV index number
+    printf("lock index %d and CVIndex %d in Wait\n", lockIndex, CVIndex);
+    //first you need to check if the valid index is passed in
+    if(lockIndex > NumLocks || lockIndex < 0 || CVIndex > NumCVs || CVIndex < 0) {
+        printf("ERROR: invalid index number was passed in.(Wait)\n");
+        return -1;
+    }
+    //2rd, to check if lock that you want to find is in lock table.
+    //if you can not find it in the table, then return -1 and do nothing
+    if(((int)locktable->Get(lockIndex)) == 0) {
+        //invalid index passed in. Return -1 since it can't be deleted
+      printf("ERROR: there is not lock that you can destroy in table.(Wait)\n");
+        return -1;
+    }
+    //if you can not find CV in the CV table, then return -1 and do nothing
+    if(((int)cvtable->Get(CVIndex)) == 0) {
+        //invalid index passed in. Return -1 since it can't be deleted
+      printf("ERROR: There is no conditinon you can destroy in CV table.(Wait)\n");
+        return -1;
+    }
+    //3rd check the current thread is the one that create condition in the CV table. if not, return -1 and do nothing
+    if(((kernelCV * )cvtable->Get(CVIndex))->adds != currentThread -> space) {
+
+      printf("ERROR: Current Thread did not create CV you are trying to wait.(Wait)\n");
+      return -1;
+    }
+
+    //3rd check the current thread is the one that create LOCK in the LOCK table. if not, return -1 and do nothing
+    if(((kernelLock * )locktable->Get(lockIndex))->adds != currentThread -> space) {
+
+      printf("ERROR: Current Thread did not create LOCK you are trying to wait.(Wait)\n");
+      return -1;
+    }
+
+    ((kernelCV * )cvtable->Get(CVIndex))->condition->Wait(((kernelLock * )locktable->Get(lockIndex))->lock);
+    return CVIndex;
+
 }
 
-int Signal_Syscall(int, int) {
-  
+int Signal_Syscall(int lockIndex, int CVIndex) {
+      //if you can't call signal properly, then it returns -1 so we know if there is something wrong.
+    //Otherwise, it returns CV index number
+    printf("lock index %d and CVIndex %d in signal\n", lockIndex, CVIndex);
+    //first you need to check if the valid index is passed in
+    if(lockIndex > NumLocks || lockIndex < 0 || CVIndex > NumCVs || CVIndex < 0) {
+        printf("ERROR: invalid index number was passed in.(Signal)\n");
+        return -1;
+    }
+    //2rd, to check if lock that you want to find is in lock table.
+    //if you can not find it in the table, then return -1 and do nothing
+    if(((int)locktable->Get(lockIndex)) == 0) {
+        //invalid index passed in. Return -1 since it can't be deleted
+      printf("ERROR: there is not lock that you can destroy in table.(Signal)\n");
+        return -1;
+    }
+    //if you can not find CV in the CV table, then return -1 and do nothing
+    if(((int)cvtable->Get(CVIndex)) == 0) {
+        //invalid index passed in. Return -1 since it can't be deleted
+      printf("ERROR: There is no conditinon you can destroy in CV table.(Signal)\n");
+        return -1;
+    }
+    //3rd check the current thread is the one that create condition in the CV table. if not, return -1 and do nothing
+    if(((kernelCV * )cvtable->Get(CVIndex))->adds != currentThread -> space) {
+
+      printf("ERROR: Current Thread did not create CV you are trying to wait.(Signal)\n");
+      return -1;
+    }
+
+    //3rd check the current thread is the one that create LOCK in the LOCK table. if not, return -1 and do nothing
+    if(((kernelLock * )locktable->Get(lockIndex))->adds != currentThread -> space) {
+
+      printf("ERROR: Current Thread did not create LOCK you are trying to wait.(Signal)\n");
+      return -1;
+    }
+
+    ((kernelCV * )cvtable->Get(CVIndex))->condition->Signal(((kernelLock * )locktable->Get(lockIndex))->lock);
+    return CVIndex;
 }
 
-int Broadcast_Syscall(int, int) {
-  
+int Broadcast_Syscall(int lockIndex, int CVIndex) {
+    //if you can't call Broadcast properly, then it returns -1 so we know if there is something wrong.
+    //Otherwise, it returns CV index number
+    printf("lock index %d and CVIndex %d in Broadcast\n", lockIndex, CVIndex);
+    //first you need to check if the valid index is passed in
+    if(lockIndex > NumLocks || lockIndex < 0 || CVIndex > NumCVs || CVIndex < 0) {
+        printf("ERROR: invalid index number was passed in.(BroadCast)\n");
+        return -1;
+    }
+    //2rd, to check if lock that you want to find is in lock table.
+    //if you can not find it in the table, then return -1 and do nothing
+    if(((int)locktable->Get(lockIndex)) == 0) {
+        //invalid index passed in. Return -1 since it can't be deleted
+      printf("ERROR: there is not lock that you can destroy in table.(BroadCast)\n");
+        return -1;
+    }
+    //if you can not find CV in the CV table, then return -1 and do nothing
+    if(((int)cvtable->Get(CVIndex)) == 0) {
+        //invalid index passed in. Return -1 since it can't be deleted
+      printf("ERROR: There is no conditinon you can destroy in CV table.(BroadCast)\n");
+        return -1;
+    }
+    //3rd check the current thread is the one that create condition in the CV table. if not, return -1 and do nothing
+    if(((kernelCV * )cvtable->Get(CVIndex))->adds != currentThread -> space) {
+
+      printf("ERROR: Current Thread did not create CV you are trying to wait.(BroadCast)\n");
+      return -1;
+    }
+
+    //3rd check the current thread is the one that create LOCK in the LOCK table. if not, return -1 and do nothing
+    if(((kernelLock * )locktable->Get(lockIndex))->adds != currentThread -> space) {
+
+      printf("ERROR: Current Thread did not create LOCK you are trying to wait.(BroadCast)\n");
+      return -1;
+    }
+
+    ((kernelCV * )cvtable->Get(CVIndex))->condition->Broadcast(((kernelLock * )locktable->Get(lockIndex))->lock);
+    return CVIndex;
 }
 
 void Printf0_Syscall(unsigned int vaddr, int len) {
@@ -445,15 +691,15 @@ void ExceptionHandler(ExceptionType which) {
         break;
       case SC_DestroyLock:
         DEBUG('a', "DestroyLock syscall.\n");
-        DestroyLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+        DestroyLock_Syscall(machine->ReadRegister(4));
         break;
       case SC_Acquire:
         DEBUG('a', "Acquire syscall.\n");
-        Acquire_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+        Acquire_Syscall(machine->ReadRegister(4));
         break;
       case SC_Release:
         DEBUG('a', "Release syscall.\n");
-        Release_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+        Release_Syscall(machine->ReadRegister(4));
         break;
       case SC_CreateCV:
         DEBUG('a', "CreateCV syscall.\n");
@@ -461,7 +707,7 @@ void ExceptionHandler(ExceptionType which) {
         break;
       case SC_DestroyCV:
         DEBUG('a', "DestroyCV syscall.\n");
-        DestroyCV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+        DestroyCV_Syscall(machine->ReadRegister(4));
         break;
       case SC_Wait:
         DEBUG('a', "Wait syscall.\n");

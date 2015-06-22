@@ -142,18 +142,18 @@ void Yield();
 
 /*	User-program Lock
  */
-void CreateLock(char* name, int size);
-void DestroyLock(char* name, int size);
-void Acquire(char* name, int size);
-void Release(char* name, int size);
+int CreateLock(char* name, int size);
+int DestroyLock(int index);
+int Acquire(int index);
+int Release(int index);
 
 /*	User-program Condition Variables
  */
-void CreateCV(char* name, int size);
-void DestroyCV(char* name, int size);
-void Wait(char* name, int size);
-void Signal(char* name, int size);
-void Broadcast(char* name, int size);
+int CreateCV(char* name, int size);
+int DestroyCV(int index);
+int Wait(int lockIndex, int CVIndex);
+int Signal(int lockIndex, int CVIndex);
+int Broadcast(int lockIndex, int CVIndex);
 
 /*	Printf statements
  */

@@ -39,8 +39,24 @@ extern BitMap* bitmap;		// keeps track of pages in pageTable
 #include "table.h"
 #define NumLocks	1000
 #define NumCVs		1000
+#define lockCounter 0
+#define CVCounter	0
 extern Table* locktable;
+    
+    struct kernelLock {
+    	Lock * lock;
+    	AddrSpace * adds;
+    	bool isToBeDeleted;
+    };
+
 extern Table* cvtable;
+	
+	struct kernelCV {
+    	Condition * condition;
+    	AddrSpace * adds;
+    	bool isToBeDeleted;
+    };
+
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 
