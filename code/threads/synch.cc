@@ -135,7 +135,7 @@ void Lock::Acquire() {
 	else {
 		// add myself to queue and put myself to sleep
     //if (strcmp(currentThread->getName(), "manager"))
-        std::cout << "ACQUIRE: "<< currentThread->getName() << " is trying to acquire the lock [" << name << "] " << "but it's owned by " << owner->getName() << std::endl;
+        //std::cout << "ACQUIRE: "<< currentThread->getName() << " is trying to acquire the lock [" << name << "] " << "but it's owned by " << owner->getName() << std::endl;
 		waitQueue->Append((void *)currentThread);
 		currentThread->Sleep();
 	}
@@ -163,7 +163,7 @@ void Lock::Release() {
 		Thread* t = (Thread*) waitQueue->Remove();
 		scheduler->ReadyToRun(t); // wake up sleepy thread
 		owner = t;
-        std::cout << "RELEASE: "<< currentThread->getName() << " is releasing the lock, [" << name << "] and " << owner->getName() << " is woken up" << std::endl;
+        //std::cout << "RELEASE: "<< currentThread->getName() << " is releasing the lock, [" << name << "] and " << owner->getName() << " is woken up" << std::endl;
 	}
 
 	// if there are no threads waiting for this lock,
