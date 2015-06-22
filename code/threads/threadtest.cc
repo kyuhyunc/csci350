@@ -477,13 +477,20 @@ public:
         _id = id;
         _furtherQuestioning = false;
 
+		// Airline number 
+		_myticket._airline = rand() % NUM_AIRLINES;
+
 		// 2 or 3 baggages 30-60 lbs
 		Baggage* mybag;
 		int numBaggages = rand() % 2 + 2;
 		for (int i=0; i < numBaggages; i++) {
 			mybag = new Baggage;
-			mybag->_weight = rand() % 31 + 30;
+			mybag->_weight = rand() % 31 + 30; 
 			_baggages.push_back(mybag);
+            
+            // From setup
+            airlines[_myticket._airline]->_bagCount++;
+            airlines[_myticket._airline]->_weightCount += mybag->_weigth;
 		}
 
 		// Executive or Economy ticket
@@ -491,9 +498,6 @@ public:
 		if ( (rand() % 4) == 1 ) {
 			_myticket._executive = true;
 		}
-
-		// Airline number 
-		_myticket._airline = rand() % NUM_AIRLINES;
 	}
 	void Start(); // starts the thread
 
@@ -595,6 +599,7 @@ public:
         _state = BUSY;
         _passCount = 0;
         _bagCount = 0;
+        _weightCount = 0;
         _PassengerNumber = 0; // for test case
        
         _done = false; 
@@ -618,6 +623,7 @@ public:
     int _state; // ONBREAK or BUSY
     int _passCount;
     int _bagCount;
+    int _weightCount;
 
     Passenger* _currentPassenger;
 
@@ -639,8 +645,10 @@ class CargoHandler : public Thread
 public:
     CargoHandler(char* debugName) : Thread(debugName) {
         _bagCount = new int[NUM_AIRLINES];
+        _weightCount = new int[NUM_AIRLINES];
         for (int i=0; i < NUM_AIRLINES; i++) {
             _bagCount[i] = 0;
+            _weightCount[i] = 0;
         }
         char* myname;
         myname = new char[20];
@@ -655,7 +663,7 @@ public:
     Condition* _commCV;
     int _state;
     int* _bagCount;
-
+    int* _weightCount;
 };
 
 //-----------------------
@@ -805,6 +813,9 @@ public:
 
         _numOnBreakCIS = 0;
 
+        _bagCount = 0;
+        _weightCount = 0;        
+
         _allPassengersCheckedIn = false;
         _CISclosed = false;
         _boarded = false;
@@ -832,6 +843,9 @@ public:
     int _numReadyPassengers;
     int _numExpectedBaggages;
     int _numLoadedBaggages;
+
+    int _bagCount;
+    int _weightCount;
 
     int _numOnBreakCIS;
     bool _boarded;
@@ -1321,6 +1335,7 @@ void CargoHandler::Start()
             printf("Cargo Handler %s picked bag of airline %i with weighing %i lbs\n", getName(), b->_airline, b->_weight);
             airlines[b->_airline]->_numLoadedBaggages++; // load baggage into proper aircraft
             _bagCount[b->_airline]++;
+            _weightCount[b->_airline] += b->_weight;
         }
         ConveyorLock->Release();
     }
@@ -1622,20 +1637,45 @@ void Manager::Start()
             }
             printf("Passenger count reported by security inspector = %d\n", pass_cnt_SI);
 
+            for (int i = 0; i < NUM_AIRLINES; ++i) {
+                printf("From setup: Baggage count of airline %d = %d\n", i, airlines[i]->_bagCount);
+            }
             
-//        _numExpectedPassengers = 0;
-//        _numCheckedinPassengers = 0;
-//        _numReadyPassengers = 0;
-//        _numExpectedBaggages = 0;
-//        _numLoadedBaggages = 0;
-//            for (int i = 0; i < NUM_AIRLINES; ++i) {
-//                printf("From setup: Baggage count of airline %d = %d\n", i, );
-//                printf("From airport liaison: Baggage count of airline %d = %d\n", i, );
-//                printf("From cargo handlers: Baggage count of airline %d = %d\n", i, );
-//                printf("From setup: Baggage weight of airline %d = %d\n", i, );
-//                printf("From airline check-in staff: Baggage weight of airline %d = %d\n", i, );
-//                printf("From cargo handlers: Baggage weight of airline %d = %d\n", i, ); 
-//            }
+            for (int i = 0; i < NUM_AIRLINES; ++i) {
+                int bag_cnt_liaison = 0;
+                for (int j = 0; j < NUM_LIASONS; ++j) {
+                    bag_cnt_liaison += liaisons[j]->_bagCount[i];
+                }
+                printf("From airport liaison: Baggage count of airline %d = %d\n", i, ); 
+            }
+           
+            for (int i = 0; i < NUM_AIRLINES; ++i) {
+                int bag_cnt_cargo = 0;
+                for (int j = 0; j < NUM_CARGO_HANDLERS; ++j) {
+                    bag_cnt_cargo += cargohandlers[j]->_bagCount[i];
+                }
+                printf("From cargo handlers: Baggage count of airline %d = %d\n", i, );           
+            }
+            
+            for (int i = 0; i < NUM_AIRLINES; ++i) {
+                printf("From setup: Baggage weight of airline %d = %d\n", i, airlines[i]->_weightCount); 
+            }
+            
+            for (int i = 0; i < NUM_AIRLINES; ++i) {
+                int weight_cnt_CIS = 0;
+                for (int j = 0; j < NUM_CIS_PER_AIRLINE; ++j) {
+                    weight_cnt_CIS += airlines[i]->_cis[j]->_weightCount;
+                }
+                printf("From airline check-in staff: Baggage weight of airline %d = %d\n", i, weight_cnt_CIS);
+            }                
+
+            for (int i = 0; i < NUM_AIRLINES; ++i) {
+                int weight_cnt_cargo = 0;
+                for (int j = 0; j < NUM_CARGO_HANDLERS; ++j) {
+                    weight_cnt_cargo += cargohandlers[j]->_weightCount[i];
+                }
+                printf("From cargo handlers: Baggage weight of airline %d = %d\n", i, weight_cnt_cargo); 
+            }
 
             return;
         } // end _cisDone if/else statement
