@@ -438,35 +438,6 @@ int NUM_CARGO_HANDLERS;
 int NUM_SCREENING_OFFICERS;
 int NUM_SECURITY_INSPECTORS;
 
-Passenger** passengers;
-Liaison** liaisons;
-CargoHandler** cargohandlers;
-ScreeningOfficer** screeningofficers;
-SecurityInspector** securityinspectors;
-Manager* manager;
-
-Airline** airlines;
-
-Lock* LiaisonGlobalLineLock;
-Lock* CisGlobalLineLock;
-
-// Screening Officer
-Lock* officersLineLock;
-Condition* officersLineCV;
-List* officersLine;
-
-// Conveyor Globals
-List* ConveyorBelt;
-Lock* ConveyorLock;
-Condition* ConveyorCV;
-int CargoHandlerState = BUSY;
-
-// Security
-SecurityData* securityCloud;
-
-// Security Inspector
-Lock* inspectorsLineLock;
-List* inspectors;
 enum State {
     AVAIL,
     BUSY,
@@ -510,10 +481,6 @@ public:
 			mybag = new Baggage;
 			mybag->_weight = rand() % 31 + 30; 
 			_baggages.push_back(mybag);
-            
-            // From setup
-            airlines[_myticket._airline]->_bagCount++;
-            airlines[_myticket._airline]->_weightCount += mybag->_weigth;
 		}
 
 		// Executive or Economy ticket
@@ -523,6 +490,17 @@ public:
 		}
 	}
 	void Start(); // starts the thread
+
+    int getNumBaggages() {
+        return _baggages.size();
+    }
+    int getWeightBaggages() {
+        int weight=0;
+        for (int i=0; i<_baggages.size(); i++) {
+            weight += _baggages.at(i)->_weight;
+        }
+        return weight;
+    }
 
 public:
 	std::vector<Baggage*> _baggages;
@@ -828,16 +806,16 @@ public:
         sprintf(myname, "%s_airlinelock", debugName);
         _airlineLock = new Lock(myname);        
 
-        _numExpectedPassengers = 0;
-        _numCheckedinPassengers = 0;
-        _numReadyPassengers = 0;
-        _numExpectedBaggages = 0;
-        _numLoadedBaggages = 0;
+        _bagCount = 0;  // From setup
+        _weightCount = 0;   // From setup       
+
+        _numExpectedPassengers = 0; // When creating passengers
+        _numCheckedinPassengers = 0;    // From CIS
+        _numReadyPassengers = 0;    // From Passengers
+        _numExpectedBaggages = 0;   // From CIS
+        _numLoadedBaggages = 0; // From CargoHandlers
 
         _numOnBreakCIS = 0;
-
-        _bagCount = 0;
-        _weightCount = 0;        
 
         _allPassengersCheckedIn = false;
         _CISclosed = false;
@@ -896,6 +874,41 @@ private:
 friend class ScreeningOfficer;
 friend class SecurityInspector;
 };
+
+
+//-----------------------
+// Data
+//-----------------------
+
+Passenger** passengers;
+Liaison** liaisons;
+CargoHandler** cargohandlers;
+ScreeningOfficer** screeningofficers;
+SecurityInspector** securityinspectors;
+Manager* manager;
+
+Airline** airlines;
+
+Lock* LiaisonGlobalLineLock;
+Lock* CisGlobalLineLock;
+
+// Screening Officer
+Lock* officersLineLock;
+Condition* officersLineCV;
+List* officersLine;
+
+// Conveyor Globals
+List* ConveyorBelt;
+Lock* ConveyorLock;
+Condition* ConveyorCV;
+int CargoHandlerState = BUSY;
+
+// Security
+SecurityData* securityCloud;
+
+// Security Inspector
+Lock* inspectorsLineLock;
+List* inspectors;
 
 Semaphore t1("t1",0);
 Semaphore t4_1("t4_1",0);
@@ -1750,6 +1763,10 @@ void AirportSim()
 
         // Track number of passengers expected per airline
         airlines[p->_myticket._airline]->_numExpectedPassengers++;
+
+        // From setup
+        airlines[p->_myticket._airline]->_bagCount += p->getNumBaggages();
+        airlines[p->_myticket._airline]->_weightCount += p->getWeightBaggages();
     }
 
     // Initializing liaison threads
