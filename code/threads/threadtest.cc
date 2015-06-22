@@ -1554,17 +1554,10 @@ void Manager::Start()
                 }
                 numReadyAirlines++;
                 airlines[i]->_boarded = true;
-            } else {
-std::cout << "    >>>>    _numLoadedBaggages: " << airlines[i]->_numLoadedBaggages << " out of " << airlines[i]->_numExpectedBaggages << ", _numReadyPassengers:" << airlines[i]->_numReadyPassengers << " out of " << airlines[i]->_numExpectedPassengers << std::endl;
-            }
+            } 
         }
 
         bool allFlightsBoarded = (numReadyAirlines == NUM_AIRLINES);
-
-        if (!allFlightsBoarded) {
-std::cout << "    >>>>    " << numReadyAirlines << " out of " << NUM_AIRLINES << std::endl;
-        }
-
 
         //----------------------------------------------
         // MANAGER CHECKS CONVEYOR BELT
