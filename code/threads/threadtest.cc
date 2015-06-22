@@ -1618,6 +1618,13 @@ void Manager::Start()
 
         // if all manager tasks are done, break!
         if (_cisDone && allFlightsBoarded) { // ADD CASES AS THE PROJECT GOES ALONG
+            
+            for (int i = 0; i < 2000; ++i) {
+                currentThread->Yield(); // 
+            }
+            
+            printf("=====================STATS======================\n");
+
             int pass_cnt_liaisons = 0;
             for (int i=0; i<NUM_LIASONS; i++) {
                 for (int j=0; j<NUM_AIRLINES; j++) {
