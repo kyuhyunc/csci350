@@ -1,0 +1,327 @@
+Initializing address space, num pages 22, size 2816
+Initializing code segment, at 0x0, size 128
+Initializing code segment, at 0x80, size 128
+Initializing code segment, at 0x100, size 128
+Initializing code segment, at 0x180, size 128
+Initializing code segment, at 0x200, size 128
+Initializing code segment, at 0x280, size 128
+Initializing code segment, at 0x300, size 128
+Initializing code segment, at 0x380, size 128
+Initializing code segment, at 0x400, size 128
+Initializing code segment, at 0x480, size 128
+Initializing code segment, at 0x500, size 128
+Initializing code segment, at 0x580, size 128
+Initializing code segment, at 0x600, size 128
+Initializing code segment, at 0x680, size 128
+Initializing code segment, at 0x700, size 128
+Initializing code segment, at 0x780, size 128
+Initializing code segment, at 0x800, size 128
+Initializing code segment, at 0x880, size 128
+Initializing code segment, at 0x900, size 128
+Initializing code segment, at 0x980, size 128
+Initializing code segment, at 0xa00, size 128
+Initializing code segment, at 0xa80, size 128
+Initializing stack register to af0
+Reading VA 0x0, size 4
+	Translate 0x0, read: phys addr = 0x0
+	value read = 0c0000d4
+Reading VA 0x4, size 4
+	Translate 0x4, read: phys addr = 0x4
+	value read = 00000000
+Reading VA 0x350, size 4
+	Translate 0x350, read: phys addr = 0x350
+	value read = 27bdffe8
+Reading VA 0x354, size 4
+	Translate 0x354, read: phys addr = 0x354
+	value read = afbf0014
+Writing VA 0xaec, size 4, value 0x8
+	Translate 0xaec, write: phys addr = 0xaec
+Reading VA 0x358, size 4
+	Translate 0x358, read: phys addr = 0x358
+	value read = afbe0010
+Writing VA 0xae8, size 4, value 0x0
+	Translate 0xae8, write: phys addr = 0xae8
+Reading VA 0x35c, size 4
+	Translate 0x35c, read: phys addr = 0x35c
+	value read = 0c000060
+Reading VA 0x360, size 4
+	Translate 0x360, read: phys addr = 0x360
+	value read = 03a0f021
+Reading VA 0x180, size 4
+	Translate 0x180, read: phys addr = 0x180
+	value read = 03e00008
+Reading VA 0x184, size 4
+	Translate 0x184, read: phys addr = 0x184
+	value read = 00000000
+Reading VA 0x364, size 4
+	Translate 0x364, read: phys addr = 0x364
+	value read = 3c040000
+Reading VA 0x368, size 4
+	Translate 0x368, read: phys addr = 0x368
+	value read = 0c000028
+Reading VA 0x36c, size 4
+	Translate 0x36c, read: phys addr = 0x36c
+	value read = 24840190
+Reading VA 0xa0, size 4
+	Translate 0xa0, read: phys addr = 0xa0
+	value read = 24020009
+Reading VA 0xa4, size 4
+	Translate 0xa4, read: phys addr = 0xa4
+	value read = 0000000c
+Fork syscall.
+Adding stack...
+Reading VA 0xa8, size 4
+	Translate 0xa8, read: phys addr = 0xa8
+	value read = 03e00008
+Reading VA 0xac, size 4
+	Translate 0xac, read: phys addr = 0xac
+	value read = 00000000
+Reading VA 0x370, size 4
+	Translate 0x370, read: phys addr = 0x370
+	value read = 3c040000
+Reading VA 0x374, size 4
+	Translate 0x374, read: phys addr = 0x374
+	value read = 2484067c
+Reading VA 0x378, size 4
+	Translate 0x378, read: phys addr = 0x378
+	value read = 0c00000c
+Reading VA 0x37c, size 4
+	Translate 0x37c, read: phys addr = 0x37c
+	value read = 2405000d
+Reading VA 0x30, size 4
+	Translate 0x30, read: phys addr = 0x30
+	value read = 24020002
+Reading VA 0x34, size 4
+	Translate 0x34, read: phys addr = 0x34
+	value read = 0000000c
+Exec syscall
+Reading VA 0x67c, size 1
+	Translate 0x67c, read: phys addr = 0x67c
+	value read = 0000002e
+Reading VA 0x67d, size 1
+	Translate 0x67d, read: phys addr = 0x67d
+	value read = 0000002e
+Reading VA 0x67e, size 1
+	Translate 0x67e, read: phys addr = 0x67e
+	value read = 0000002f
+Reading VA 0x67f, size 1
+	Translate 0x67f, read: phys addr = 0x67f
+	value read = 00000074
+Reading VA 0x680, size 1
+	Translate 0x680, read: phys addr = 0x680
+	value read = 00000065
+Reading VA 0x681, size 1
+	Translate 0x681, read: phys addr = 0x681
+	value read = 00000073
+Reading VA 0x682, size 1
+	Translate 0x682, read: phys addr = 0x682
+	value read = 00000074
+Reading VA 0x683, size 1
+	Translate 0x683, read: phys addr = 0x683
+	value read = 0000002f
+Reading VA 0x684, size 1
+	Translate 0x684, read: phys addr = 0x684
+	value read = 00000068
+Reading VA 0x685, size 1
+	Translate 0x685, read: phys addr = 0x685
+	value read = 00000061
+Reading VA 0x686, size 1
+	Translate 0x686, read: phys addr = 0x686
+	value read = 0000006c
+Reading VA 0x687, size 1
+	Translate 0x687, read: phys addr = 0x687
+	value read = 00000074
+Reading VA 0x688, size 1
+	Translate 0x688, read: phys addr = 0x688
+	value read = 00000000
+../test/halt
+Initializing address space, num pages 12, size 1536
+Initializing code segment, at 0xf00, size 128
+Initializing code segment, at 0xf80, size 128
+Initializing code segment, at 0x1000, size 128
+Initializing code segment, at 0x1080, size 128
+Initializing code segment, at 0x1100, size 128
+Initializing code segment, at 0x1180, size 128
+Initializing code segment, at 0x1200, size 128
+Initializing code segment, at 0x1280, size 128
+Initializing code segment, at 0x1300, size 128
+Initializing code segment, at 0x1380, size 128
+Initializing code segment, at 0x1400, size 128
+Initializing code segment, at 0x1480, size 128
+Adding stack...
+pc = 0
+Reading VA 0x38, size 4
+	Translate 0x38, read: phys addr = 0x38
+	value read = 03e00008
+Reading VA 0x3c, size 4
+	Translate 0x3c, read: phys addr = 0x3c
+	value read = 00000000
+Reading VA 0x380, size 4
+	Translate 0x380, read: phys addr = 0x380
+	value read = 03c0e821
+Reading VA 0x384, size 4
+	Translate 0x384, read: phys addr = 0x384
+	value read = 8fbf0014
+Reading VA 0xaec, size 4
+	Translate 0xaec, read: phys addr = 0xaec
+	value read = 00000008
+Reading VA 0x388, size 4
+	Translate 0x388, read: phys addr = 0x388
+	value read = 8fbe0010
+Reading VA 0xae8, size 4
+	Translate 0xae8, read: phys addr = 0xae8
+	value read = 00000000
+Reading VA 0x38c, size 4
+	Translate 0x38c, read: phys addr = 0x38c
+	value read = 03e00008
+Reading VA 0x390, size 4
+	Translate 0x390, read: phys addr = 0x390
+	value read = 27bd0018
+Reading VA 0x8, size 4
+	Translate 0x8, read: phys addr = 0x8
+	value read = 0c000008
+Reading VA 0xc, size 4
+	Translate 0xc, read: phys addr = 0xc
+	value read = 00002021
+Reading VA 0x20, size 4
+	Translate 0x20, read: phys addr = 0x20
+	value read = 24020001
+Reading VA 0x24, size 4
+	Translate 0x24, read: phys addr = 0x24
+	value read = 0000000c
+Exit Syscall.
+Initializing stack register to 12f0
+Reading VA 0x190, size 4
+	Translate 0x190, read: phys addr = 0x190
+	value read = 27bdffe8
+Reading VA 0x194, size 4
+	Translate 0x194, read: phys addr = 0x194
+	value read = afbf0014
+Writing VA 0xeec, size 4, value 0x0
+	Translate 0xeec, write: phys addr = 0xeec
+Reading VA 0x198, size 4
+	Translate 0x198, read: phys addr = 0x198
+	value read = afbe0010
+Writing VA 0xee8, size 4, value 0x0
+	Translate 0xee8, write: phys addr = 0xee8
+Reading VA 0x19c, size 4
+	Translate 0x19c, read: phys addr = 0x19c
+	value read = 03a0f021
+Reading VA 0x1a0, size 4
+	Translate 0x1a0, read: phys addr = 0x1a0
+	value read = 3c040000
+Reading VA 0x1a4, size 4
+	Translate 0x1a4, read: phys addr = 0x1a4
+	value read = 248403a0
+Reading VA 0x1a8, size 4
+	Translate 0x1a8, read: phys addr = 0x1a8
+	value read = 24050010
+Reading VA 0x1ac, size 4
+	Translate 0x1ac, read: phys addr = 0x1ac
+	value read = 3c06000f
+Reading VA 0x1b0, size 4
+	Translate 0x1b0, read: phys addr = 0x1b0
+	value read = 0c000058
+Reading VA 0x1b4, size 4
+	Translate 0x1b4, read: phys addr = 0x1b4
+	value read = 34c64a13
+Reading VA 0x160, size 4
+	Translate 0x160, read: phys addr = 0x160
+	value read = 2402001f
+Reading VA 0x164, size 4
+	Translate 0x164, read: phys addr = 0x164
+	value read = 0000000c
+Printf1 syscall.
+Reading VA 0x3a0, size 1
+	Translate 0x3a0, read: phys addr = 0x3a0
+	value read = 00000031
+Reading VA 0x3a1, size 1
+	Translate 0x3a1, read: phys addr = 0x3a1
+	value read = 0000003a
+Reading VA 0x3a2, size 1
+	Translate 0x3a2, read: phys addr = 0x3a2
+	value read = 00000025
+Reading VA 0x3a3, size 1
+	Translate 0x3a3, read: phys addr = 0x3a3
+	value read = 00000064
+Reading VA 0x3a4, size 1
+	Translate 0x3a4, read: phys addr = 0x3a4
+	value read = 0000002c
+Reading VA 0x3a5, size 1
+	Translate 0x3a5, read: phys addr = 0x3a5
+	value read = 00000032
+Reading VA 0x3a6, size 1
+	Translate 0x3a6, read: phys addr = 0x3a6
+	value read = 0000003a
+Reading VA 0x3a7, size 1
+	Translate 0x3a7, read: phys addr = 0x3a7
+	value read = 00000025
+Reading VA 0x3a8, size 1
+	Translate 0x3a8, read: phys addr = 0x3a8
+	value read = 00000064
+Reading VA 0x3a9, size 1
+	Translate 0x3a9, read: phys addr = 0x3a9
+	value read = 0000002c
+Reading VA 0x3aa, size 1
+	Translate 0x3aa, read: phys addr = 0x3aa
+	value read = 00000033
+Reading VA 0x3ab, size 1
+	Translate 0x3ab, read: phys addr = 0x3ab
+	value read = 0000003a
+Reading VA 0x3ac, size 1
+	Translate 0x3ac, read: phys addr = 0x3ac
+	value read = 00000025
+Reading VA 0x3ad, size 1
+	Translate 0x3ad, read: phys addr = 0x3ad
+	value read = 00000064
+Reading VA 0x3ae, size 1
+	Translate 0x3ae, read: phys addr = 0x3ae
+	value read = 0000000a
+Reading VA 0x3af, size 1
+	Translate 0x3af, read: phys addr = 0x3af
+	value read = 00000000
+1:1,2:2,3:3
+Reading VA 0x168, size 4
+	Translate 0x168, read: phys addr = 0x168
+	value read = 03e00008
+Reading VA 0x16c, size 4
+	Translate 0x16c, read: phys addr = 0x16c
+	value read = 00000000
+Reading VA 0x1b8, size 4
+	Translate 0x1b8, read: phys addr = 0x1b8
+	value read = 0c000008
+Reading VA 0x1bc, size 4
+	Translate 0x1bc, read: phys addr = 0x1bc
+	value read = 00002021
+Reading VA 0x20, size 4
+	Translate 0x20, read: phys addr = 0x20
+	value read = 24020001
+Reading VA 0x24, size 4
+	Translate 0x24, read: phys addr = 0x24
+	value read = 0000000c
+Exit Syscall.
+Initializing stack register to 5f0
+Reading VA 0x0, size 4
+	Translate 0x0, read: phys addr = 0xf00
+	value read = 0c000064
+Reading VA 0x4, size 4
+	Translate 0x4, read: phys addr = 0xf04
+	value read = 00000000
+Reading VA 0x190, size 4
+	Translate 0x190, read: phys addr = 0x1090
+	value read = 27bdffe8
+Reading VA 0x194, size 4
+	Translate 0x194, read: phys addr = 0x1094
+	value read = afbf0014
+Writing VA 0x12ec, size 4, value 0x8
+	Translate 0x12ec, write: virtual page # 4844 too large for page table size 12!
+Unexpected user mode exception - which:5  type:0
+Machine halting!
+
+Ticks: total 262, idle 0, system 210, user 52
+Disk I/O: reads 0, writes 0
+Console I/O: reads 0, writes 0
+Paging: faults 0
+Network I/O: packets received 0, sent 0
+
+Cleaning up...

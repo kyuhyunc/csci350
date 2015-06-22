@@ -35,7 +35,7 @@ extern Machine* machine;	// user program memory and registers
 #include "synch.h"
 extern Lock* memlock;		// prevent race condition b/c memory is shared among processes
 #include "bitmap.h"
-extern BitMap* bitmap;		// keeps track of pages in pageTable
+extern BitMap* memMap;		// keeps track of pages in pageTable
 #include "table.h"
 #define NumLocks	1000
 #define NumCVs		1000

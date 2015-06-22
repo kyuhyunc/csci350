@@ -232,10 +232,10 @@ void Close_Syscall(int fd) {
 }
 
 void kernel_fork(int pc) {
-//printf("In kernel_fork with currentThread=%s\n", currentThread->getName());
 	currentThread->space->InitRegisters();
 	machine->WriteRegister(PCReg, pc);
 	machine->WriteRegister(NextPCReg, pc+4);
+	machine->WriteRegister(StackReg, currentThread->stackreg);
 
 	currentThread->space->RestoreState();
 
@@ -243,27 +243,84 @@ void kernel_fork(int pc) {
 }
 
 void Fork_Syscall(int pc) {
-	// validate data
-//printf("In Fork_Syscall with currentThread=%s, pc=%d\n", currentThread->getName(), pc);
+	// The Fork Syscall takes in a user program's function pointer,
+	// creates a new Thread, allocates 8 pages in physical memory
+	// for the Thread's stack.
+	
+	// *** update process table for multiprogramming part
 
-	// if null, print error
+	// Verifies that the user program passes in a non-NULL pointer
+	if (pc == 0) {
+		printf("Error: cannot pass in NULL pointer to Fork\n");
+	}
 
-	// retrieve program counter
-
-	// allocate memory
-	// create 8 extra pages for new thread's stack
-	// copy over all old data
-	currentThread->space->AddStack(); // calls AddrSpace's private function as a friend
-
-	// update process table for multiprogramming part
-
-
-	// actual implementation
+	// Creates new Thread
 	Thread* t = new Thread("kernel_forker");
+	memlock->Acquire();
+		// Allocates 8 pages to Thread's stack in physical memory
+		t->stackreg = currentThread->space->AddStack(); // calls AddrSpace's private function as a friend
+	memlock->Release();
+	// Thread of same process shares address space
 	t->space = currentThread->space; // all threads of same process has same AddrSpace
 	t->Fork((VoidFunctionPtr)kernel_fork, pc);
 
+}
 
+void kernel_exec(int pc) {
+	currentThread->space->InitRegisters();
+//	machine->WriteRegister(PCReg, pc);
+//	machine->WriteRegister(NextPCReg, pc+4);
+//	machine->WriteRegister(StackReg, currentThread->stackreg);
+
+	currentThread->space->RestoreState();
+
+	machine->Run();
+}
+
+void Exec_Syscall(unsigned int vaddr, int len) {
+	// read in char*
+	char* filename;
+
+	if (!(filename = new char[len])) {
+		printf("Error allocating kernel buffer for Exec!\n");
+		return;
+	}
+	else {
+		if (copyin(vaddr, len, filename) == -1) {
+			printf("Bad pointer passed to write: data not written\n");
+			delete [] filename;
+			return;
+		}
+	}
+
+//printf("%s\n", filename);
+
+	// read in file
+	OpenFile* executable = fileSystem->Open(filename);
+	AddrSpace* space;
+
+	if (executable == NULL) {
+		printf("Unable to open file %s\n", filename);
+		return;
+	}
+
+	// make new addrspace and new thread and fork
+	space = new AddrSpace(executable);
+	Thread* t = new Thread("new_exec");
+	t->space = space;
+	memlock->Acquire();
+		t->stackreg = currentThread->space->AddStack();
+	memlock->Release();
+
+//	int pc = t->space->pageTable[0].physicalPage * PageSize;
+//	int pc = 0;
+//printf("pc = %x\n", pc);
+
+//	t->Fork((VoidFunctionPtr)kernel_exec, pc);
+	t->Fork((VoidFunctionPtr)kernel_exec, 0);
+
+	delete executable;
+	delete [] filename;
 }
 
 void Exit_Syscall(int status) {
@@ -321,7 +378,7 @@ void Printf0_Syscall(unsigned int vaddr, int len) {
 	char* buf;
 	
 	if (!(buf = new char[len])) {
-		printf("Error allocating kernel buffer for write!\n");
+		printf("Error allocating kernel buffer for Printf0!\n");
 		return;
 	}
 	else {
@@ -341,13 +398,13 @@ void Printf1_Syscall(unsigned int vaddr, int len, int num1) {
 	// Supposed to work similarly to a standard C printf function
 	// First check to see if allocation is possible
 	// Second check validity of pointer
-	// Printf1 has one additional argument
+	// Printf1 has one additional argument and can support up to 3 numbers
 	// Last, print out the statement
 	
 	char* buf;
 	
 	if (!(buf = new char[len])) {
-		printf("Error allocating kernel buffer for write!\n");
+		printf("Error allocating kernel buffer for Printf1!\n");
 		return;
 	}
 	else {
@@ -357,9 +414,18 @@ void Printf1_Syscall(unsigned int vaddr, int len, int num1) {
 			return;
 		}
 	}
-
-//printf(buf);
-	printf(buf, num1);
+	
+	// Printf1 can support up to 3 numbers less than 1000 decimal
+	// By using decimal shifts of up to 1000
+	if (num1 / 1000000 > 0) { // 3 numbers
+		printf(buf, num1/1000000, (num1%1000000)/1000, (num1%1000));
+	}
+	else if (num1 / 1000 > 0) { // 2 numbers
+		printf(buf, num1/1000, num1%1000);
+	}
+	else { // 1 number
+		printf(buf, num1);
+	}
 
 	delete [] buf;
 }
@@ -368,13 +434,13 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
 	// Supposed to work similarly to a standard C printf function
 	// First check to see if allocation is possible
 	// Second check validity of pointer
-	// Printf2 has two additional arguments
+	// Printf2 has two additional arguments and can support up to 6 numbers
 	// Last, print out the statement
 	
 	char* buf;
 	
 	if (!(buf = new char[len])) {
-		printf("Error allocating kernel buffer for write!\n");
+		printf("Error allocating kernel buffer for Printf2!\n");
 		return;
 	}
 	else {
@@ -385,32 +451,24 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
 		}
 	}
 
-//printf(buf);
-	printf(buf, num1, num2);
+	// Printf2 can support up to 6 numbers less than 1000 decimal
+	// By using decimal shifts of up to 1000
+	// Printf2 assumes you are using more than 3 numbers
+	if (num2 / 1000000 > 0) { // 6 numbers
+		printf(buf, num1/1000000, (num1%1000000)/1000, (num1%1000),
+					num2/1000000, (num2%1000000)/1000, (num2%1000));
+	}
+	else if (num2 / 1000 > 0) { // 5 numbers
+		printf(buf, num1/1000000, (num1%1000000)/1000, (num1%1000),
+					num2/1000, num1%1000);
+	}
+	else { // 4 numbers
+		printf(buf, num1/1000000, (num1%1000000)/1000, (num1%1000),
+					num2);
+	}
 
 	delete [] buf;
 }
-
-/*void Printf_Syscall(int buffer, int num1, int num2, int num3) {
-	char* buf = (char*) buffer;
-	printf(buf);
-	if (buf == NULL || num1 == NULL || num2 == NULL || num3 == NULL) {
-		printf("Illegal operation: cannot pass a NULL pointer into Printf\n");
-	}
-
-	if (num1 == -1 && num2 == -1 && num3 == -1) { // no arguments
-		printf(buf);
-	}
-	else if (num2 == -1 && num3 == -1) { // one arg
-		printf(buf, num1);
-	}
-	else if (num3 == -1) { // two args
-		printf(buf, num1, num2);
-	}
-	else { // three args
-		printf(buf, num1, num2, num3);
-	}
-}*/
 
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
@@ -455,6 +513,10 @@ void ExceptionHandler(ExceptionType which) {
 			case SC_Fork:
 				DEBUG('a', "Fork syscall.\n");
 				Fork_Syscall(machine->ReadRegister(4));
+				break;
+			case SC_Exec:
+				DEBUG('a', "Exec syscall\n");
+				Exec_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
 			case SC_Yield:
 				DEBUG('a', "Yield syscall.\n");

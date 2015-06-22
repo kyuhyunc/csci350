@@ -44,7 +44,10 @@ class AddrSpace {
 					// address space
 	
 	friend void Fork_Syscall(int pc);
-	void AddStack(); // called by Fork_Syscall
+	friend void Exec_Syscall(unsigned int vaddr, int size);
+	int AddStack(); // called by Fork_Syscall
+					// returns the stack register's address
+					// prevents race condition of multiple forks
 };
 
 #endif // ADDRSPACE_H

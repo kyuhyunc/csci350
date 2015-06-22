@@ -126,6 +126,12 @@ class Thread {
     void SaveUserState();		// save user-level register state
     void RestoreUserState();		// restore user-level register state
 
+	int pid;	// process id
+	int index;	// thread index
+	int stackreg; // set as new pages are being allocated
+					// later to be used by kernel_fork to properly set stack
+					// to prevent race condition
+
     AddrSpace *space;			// User code this thread is running.
 #endif
 };

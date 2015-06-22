@@ -11,12 +11,14 @@
  */
 
 #include "syscall.h"
-int a[3];
-int b, c;
+/*int a[3];
+int b, c;*/
 
 int
 main()
 {
-    Halt();
+	Printf0("Entering halt\n", sizeof("Entering halt\n"));
+/*    Halt();*/
+	Exit(0);
     /* not reached */
 }

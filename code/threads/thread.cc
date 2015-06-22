@@ -40,6 +40,9 @@ Thread::Thread(char* threadName)
     status = JUST_CREATED;
 #ifdef USER_PROGRAM
     space = NULL;
+	pid = -1;
+	index = -1;
+	stackreg = -1;
 #endif
 }
 

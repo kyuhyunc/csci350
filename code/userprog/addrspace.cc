@@ -146,34 +146,35 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
 					numPages, size);
 // first, set up the translation 
-    pageTable = new TranslationEntry[numPages];
-    for (i = 0; i < numPages; i++) {
-		pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-		pageTable[i].physicalPage = i;
-		pageTable[i].valid = TRUE;
-		pageTable[i].use = FALSE;
-		pageTable[i].dirty = FALSE;
-		pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
-						// a separate page, we could set its 
-						// pages to be read-only
-    }
-    
-// zero out the entire address space, to zero the unitialized data segment 
-// and the stack segment
-//	memlock->Acquire();
-//    bzero(machine->mainMemory, size);
+	memlock->Acquire();
+		pageTable = new TranslationEntry[numPages];
+		for (i = 0; i < numPages; i++) {
+			pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+			pageTable[i].physicalPage = memMap->Find();
+//printf("pageTable[%d]=%d\n", i, pageTable[i].physicalPage);
+			pageTable[i].valid = TRUE;
+			pageTable[i].use = FALSE;
+			pageTable[i].dirty = FALSE;
+			pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
+							// a separate page, we could set its 
+							// pages to be read-only
+		}
+		
+	// zero out the entire address space, to zero the unitialized data segment 
+	// and the stack segment
+	//    bzero(machine->mainMemory, size);
 
-// then, copy in the code and data segments into memory
+	// then, copy in the code and data segments into memory
 
 
-	for (i=0; i < numPages; i++) {
-        DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
-			noffH.code.virtualAddr, noffH.code.size);
-		executable->ReadAt(&(machine->mainMemory[i*PageSize]),
-			PageSize,
-			noffH.code.inFileAddr + i*PageSize);
-	}
-//	memlock->Release();
+		for (i=0; i < numPages; i++) {
+			DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
+				pageTable[i].physicalPage*PageSize, PageSize);
+			executable->ReadAt(
+				&(machine->mainMemory[pageTable[i].physicalPage * PageSize]),
+				PageSize, noffH.code.inFileAddr + i*PageSize);
+		}
+	memlock->Release();
 
 /*
     if (noffH.code.size > 0) {
@@ -261,8 +262,9 @@ void AddrSpace::RestoreState()
     machine->pageTableSize = numPages;
 }
 
-void AddrSpace::AddStack()
+int AddrSpace::AddStack()
 {
+//printf("Adding stack...\n");
 	// keep track of old page table
 	// make a new one with 8 extra pages
 	// copy all old pages to new pages
@@ -286,7 +288,8 @@ void AddrSpace::AddStack()
 	for (i; i < numPages; i++) {
 //printf("i=%d\n", i);
 		pageTable[i].virtualPage = i;
-		pageTable[i].physicalPage = i;
+		pageTable[i].physicalPage = memMap->Find();
+//printf("pageTable[%d]=%d\n", i, pageTable[i].physicalPage);
 		pageTable[i].valid = TRUE;
 		pageTable[i].use = FALSE;
 		pageTable[i].dirty = FALSE;
@@ -296,4 +299,6 @@ void AddrSpace::AddStack()
 	machine->pageTable = pageTable;
 
 	delete oldPT;
+	return (numPages * PageSize - 16); // set stackreg of the new thread
+							// to prevent race condition in case of context switching
 }
