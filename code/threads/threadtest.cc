@@ -718,7 +718,6 @@ public:
         _state = BUSY;
         _passCount = 0;
         _rtnPassSize = 0;
-        _currentPassenger = NULL;
 
         char* myname;
         myname = new char[20];
@@ -1202,12 +1201,13 @@ void CheckInStaff::Start()
 		ExecLock->Acquire();
 		if (_lineSize == 0 && myairline->_execLineSize == 0) {
 			_state = ONBREAK;
-		      _currentPassenger = NULL;
+		    _currentPassenger = NULL;
             myairline->_airlineLock->Acquire();
             myairline->_numOnBreakCIS++;
 			GlobalLock->Release();
 			ExecLock->Release();
             myairline->_airlineLock->Release();
+
 			_commCV->Wait(_lock); // wait for manager to wake me up
 
             // if there are no more passengers, cis can exit and be done!
@@ -1267,9 +1267,9 @@ void CheckInStaff::Start()
 		GlobalLock->Release();
 		ExecLock->Release();
 
-        if (_lineSize > 0 || _currentPassenger != NULL) { // If there's someone in line OR I have an executive passenger...
+        //if (_lineSize > 0 || _currentPassenger != NULL) { // If there's someone in line OR I have an executive passenger...
             _commCV->Wait(_lock); // wait for passenger to hand over bags and ticket
-        }
+        //}
 
 		// if serving any passenger
 		if (_currentPassenger != NULL) {
@@ -1406,24 +1406,9 @@ void SecurityInspector::Start()
         if (_rtnPassSize == 0) {
             _state = AVAIL;
             _commCV->Wait(_lock);
+        }
+        if (_rtnPassSize == 0) { // nobody returned from further questions
             _state = BUSY;
-        }
-        if (_rtnPassSize > 0) {
-            Passenger *temp = _currentPassenger;   
-
-            while (_rtnPassSize > 0) {
-                _rtnPassCV->Signal(_lock);
-                _rtnPassCV->Wait(_lock); // currentPassenger will get updated...
-                printf("Security inspector %s permits returning passenger %s to board\n", getName(), _currentPassenger->getName());
-
-                _passCount++;
-                --_rtnPassSize;
-                _rtnPassCV->Signal(_lock);
-            }
-            
-            _currentPassenger = temp;
-        }
-        if (_rtnPassSize == 0 && _currentPassenger != NULL) { // nobody returned from further questions
             bool result = rand() % 10 > 7;
             //bool result = true;
             bool guilty = result || securityCloud->_officerResults[_currentPassenger->_id];
@@ -1443,7 +1428,18 @@ void SecurityInspector::Start()
             }
             _newPassCV->Signal(_lock);
         }
-        _currentPassenger = NULL;
+        else {
+            while (_rtnPassSize > 0) {
+                _state = BUSY;
+                _rtnPassCV->Signal(_lock);
+                _rtnPassCV->Wait(_lock); // currentPassenger will get updated...
+                printf("Security inspector %s permits returning passenger %s to board\n", getName(), _currentPassenger->getName());
+
+                _passCount++;
+                --_rtnPassSize;
+                _rtnPassCV->Signal(_lock);
+            }
+        }
         _lock->Release();
     }
 }
