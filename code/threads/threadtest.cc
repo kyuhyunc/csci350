@@ -1131,7 +1131,7 @@ void Passenger::Start()
     airLock->Release();
 
     #undef airline
-
+    #undef airLock
 
     // wait in boarding lounge until boarding announcement
 }
