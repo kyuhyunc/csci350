@@ -135,7 +135,7 @@ void Lock::Acquire() {
 	else {
 		// add myself to queue and put myself to sleep
     //if (strcmp(currentThread->getName(), "manager"))
-        //std::cout << "ACQUIRE: "<< currentThread->getName() << " is trying to acquire the lock [" << name << "] " << "but it's owned by " << owner->getName() << std::endl;
+        std::cout << "ACQUIRE: "<< currentThread->getName() << " is trying to acquire the lock [" << name << "] " << "but it's owned by " << owner->getName() << std::endl;
 		waitQueue->Append((void *)currentThread);
 		currentThread->Sleep();
 	}
