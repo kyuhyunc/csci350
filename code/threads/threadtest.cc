@@ -496,7 +496,7 @@ public:
     }
     int getWeightBaggages() {
         int weight=0;
-        for (int i=0; i<_baggages.size(); i++) {
+        for (unsigned int i=0; i<_baggages.size(); i++) {
             weight += (_baggages.at(i))->_weight;
         }
         return weight;
