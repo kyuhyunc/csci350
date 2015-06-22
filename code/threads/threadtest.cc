@@ -1471,6 +1471,7 @@ void Manager::Start()
                 airLock->Acquire();
                 if (airlines[i]->_numExpectedPassengers == airlines[i]->_numCheckedinPassengers) {
                     if (airlines[i]->_numOnBreakCIS == NUM_CIS_PER_AIRLINE) { 
+                        airLock->Release();
                         numDoneCIS++;
                         for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
                             CisLock->Acquire(); // should be able to acquire, as CIS must be on break
@@ -1481,9 +1482,11 @@ void Manager::Start()
                         airlines[i]->_CISclosed = true;
                     }
                     else { // not all CIS are on break
+                        airLock->Release();
                     }
                 }
                 else { // THERE ARE STILL PASSENGERS TO SERVE
+                    airLock->Release();
                     for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
                         GlobalLock->Acquire();
                         ExecLock->Acquire();
@@ -1496,7 +1499,6 @@ void Manager::Start()
                         GlobalLock->Release();
                     }
                 }
-                airLock->Release();
             }
             else { // airlines[i]->_CISclosed == TRUE. Already closed down
                 // ALREADY SHUTDOWN CIS
