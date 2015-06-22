@@ -718,6 +718,7 @@ public:
         _state = BUSY;
         _passCount = 0;
         _rtnPassSize = 0;
+        _currentPassenger = NULL;
 
         char* myname;
         myname = new char[20];
@@ -1407,9 +1408,24 @@ void SecurityInspector::Start()
         if (_rtnPassSize == 0) {
             _state = AVAIL;
             _commCV->Wait(_lock);
-        }
-        if (_rtnPassSize == 0) { // nobody returned from further questions
             _state = BUSY;
+        }
+        if (_rtnPassSize > 0) {
+            Passenger *temp = _currentPassenger;   
+
+            while (_rtnPassSize > 0) {
+                _rtnPassCV->Signal(_lock);
+                _rtnPassCV->Wait(_lock); // currentPassenger will get updated...
+                printf("Security inspector %s permits returning passenger %s to board\n", getName(), _currentPassenger->getName());
+
+                _passCount++;
+                --_rtnPassSize;
+                _rtnPassCV->Signal(_lock);
+            }
+            
+            _currentPassenger = temp;
+        }
+        if (_rtnPassSize == 0 && _currentPassenger != NULL) { // nobody returned from further questions
             bool result = rand() % 10 > 7;
             //bool result = true;
             bool guilty = result || securityCloud->_officerResults[_currentPassenger->_id];
@@ -1429,18 +1445,7 @@ void SecurityInspector::Start()
             }
             _newPassCV->Signal(_lock);
         }
-        else {
-            while (_rtnPassSize > 0) {
-                _state = BUSY;
-                _rtnPassCV->Signal(_lock);
-                _rtnPassCV->Wait(_lock); // currentPassenger will get updated...
-                printf("Security inspector %s permits returning passenger %s to board\n", getName(), _currentPassenger->getName());
-
-                _passCount++;
-                --_rtnPassSize;
-                _rtnPassCV->Signal(_lock);
-            }
-        }
+        _currentPassenger = NULL;
         _lock->Release();
     }
 }
