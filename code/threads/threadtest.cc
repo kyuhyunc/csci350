@@ -1289,6 +1289,7 @@ void CheckInStaff::Start()
 
 				printf("Airline check-in staff %s of airline %i dropped bags to the conveyor system \n", getName(), _airline);
                 airlines[_airline]->_numExpectedBaggages++;
+                _weightCount += _currentPassenger->_baggages.at(i)->_weight;
             }
             ConveyorLock->Release();
 
