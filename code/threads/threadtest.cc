@@ -497,7 +497,7 @@ public:
     int getWeightBaggages() {
         int weight=0;
         for (int i=0; i<_baggages.size(); i++) {
-            weight += _baggages.at(i)->_weight;
+            weight += (_baggages.at(i))->_weight;
         }
         return weight;
     }
@@ -1132,6 +1132,7 @@ void Passenger::Start()
 
     #undef airline
 
+
     // wait in boarding lounge until boarding announcement
 }
 
@@ -1638,7 +1639,7 @@ void Manager::Start()
                 for (int j = 0; j < NUM_LIASONS; ++j) {
                     bag_cnt_liaison += liaisons[j]->_bagCount[i];
                 }
-                printf("From airport liaison: Baggage count of airline %d = %d\n", i, ); 
+                printf("From airport liaison: Baggage count of airline %d = %d\n", i, bag_cnt_liaison); 
             }
            
             for (int i = 0; i < NUM_AIRLINES; ++i) {
@@ -1646,7 +1647,7 @@ void Manager::Start()
                 for (int j = 0; j < NUM_CARGO_HANDLERS; ++j) {
                     bag_cnt_cargo += cargohandlers[j]->_bagCount[i];
                 }
-                printf("From cargo handlers: Baggage count of airline %d = %d\n", i, );           
+                printf("From cargo handlers: Baggage count of airline %d = %d\n", i, bag_cnt_cargo);           
             }
             
             for (int i = 0; i < NUM_AIRLINES; ++i) {
