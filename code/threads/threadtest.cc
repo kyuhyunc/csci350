@@ -426,15 +426,9 @@ ThreadTest()
 #include <time.h>
 #include <vector>
 
-/*
-#define NUM_PASSENGERS 20
-#define NUM_LIASONS 7
-#define NUM_AIRLINES 3
-#define NUM_CIS_PER_AIRLINE 5
-#define NUM_CARGO_HANDLERS 10
-#define NUM_SCREENING_OFFICERS 5 // what num?
-#define NUM_SECURITY_INSPECTORS 5 // what num?
-*/
+//-----------------------
+// Data
+//-----------------------
 
 int NUM_PASSENGERS;
 int NUM_LIASONS;
@@ -444,6 +438,35 @@ int NUM_CARGO_HANDLERS;
 int NUM_SCREENING_OFFICERS;
 int NUM_SECURITY_INSPECTORS;
 
+Passenger** passengers;
+Liaison** liaisons;
+CargoHandler** cargohandlers;
+ScreeningOfficer** screeningofficers;
+SecurityInspector** securityinspectors;
+Manager* manager;
+
+Airline** airlines;
+
+Lock* LiaisonGlobalLineLock;
+Lock* CisGlobalLineLock;
+
+// Screening Officer
+Lock* officersLineLock;
+Condition* officersLineCV;
+List* officersLine;
+
+// Conveyor Globals
+List* ConveyorBelt;
+Lock* ConveyorLock;
+Condition* ConveyorCV;
+int CargoHandlerState = BUSY;
+
+// Security
+SecurityData* securityCloud;
+
+// Security Inspector
+Lock* inspectorsLineLock;
+List* inspectors;
 enum State {
     AVAIL,
     BUSY,
@@ -873,50 +896,6 @@ private:
 friend class ScreeningOfficer;
 friend class SecurityInspector;
 };
-
-//-----------------------
-// Data
-//-----------------------
-
-/*
-Passenger* passengers[NUM_PASSENGERS];
-Liaison* liaisons[NUM_LIASONS];
-// Cis*
-CargoHandler* cargohandlers[NUM_CARGO_HANDLERS];
-ScreeningOfficer* screeningofficers[NUM_SCREENING_OFFICERS];
-SecurityInspector* securityinspectors[NUM_SECURITY_INSPECTORS];
-Manager* manager;
-*/
-Passenger** passengers;
-Liaison** liaisons;
-CargoHandler** cargohandlers;
-ScreeningOfficer** screeningofficers;
-SecurityInspector** securityinspectors;
-Manager* manager;
-
-
-Airline** airlines;
-
-Lock* LiaisonGlobalLineLock;
-Lock* CisGlobalLineLock;
-
-// Screening Officer
-Lock* officersLineLock;
-Condition* officersLineCV;
-List* officersLine;
-
-// Conveyor Globals
-List* ConveyorBelt;
-Lock* ConveyorLock;
-Condition* ConveyorCV;
-int CargoHandlerState = BUSY;
-
-// Security
-SecurityData* securityCloud;
-
-// Security Inspector
-Lock* inspectorsLineLock;
-List* inspectors;
 
 Semaphore t1("t1",0);
 Semaphore t4_1("t4_1",0);
