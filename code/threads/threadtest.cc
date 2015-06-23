@@ -1158,29 +1158,22 @@ std::cout << getName() << " is about to wait on " << myCis->getName() << std::en
 
 void Liaison::Start()
 {
-std::cout << getName() << " is starting" << std::endl;
     while (true) {
         LiaisonGlobalLineLock->Acquire();
         _lock->Acquire();
         if (_lineSize == 0) {
             LiaisonGlobalLineLock->Release();
             _state = AVAIL;
-std::cout << getName() << " is going to SLEEP, nighty night" << std::endl;
             _commCV->Wait(_lock);
-std::cout << getName() << " woke up " << std::endl;
             //for testing purposes(TEST2), in order to complete testing simulation first so that we can analyze the result at the end  
             if(semaBool == true) {
                 t1.V();
             }
         }
         else {
-std::cout << getName() << " sees someone in line " << std::endl;
             _lineCV->Signal(LiaisonGlobalLineLock);
-std::cout << getName() << " signaled liason global line lock " << std::endl;
             LiaisonGlobalLineLock->Release();
-std::cout << getName() << " about to wait " << std::endl;
             _commCV->Wait(_lock);
-std::cout << getName() << " woke up from WAIT" << std::endl;
             //for testing purposes(TEST2), in order to complete testing simulation first so that we can analyze the result at the end  
             if(semaBool == true) {
                 t1.V();
