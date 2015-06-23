@@ -1207,7 +1207,9 @@ void CheckInStaff::Start()
             if (_done) {
                 // _lock->Release();
                 printf("Airline check-in staff %s is closing the counter\n", getName());
-                return; 
+                _commCV->Wait(_lock);
+                std::cout << "        ********        ERROR! SHOULD NOT HAVE WOKEN UP AGAIN! WTF!!!!" << std::endl;
+                // return; 
             }
             // GlobalLock->Acquire();
             // ExecLock->Acquire();
