@@ -1481,7 +1481,6 @@ void Manager::Start()
                 airLock->Acquire();
                 if (airlines[i]->_numExpectedPassengers == airlines[i]->_numCheckedinPassengers) {
                     if (airlines[i]->_numOnBreakCIS == NUM_CIS_PER_AIRLINE) { 
-std::cout << "1: " << i << std::endl;
                         airLock->Release();
                         numDoneCIS++;
                         for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
@@ -1493,12 +1492,10 @@ std::cout << "1: " << i << std::endl;
                         airlines[i]->_CISclosed = true;
                     }
                     else { // not all CIS are on break
-std::cout << "NOT ALL CIS ON BREAK at " << i << std::endl;                        
                         airLock->Release();
                     }
                 }
                 else { // THERE ARE STILL PASSENGERS TO SERVE
-std::cout << "2: " << i << std::endl;
                     airLock->Release();
                     for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
                         GlobalLock->Acquire();
@@ -1523,7 +1520,7 @@ std::cout << "2: " << i << std::endl;
             _cisDone = true;
         } else {
             _cisDone = false;
-std::cout << "_cisDone: " << _cisDone << ", numDoneCIS:" << numDoneCIS << std::endl;
+// std::cout << "_cisDone: " << _cisDone << ", numDoneCIS:" << numDoneCIS << std::endl;
         }
       } // end !_cisDone if statement
 
@@ -1699,6 +1696,7 @@ std::cout << "_numLoadedBaggages: " << airlines[i]->_numLoadedBaggages << " _num
                     weight_cnt_cargo += cargohandlers[j]->_weightCount[i];
                 }
                 printf("From cargo handlers: Baggage weight of airline %d = %d\n", i, weight_cnt_cargo); 
+            printf("================================================\n");
             }
 
             return;
