@@ -260,7 +260,7 @@ void Condition::Signal(Lock* conditionLock) {
 	Thread* t = (Thread*) waitQueue->Remove();
 	scheduler->ReadyToRun(t); // wake up sleepy thread
 
-std::cout << currentThread->getName() << " signalled " << t->getName() << std::endl;
+// std::cout << currentThread->getName() << " signalled " << t->getName() << std::endl;
 
 	// if after waking up this thread there are none left,
 	// release the lock

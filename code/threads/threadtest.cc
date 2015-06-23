@@ -1157,7 +1157,9 @@ void Liaison::Start()
     while (true) {
         LiaisonGlobalLineLock->Acquire();
         _lock->Acquire();
+std::cout << getName() << " acquired both locks" << std::endl;
         if (_lineSize == 0) {
+std::cout << getName() << " is waiting for a passenger" << std::endl;
             LiaisonGlobalLineLock->Release();
             _state = AVAIL;
             _commCV->Wait(_lock);
@@ -1167,6 +1169,7 @@ void Liaison::Start()
             }
         }
         else {
+std::cout << getName() << " is moving on to the next passenger" << std::endl;
             _lineCV->Signal(LiaisonGlobalLineLock);
             LiaisonGlobalLineLock->Release();
             _commCV->Wait(_lock);
@@ -1202,7 +1205,6 @@ void CheckInStaff::Start()
             myairline->_airlineLock->Release();
             _lock->Acquire();
 			_commCV->Wait(_lock); // wait for manager to wake me up
-            _lock->Release();
             // if there are no more passengers, cis can exit and be done!
             if (_done) {
                 // _lock->Release();
@@ -1217,6 +1219,8 @@ void CheckInStaff::Start()
             myairline->_airlineLock->Acquire();
             myairline->_numOnBreakCIS--;
             myairline->_airlineLock->Release();
+            
+            // _lock->Release();
         }
 
         _state = BUSY;
@@ -1235,7 +1239,7 @@ void CheckInStaff::Start()
 
 			printf("Airline check-in staff %s of airline %i serves an executive class passenger and economy line length = %i\n", getName(), _airline, _lineSize);
 
-            _lock->Acquire();
+            // _lock->Acquire();
 			myairline->_execLineCV->Signal(ExecLock);
 
             //Testing 4. To wait all executive passengers are processes and to see what happends right after that.
@@ -1256,7 +1260,7 @@ void CheckInStaff::Start()
 
 			printf("Airline check-in staff %s of airline %i serves an economy class passenger and executive class line length = %i\n", getName(), _airline, myairline->_execLineSize);
 
-            _lock->Acquire();
+            // _lock->Acquire();
 			_lineCV->Signal(GlobalLock);
 
         //for testing purposes(TEST2), in order to complete testing simulation first so that we can analyze the result at the end  
@@ -1420,7 +1424,7 @@ void SecurityInspector::Start()
                 printf("Security inspector %s permits returning passenger %s to board\n", getName(), _currentPassenger->getName());
 
                 _passCount++;
-                --_rtnPassSize;
+                _rtnPassSize--;
                 _rtnPassCV->Signal(_lock);
             }
             
