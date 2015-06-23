@@ -1046,14 +1046,15 @@ std::cout << getName() << " updated the liasison's info" << std::endl;
 
         myCis->_lineSize++;
         myCis->_lineCV->Wait(GlobalLock);
-        myCis->_lineSize--;
     }
 
     // Moving along to talk to CIS
     CisLock->Acquire();
     if (_myticket._executive) {
+        // airlines[_myticket._airline]->_execLineSize--;
         ExecLock->Release();
     } else {
+        myCis->_lineSize--;
         GlobalLock->Release();
     }
 
@@ -1247,8 +1248,9 @@ void CheckInStaff::Start()
             std::cout << getName() << ": " << "    >>>>    3" << std::endl;
 
 			Passenger* p = (Passenger*) myairline->_execQueue->Remove();
-			myairline->_execLineSize--;
 			p->myLine = _cisNum;
+            myairline->_execLineSize--;
+            _currentPassenger = p;
 
             //incremeting total number of passenger!
             _PassengerNumber++;
@@ -1332,16 +1334,16 @@ std::cout << getName() << " is waiting... " << std::endl;
 
 			_commCV->Signal(_lock); // Release passenger to board gate
 			_commCV->Wait(_lock);
+std::cout << getName() << " is about to release the lock" << std::endl;            
 			_lock->Release();
 
-            _currentPassenger = NULL;
         }
         else {
-            printf("Manager woke me up because there were executive passengers, by the time my sleepy ass woke up, other CIS helped all executive passengers.\n");
+            printf("Manager woke %s up because there were executive passengers, by the time my sleepy ass woke up, other CIS helped all executive passengers.\n", getName());
         }   
 
         std::cout << getName() << ": " << "    >>>>    7" << std::endl;
-
+        _currentPassenger = NULL;
     }
 #undef myairline
 #undef ExecLock

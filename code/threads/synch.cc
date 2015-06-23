@@ -151,7 +151,7 @@ void Lock::Release() {
 	// checks if I'm not the lock owner
 	// a non-lock owner cannot release a lock they don't own...
 	if (!isHeldByCurrentThread()) {
-		printf("Error in Lock::Release -- only lock owners can release locks...\n");
+		printf("Error in Lock %s::Release -- only lock owners can release locks...\n", getName());
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
