@@ -1696,8 +1696,8 @@ std::cout << "_numLoadedBaggages: " << airlines[i]->_numLoadedBaggages << " _num
                     weight_cnt_cargo += cargohandlers[j]->_weightCount[i];
                 }
                 printf("From cargo handlers: Baggage weight of airline %d = %d\n", i, weight_cnt_cargo); 
-            printf("================================================\n");
             }
+            printf("================================================\n");
 
             return;
         } // end _cisDone if/else statement
