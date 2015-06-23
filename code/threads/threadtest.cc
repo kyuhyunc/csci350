@@ -1295,17 +1295,13 @@ void CheckInStaff::Start()
 
 
         if (_lineSize > 0 || _currentPassenger != NULL) { // If there's someone in line OR I have an executive passenger...
-// std::cout << getName() << " is waiting... " << std::endl;
-//             _commCV->Wait(_lock); // wait for passenger to hand over bags and ticket
+std::cout << getName() << " is waiting... " << std::endl;
+            _commCV->Wait(_lock); // wait for passenger to hand over bags and ticket
         }
 
 		// if serving any passenger
 		if (_currentPassenger != NULL) {
-
-std::cout << getName() << " is waiting... " << std::endl;
-            _commCV->Wait(_lock); // wait for passenger to hand over bags and ticket
-            
-            // std::cout << getName() << ": " << "    >>>>    6" << std::endl;
+            std::cout << getName() << ": " << "    >>>>    6" << std::endl;
 
 			// give passenger boarding pass, seat number
             myairline->_airlineLock->Acquire();
