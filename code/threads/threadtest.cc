@@ -1060,11 +1060,7 @@ std::cout << getName() << " updated the liasison's info" << std::endl;
 
     // give baggage + ticket to cis
     myCis->updatePassengerInfo(this);
-
-std::cout << getName() << " updated info to " << myCis->getName() << std::endl;
-
     myCis->_commCV->Signal(CisLock);
-std::cout << getName() << " is about to wait on " << myCis->getName() << std::endl;
     myCis->_commCV->Wait(CisLock); // wait for cis for boarding pass
 
     // receives boarding pass with seat number
@@ -1196,14 +1192,6 @@ void CheckInStaff::Start()
 #define GlobalLock airlines[_airline]->_CisGlobalLineLock
 // CHECK-IN-STAFF
 	while (true) {
-        std::cout << getName() << ": " << "    >>>>    TOP OF THE WHILE" << std::endl;
-
-        // _lock->Acquire();
-  //       GlobalLock->Acquire();
-		// ExecLock->Acquire();
-
-        std::cout << getName() << ": " << "    >>>>    1" << std::endl;
-
 		if (_lineSize == 0 && myairline->_execLineSize == 0) {
 			_state = ONBREAK;
 		    _currentPassenger = NULL;
@@ -1229,17 +1217,12 @@ void CheckInStaff::Start()
             myairline->_airlineLock->Release();
         }
 
-        std::cout << getName() << ": " << "    >>>>    2" << std::endl;
-
         _state = BUSY;
 
         GlobalLock->Acquire();
         ExecLock->Acquire();
 		// serving an executive passenger
 		if (myairline->_execLineSize > 0) {
-
-            std::cout << getName() << ": " << "    >>>>    3" << std::endl;
-
 			Passenger* p = (Passenger*) myairline->_execQueue->Remove();
 			p->myLine = _cisNum;
             myairline->_execLineSize--;
@@ -1260,8 +1243,6 @@ void CheckInStaff::Start()
 		}
 		// serving an economy passenger
 		else if (_lineSize > 0) {
-
-        std::cout << getName() << ": " << "    >>>>    4" << std::endl;
 
         //stop point so that test 4 simulation can stop! and simulate at this point
             if(stopSIM4) {
@@ -1285,19 +1266,13 @@ void CheckInStaff::Start()
 
 		GlobalLock->Release();
 		ExecLock->Release();
-    
-        std::cout << getName() << ": " << "    >>>>    5" << std::endl;
-
 
         if (_lineSize > 0 || _currentPassenger != NULL) { // If there's someone in line OR I have an executive passenger...
-std::cout << getName() << " is waiting... " << std::endl;
             _commCV->Wait(_lock); // wait for passenger to hand over bags and ticket
         }
 
 		// if serving any passenger
 		if (_currentPassenger != NULL) {
-            std::cout << getName() << ": " << "    >>>>    6" << std::endl;
-
 			// give passenger boarding pass, seat number
             myairline->_airlineLock->Acquire();
             _currentPassenger->_myticket._seat = myairline->_numCheckedinPassengers;
@@ -1327,7 +1302,6 @@ std::cout << getName() << " is waiting... " << std::endl;
 
 			_commCV->Signal(_lock); // Release passenger to board gate
 			_commCV->Wait(_lock);
-std::cout << getName() << " is about to release the lock" << std::endl;            
 			_lock->Release();
 
         }
@@ -1335,7 +1309,6 @@ std::cout << getName() << " is about to release the lock" << std::endl;
             printf("Manager woke %s up because there were executive passengers, by the time my sleepy ass woke up, other CIS helped all executive passengers.\n", getName());
         }   
 
-        std::cout << getName() << ": " << "    >>>>    7" << std::endl;
         _currentPassenger = NULL;
     }
 #undef myairline
