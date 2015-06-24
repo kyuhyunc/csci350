@@ -719,6 +719,7 @@ public:
         _passCount = 0;
         _rtnPassSize = 0;
         _currentPassenger = NULL;
+        newPassenger = false;
 
         char* myname;
         myname = new char[20];
@@ -746,9 +747,11 @@ public:
     Condition* _commCV;
     Condition* _rtnPassCV;
     Condition* _newPassCV;
-    Passenger* _currentPassenger;
+    Passenger* _rtnPassenger;
+    Passenger* _newPassenger;   
     
     int _passCount;
+    
 private:
 
 };
@@ -1107,9 +1110,10 @@ std::cout << getName() << " updated the liasison's info" << std::endl;
     inspector->_lock->Acquire();
     officer->_lock->Release();
 #undef officer 
-
-    inspector->_currentPassenger = (Passenger*)currentThread;
-    inspector->_commCV->Signal(inspector->_lock); // initial alert to officer
+    
+    inspector->_newPassenger = (Passenger*)currentThread;
+    if (inspector->_state == AVAIL)
+        inspector->_commCV->Signal(inspector->_lock); // initial alert to officer
     inspector->_newPassCV->Wait(inspector->_lock); // wait for security results
     if (_furtherQuestioning) {
         printf("Passenger %s goes for futher questioning\n", getName());
@@ -1126,7 +1130,7 @@ std::cout << getName() << " updated the liasison's info" << std::endl;
             inspector->_commCV->Signal(inspector->_lock);        
         }
         inspector->_rtnPassCV->Wait(inspector->_lock); // wait to be released by inspector
-        inspector->_currentPassenger = (Passenger*)currentThread;
+        inspector->_rtnPassenger = (Passenger*)currentThread;
         inspector->_rtnPassCV->Signal(inspector->_lock);
         inspector->_rtnPassCV->Wait(inspector->_lock);
     }
@@ -1409,47 +1413,45 @@ void SecurityInspector::Start()
 {
     while (true) {
         _lock->Acquire();
-        if (_rtnPassSize == 0) {
+        if (_rtnPassSize == 0 && _newPassenger == NULL) {
+            //ASSERT(_rtnPassenger == NULL);
             _state = AVAIL;
             _commCV->Wait(_lock);
             _state = BUSY;
         }
         if (_rtnPassSize > 0) {
-            Passenger *temp = _currentPassenger;   
-
             while (_rtnPassSize > 0) {
                 _rtnPassCV->Signal(_lock);
                 _rtnPassCV->Wait(_lock); // currentPassenger will get updated...
-                printf("Security inspector %s permits returning passenger %s to board\n", getName(), _currentPassenger->getName());
+                printf("Security inspector %s permits returning passenger %s to board\n", getName(), _rtnPassenger->getName());
 
                 _passCount++;
                 _rtnPassSize--;
                 _rtnPassCV->Signal(_lock);
             }
-            
-            _currentPassenger = temp;
+            _rtnPassenger = NULL;
         }
-        if (_rtnPassSize == 0 && _currentPassenger != NULL) { // nobody returned from further questions
+        if (_newPassenger != NULL) { // nobody returned from further questions
             bool result = rand() % 10 > 7;
             //bool result = true;
-            bool guilty = result || securityCloud->_officerResults[_currentPassenger->_id];
+            bool guilty = result || securityCloud->_officerResults[_newPassenger->_id];
             // securityCloud->_officerResults[_currentPassenger->_id] = result;
             // "direct" the passenger to the security inspector
             if (result) {
-                printf("Security Inspector %s is suspicious of the hand luggage of passenger %s\n", getName(), _currentPassenger->getName());
+                printf("Security Inspector %s is suspicious of the hand luggage of passenger %s\n", getName(), _newPassenger->getName());
             } else {
-                printf("Security Inspector %s is not suspicious of the hand luggage of passenger %s\n", getName(), _currentPassenger->getName());
+                printf("Security Inspector %s is not suspicious of the hand luggage of passenger %s\n", getName(), _newPassenger->getName());
             }
             if (guilty) {
                 _currentPassenger->_furtherQuestioning = true;
-                printf("Security inspector %s asks passenger %s to go for further examination\n", getName(), _currentPassenger->getName());
+                printf("Security inspector %s asks passenger %s to go for further examination\n", getName(), _newPassenger->getName());
             } else {
-                printf("Security inspector %s allows passenger %s to board \n", getName(), _currentPassenger->getName());
+                printf("Security inspector %s allows passenger %s to board \n", getName(), _newPassenger->getName());
                 _passCount++;
             }
+            _newPassenger = NULL;
             _newPassCV->Signal(_lock);
         }
-        _currentPassenger = NULL;
         _lock->Release();
     }
 }
