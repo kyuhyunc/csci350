@@ -254,6 +254,9 @@ void Fork_Syscall(int pc) {
   kernelProcess* kp;
   for (int i=0; i < NumProcesses; i++) {
     kp = (kernelProcess*) processTable->Get(i);
+	if (kp == NULL) {
+		continue;
+	}
     if (kp->adds == currentThread->space) {
       PID = i;
       break;
