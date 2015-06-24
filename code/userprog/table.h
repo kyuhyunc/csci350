@@ -20,7 +20,8 @@ class Table {
     void *Get(int);
     int Put(void *);
     void *Remove(int);
-};
 
+	int NumUsed();
+};
 
 #endif // TABLE_H

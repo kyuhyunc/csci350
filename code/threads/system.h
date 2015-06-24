@@ -58,13 +58,34 @@ extern Table* cvtable;
     	bool isToBeDeleted;
     };
 
-extern Table* processtable;
+extern Lock* processLock;
 
 	struct kernelProcess {
-		int PID;
+		kernelProcess() {
+			adds = currentThread->space;
+			threadCount = 1;
+			locks = new bool[NumLocks];
+			for (int i=0; i < NumLocks; i++) {
+				locks[i] = false;
+			}
+			cvs = new bool[NumCVs];
+			for (int i=0; i < NumCVs; i++) {
+				cvs[i] = false;
+			}
+		}
+		~kernelProcess() {
+			delete [] locks;
+			delete [] cvs;
+		}
+
 		AddrSpace * adds;
 		int threadCount;
+
+		bool* locks;
+		bool* cvs;
 	};
+
+extern Table* processTable;
 
 #endif
 

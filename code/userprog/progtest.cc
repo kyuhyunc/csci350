@@ -42,6 +42,17 @@ StartProcess(char *filename)
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register
 
+	// add starting process to processtable
+	kernelProcess* kp = new kernelProcess();
+	processLock->Acquire();
+	kp->adds = space;
+	processLock->Release();
+	int index = processTable->Put((void*)kp);
+	if (index == -1) { // if no space in processtable
+		printf("No more room in the processtable (StartProcess)\n");
+		return;
+	}
+
     machine->Run();			// jump to the user progam
     ASSERT(FALSE);			// machine->Run never returns;
 					// the address space exits

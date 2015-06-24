@@ -35,7 +35,8 @@ BitMap* memMap;
 Table* locktable;
 Table* cvtable;
 
-Table* processtable;
+Table* processTable;
+Lock* processLock;
 #endif
 
 #ifdef NETWORK
@@ -162,7 +163,8 @@ Initialize(int argc, char **argv)
 	locktable = new Table(NumLocks);
 	cvtable = new Table(NumCVs);
 
-	processtable = new Table(NumProcesses);
+	processTable = new Table(NumProcesses);
+	processLock = new Lock("ProcessLock");
 #endif
 
 #ifdef FILESYS

@@ -147,7 +147,9 @@ main.o: ../threads/main.cc ../threads/copyright.h ../threads/utility.h \
   ../filesys/openfile.h ../threads/scheduler.h ../threads/list.h \
   ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
   ../machine/timer.h ../threads/synch.h ../userprog/bitmap.h \
-  ../userprog/table.h ../filesys/filesys.h
+  ../userprog/table.h ../userprog/addrspace.cc ../threads/system.h \
+  ../userprog/addrspace.h ../bin/noff.h ../threads/synch.h \
+  ../filesys/filesys.h
 list.o: ../threads/list.cc ../threads/copyright.h ../threads/list.h \
   ../threads/utility.h ../threads/bool.h ../machine/sysdep.h \
   ../threads/copyright.h \
@@ -292,7 +294,8 @@ scheduler.o: ../threads/scheduler.cc ../threads/copyright.h \
   ../filesys/openfile.h ../threads/system.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
   ../threads/synch.h ../userprog/bitmap.h ../userprog/table.h \
-  ../filesys/filesys.h
+  ../userprog/addrspace.cc ../threads/system.h ../userprog/addrspace.h \
+  ../bin/noff.h ../threads/synch.h ../filesys/filesys.h
 synch.o: ../threads/synch.cc ../threads/copyright.h ../threads/synch.h \
   ../threads/thread.h ../threads/utility.h ../threads/bool.h \
   ../machine/sysdep.h ../threads/copyright.h \
@@ -413,7 +416,9 @@ synch.o: ../threads/synch.cc ../threads/copyright.h ../threads/synch.h \
   ../filesys/openfile.h ../threads/list.h ../threads/system.h \
   ../threads/scheduler.h ../machine/interrupt.h ../threads/list.h \
   ../machine/stats.h ../machine/timer.h ../userprog/bitmap.h \
-  ../userprog/table.h ../filesys/filesys.h
+  ../userprog/table.h ../userprog/addrspace.cc ../threads/system.h \
+  ../userprog/addrspace.h ../bin/noff.h ../threads/synch.h \
+  ../filesys/filesys.h
 synchlist.o: ../threads/synchlist.cc ../threads/copyright.h \
   ../threads/synchlist.h ../threads/list.h ../threads/utility.h \
   ../threads/bool.h ../machine/sysdep.h ../threads/copyright.h \
@@ -654,7 +659,9 @@ system.o: ../threads/system.cc ../threads/copyright.h ../threads/system.h \
   ../filesys/openfile.h ../threads/scheduler.h ../threads/list.h \
   ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
   ../machine/timer.h ../threads/synch.h ../userprog/bitmap.h \
-  ../userprog/table.h ../filesys/filesys.h
+  ../userprog/table.h ../userprog/addrspace.cc ../threads/system.h \
+  ../userprog/addrspace.h ../bin/noff.h ../threads/synch.h \
+  ../filesys/filesys.h
 thread.o: ../threads/thread.cc ../threads/copyright.h ../threads/thread.h \
   ../threads/utility.h ../threads/bool.h ../machine/sysdep.h \
   ../threads/copyright.h \
@@ -776,7 +783,8 @@ thread.o: ../threads/thread.cc ../threads/copyright.h ../threads/thread.h \
   ../threads/list.h ../threads/system.h ../threads/scheduler.h \
   ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
   ../machine/timer.h ../userprog/bitmap.h ../userprog/table.h \
-  ../filesys/filesys.h
+  ../userprog/addrspace.cc ../threads/system.h ../userprog/addrspace.h \
+  ../bin/noff.h ../threads/synch.h ../filesys/filesys.h
 utility.o: ../threads/utility.cc ../threads/copyright.h \
   ../threads/utility.h ../threads/bool.h ../machine/sysdep.h \
   ../threads/copyright.h \
@@ -921,7 +929,9 @@ threadtest.o: ../threads/threadtest.cc ../threads/copyright.h \
   ../filesys/openfile.h ../threads/scheduler.h ../threads/list.h \
   ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
   ../machine/timer.h ../threads/synch.h ../userprog/bitmap.h \
-  ../userprog/table.h ../filesys/filesys.h \
+  ../userprog/table.h ../userprog/addrspace.cc ../threads/system.h \
+  ../userprog/addrspace.h ../bin/noff.h ../threads/synch.h \
+  ../filesys/filesys.h \
   /usr/sfw/lib/gcc/sparc-sun-solaris2.10/3.4.3/../../../../include/c++/3.4.3/vector \
   /usr/sfw/lib/gcc/sparc-sun-solaris2.10/3.4.3/../../../../include/c++/3.4.3/bits/stl_vector.h \
   /usr/sfw/lib/gcc/sparc-sun-solaris2.10/3.4.3/../../../../include/c++/3.4.3/bits/stl_bvector.h \
@@ -1048,7 +1058,9 @@ interrupt.o: ../machine/interrupt.cc \
   ../threads/utility.h ../filesys/openfile.h ../threads/scheduler.h \
   ../threads/list.h ../machine/interrupt.h ../machine/stats.h \
   ../machine/timer.h ../threads/synch.h ../userprog/bitmap.h \
-  ../userprog/table.h ../filesys/filesys.h
+  ../userprog/table.h ../userprog/addrspace.cc ../threads/system.h \
+  ../userprog/addrspace.h ../bin/noff.h ../threads/synch.h \
+  ../filesys/filesys.h
 sysdep.o: ../machine/sysdep.cc ../threads/copyright.h \
   /usr/include/stdlib.h /usr/include/iso/stdlib_iso.h \
   /usr/include/sys/feature_tests.h /usr/include/sys/ccompile.h \
@@ -1189,7 +1201,8 @@ sysdep.o: ../machine/sysdep.cc ../threads/copyright.h \
   ../filesys/openfile.h ../threads/scheduler.h ../threads/list.h \
   ../machine/interrupt.h ../machine/stats.h ../machine/timer.h \
   ../threads/synch.h ../userprog/bitmap.h ../userprog/table.h \
-  ../filesys/filesys.h
+  ../userprog/addrspace.cc ../threads/system.h ../userprog/addrspace.h \
+  ../bin/noff.h ../threads/synch.h ../filesys/filesys.h
 stats.o: ../machine/stats.cc \
   /usr/sfw/lib/gcc/sparc-sun-solaris2.10/3.4.3/include/stdio.h \
   /usr/include/stdarg.h /usr/include/iso/stdarg_iso.h \
@@ -1425,7 +1438,8 @@ timer.o: ../machine/timer.cc ../threads/copyright.h ../machine/timer.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
   ../threads/synch.h ../userprog/bitmap.h ../userprog/table.h \
-  ../filesys/filesys.h
+  ../userprog/addrspace.cc ../threads/system.h ../userprog/addrspace.h \
+  ../bin/noff.h ../threads/synch.h ../filesys/filesys.h
 addrspace.o: ../userprog/addrspace.cc ../threads/copyright.h \
   ../threads/system.h ../threads/copyright.h ../threads/utility.h \
   ../threads/bool.h ../machine/sysdep.h ../threads/copyright.h \
@@ -1547,8 +1561,8 @@ addrspace.o: ../userprog/addrspace.cc ../threads/copyright.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
   ../threads/synch.h ../userprog/bitmap.h ../userprog/table.h \
-  ../filesys/filesys.h ../userprog/addrspace.h ../bin/noff.h \
-  ../threads/synch.h
+  ../userprog/addrspace.cc ../userprog/addrspace.h ../bin/noff.h \
+  ../threads/synch.h ../filesys/filesys.h
 bitmap.o: ../userprog/bitmap.cc ../threads/copyright.h \
   ../userprog/bitmap.h ../threads/utility.h ../threads/copyright.h \
   ../threads/bool.h ../machine/sysdep.h ../threads/copyright.h \
@@ -1694,7 +1708,8 @@ exception.o: ../userprog/exception.cc ../threads/copyright.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
   ../threads/synch.h ../userprog/bitmap.h ../userprog/table.h \
-  ../filesys/filesys.h ../userprog/syscall.h \
+  ../userprog/addrspace.cc ../userprog/addrspace.h ../bin/noff.h \
+  ../threads/synch.h ../filesys/filesys.h ../userprog/syscall.h \
   ../userprog/../threads/copyright.h
 progtest.o: ../userprog/progtest.cc ../threads/copyright.h \
   ../threads/system.h ../threads/copyright.h ../threads/utility.h \
@@ -1817,8 +1832,8 @@ progtest.o: ../userprog/progtest.cc ../threads/copyright.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
   ../threads/synch.h ../userprog/bitmap.h ../userprog/table.h \
-  ../filesys/filesys.h ../machine/console.h ../userprog/addrspace.h \
-  ../threads/synch.h
+  ../userprog/addrspace.cc ../userprog/addrspace.h ../bin/noff.h \
+  ../threads/synch.h ../filesys/filesys.h ../machine/console.h
 console.o: ../machine/console.cc ../threads/copyright.h \
   ../machine/console.h ../threads/utility.h ../threads/copyright.h \
   ../threads/bool.h ../machine/sysdep.h \
@@ -1940,7 +1955,8 @@ console.o: ../machine/console.cc ../threads/copyright.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
   ../threads/synch.h ../userprog/bitmap.h ../userprog/table.h \
-  ../filesys/filesys.h
+  ../userprog/addrspace.cc ../threads/system.h ../userprog/addrspace.h \
+  ../bin/noff.h ../threads/synch.h ../filesys/filesys.h
 machine.o: ../machine/machine.cc ../threads/copyright.h \
   ../machine/machine.h \
   /usr/sfw/lib/gcc/sparc-sun-solaris2.10/3.4.3/include/stdio.h \
@@ -2063,7 +2079,9 @@ machine.o: ../machine/machine.cc ../threads/copyright.h \
   ../threads/utility.h ../filesys/openfile.h ../threads/scheduler.h \
   ../threads/list.h ../machine/interrupt.h ../threads/list.h \
   ../machine/stats.h ../machine/timer.h ../threads/synch.h \
-  ../userprog/bitmap.h ../userprog/table.h ../filesys/filesys.h
+  ../userprog/bitmap.h ../userprog/table.h ../userprog/addrspace.cc \
+  ../threads/system.h ../userprog/addrspace.h ../bin/noff.h \
+  ../threads/synch.h ../filesys/filesys.h
 mipssim.o: ../machine/mipssim.cc ../threads/copyright.h \
   ../machine/machine.h \
   /usr/sfw/lib/gcc/sparc-sun-solaris2.10/3.4.3/include/stdio.h \
@@ -2187,7 +2205,8 @@ mipssim.o: ../machine/mipssim.cc ../threads/copyright.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
   ../threads/synch.h ../userprog/bitmap.h ../userprog/table.h \
-  ../filesys/filesys.h
+  ../userprog/addrspace.cc ../threads/system.h ../userprog/addrspace.h \
+  ../bin/noff.h ../threads/synch.h ../filesys/filesys.h
 translate.o: ../machine/translate.cc ../threads/copyright.h \
   ../machine/machine.h \
   /usr/sfw/lib/gcc/sparc-sun-solaris2.10/3.4.3/include/stdio.h \
@@ -2311,7 +2330,8 @@ translate.o: ../machine/translate.cc ../threads/copyright.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
   ../threads/synch.h ../userprog/bitmap.h ../userprog/table.h \
-  ../filesys/filesys.h
+  ../userprog/addrspace.cc ../threads/system.h ../userprog/addrspace.h \
+  ../bin/noff.h ../threads/synch.h ../filesys/filesys.h
 # DEPENDENCIES MUST END AT END OF FILE
 # IF YOU PUT STUFF HERE IT WILL GO AWAY
 # see make depend above

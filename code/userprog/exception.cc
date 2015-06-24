@@ -248,6 +248,24 @@ void Fork_Syscall(int pc) {
 	// for the Thread's stack.
 	
 	// *** update process table for multiprogramming part
+	// increment current process's threadCount
+	processLock->Acquire();
+	int PID = -1;
+	kernelProcess* kp;
+	for (int i=0; i < NumProcesses; i++) {
+		kp = (kernelProcess*) processTable->Get(i);
+		if (kp->adds == currentThread->space) {
+			PID = i;
+			break;
+		}
+	}
+	if (PID == -1) {
+		printf("Error: invalid process identifier (Fork_Syscall)\n");
+		processLock->Release();
+		return;
+	}
+	kp->threadCount++;
+	processLock->Release();
 
 	// Verifies that the user program passes in a non-NULL pointer
 	if (pc == 0) {
@@ -312,11 +330,17 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 		t->stackreg = currentThread->space->AddStack();
 	memlock->Release();
 
-//	int pc = t->space->pageTable[0].physicalPage * PageSize;
-//	int pc = 0;
-//printf("pc = %x\n", pc);
+	// add process to processTable
+	kernelProcess* kp = new kernelProcess();
+	processLock->Acquire();
+	kp->adds = space;
+	processLock->Release();
+	int index = processTable->Put((void*)kp);
+	if (index == -1) { // if no space in processtable
+		printf("No more room in the processtable for %s\n", filename);
+		return;
+	}
 
-//	t->Fork((VoidFunctionPtr)kernel_exec, pc);
 	t->Fork((VoidFunctionPtr)kernel_exec, 0);
 
 	delete executable;
@@ -324,21 +348,96 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 }
 
 void Exit_Syscall(int status) {
+	processLock->Acquire();
+
+		// check if this is the last process
+		bool lastProcess = false;
+		if (processTable->NumUsed() == 1) {
+			lastProcess = true;
+		}
+
+		// find the current process
+		int PID = -1;
+		kernelProcess* kp;
+		for (int i=0; i < NumProcesses; i++) {
+			kp = (kernelProcess*) processTable->Get(i);
+			if (kp == NULL) {
+				continue;
+			}
+			if (kp->adds == currentThread->space) {
+				PID = i;
+				break;
+			}
+		}
+		if (PID == -1) {
+			printf("Error: invalid process identifier (Fork_Syscall)\n");
+			processLock->Release();
+			return;
+		}
+
+		/*	Case 1: last executing thread in last process
+			completely stop nachos
+			interrupt->Halt();
+		*/
+		if (lastProcess && kp->threadCount == 1) {
+			// reclaim all pages
+
+			// reclaim all locks
+
+			// reclaim cvs
+			
+			// delete process
+			processTable->Remove(PID);
+			delete kp;
+
+			processLock->Release();
+
+			// delete all globally instantiated variables
+			delete memlock;
+			delete memMap;
+			delete locktable;
+			delete cvtable;
+			delete processTable;
+			delete processLock;
+
+			// terminate program
+			interrupt->Halt();
+		}
+
+		/*	Case 2: thread in process but not last thread
+			reclaim 8 stack pages
+		*/
+		else if (kp->threadCount > 1) {
+			// reclaim pages
+
+			// decrement
+			kp->threadCount--;
+		}
+
+		/*	Case 3: last thread in process but not last process
+			reclaim all memory not reclaimed
+			reclaim all locks and cvs
+		*/
+		else if (!lastProcess && kp->threadCount == 1) {
+			// reclaim pages
+
+			// reclaim locks
+
+			// reclaim cvs
+
+			// delete process
+			processTable->Remove(PID);
+			delete kp;
+		}
+
+		else {
+			printf("Some other case not accounted for in Exit_Syscall.. go back and debug!\n");
+		}
+
+	processLock->Release();
+
 	currentThread->Finish();
 
-	/*	Case 1: last executing thread in last process
-		completely stop nachos
-		interrupt->Halt();
-	*/
-
-	/*	Case 2: thread in process but not last thread
-		reclaim 8 stack pages
-	*/
-
-	/*	Case 3: last thread in process but not last process
-		reclaim all memory not reclaimed
-		reclaim all locks and cvs
-	*/
 }
 
 void Yield_Syscall() {

@@ -42,7 +42,9 @@ int main() {
 	Fork(e);*/
 
 /*	Printf0("About to call Exec...\n", sizeof("About to call Exec...\n"));*/
-/*	Fork(test_print);*/
+	Fork(test_print);
 	Fork(newpf);
 	Exec("../test/halt", sizeof("../test/halt"));
+
+	Exit(0);
 }

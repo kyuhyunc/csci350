@@ -78,6 +78,32 @@ void *Table::Remove(int i) {
     return f;
 }
 
+/*class ProcessTable : Table {
+	ProcessTable(int s) : Table(s) { }
+public:
+	int GetProcessIndex(AddrSpace* as);
+	int NumUsed();
+}
+
+
+int ProcessTable::GetProcessIndex(AddrSpace* as) {
+	// Finds the process index associated with the addrspace pointer
+	// If no match is found, returns -1
+
+	kernelProcess* kp;
+	for (int i=0; i < size; i++) {
+		kp = (kernelProcess*) Get(i);
+		if (kp->adds == as) {
+			return i;
+		}
+	}
+	return -1;
+}*/
+
+int Table::NumUsed() {
+	return ( size - map.NumClear() );
+}
+
 //----------------------------------------------------------------------
 // SwapHeader
 // 	Do little endian to big endian conversion on the bytes in the 
