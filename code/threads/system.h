@@ -48,6 +48,7 @@ extern Table* locktable;
     	Lock * lock;
     	AddrSpace * adds;
     	bool isToBeDeleted;
+    	int counter;
     };
 
 extern Table* cvtable;
@@ -56,6 +57,7 @@ extern Table* cvtable;
     	Condition * condition;
     	AddrSpace * adds;
     	bool isToBeDeleted;
+    	int counter;
     };
 
 extern Lock* processLock;

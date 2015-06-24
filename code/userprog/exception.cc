@@ -232,217 +232,217 @@ void Close_Syscall(int fd) {
 }
 
 void kernel_fork(int pc) {
-	currentThread->space->InitRegisters();
-	machine->WriteRegister(PCReg, pc);
-	machine->WriteRegister(NextPCReg, pc+4);
-	machine->WriteRegister(StackReg, currentThread->stackreg);
+  currentThread->space->InitRegisters();
+  machine->WriteRegister(PCReg, pc);
+  machine->WriteRegister(NextPCReg, pc+4);
+  machine->WriteRegister(StackReg, currentThread->stackreg);
 
-	currentThread->space->RestoreState();
+  currentThread->space->RestoreState();
 
-	machine->Run();
+  machine->Run();
 }
 
 void Fork_Syscall(int pc) {
-	// The Fork Syscall takes in a user program's function pointer,
-	// creates a new Thread, allocates 8 pages in physical memory
-	// for the Thread's stack.
-	
-	// *** update process table for multiprogramming part
-	// increment current process's threadCount
-	processLock->Acquire();
-	int PID = -1;
-	kernelProcess* kp;
-	for (int i=0; i < NumProcesses; i++) {
-		kp = (kernelProcess*) processTable->Get(i);
-		if (kp->adds == currentThread->space) {
-			PID = i;
-			break;
-		}
-	}
-	if (PID == -1) {
-		printf("Error: invalid process identifier (Fork_Syscall)\n");
-		processLock->Release();
-		return;
-	}
-	kp->threadCount++;
-	processLock->Release();
+  // The Fork Syscall takes in a user program's function pointer,
+  // creates a new Thread, allocates 8 pages in physical memory
+  // for the Thread's stack.
+  
+  // *** update process table for multiprogramming part
+  // increment current process's threadCount
+  processLock->Acquire();
+  int PID = -1;
+  kernelProcess* kp;
+  for (int i=0; i < NumProcesses; i++) {
+    kp = (kernelProcess*) processTable->Get(i);
+    if (kp->adds == currentThread->space) {
+      PID = i;
+      break;
+    }
+  }
+  if (PID == -1) {
+    printf("Error: invalid process identifier (Fork_Syscall)\n");
+    processLock->Release();
+    return;
+  }
+  kp->threadCount++;
+  processLock->Release();
 
-	// Verifies that the user program passes in a non-NULL pointer
-	if (pc == 0) {
-		printf("Error: cannot pass in NULL pointer to Fork\n");
-	}
+  // Verifies that the user program passes in a non-NULL pointer
+  if (pc == 0) {
+    printf("Error: cannot pass in NULL pointer to Fork\n");
+  }
 
-	// Creates new Thread
-	Thread* t = new Thread("kernel_forker");
-	memlock->Acquire();
-		// Allocates 8 pages to Thread's stack in physical memory
-		t->stackreg = currentThread->space->AddStack(); // calls AddrSpace's private function as a friend
-	memlock->Release();
-	// Thread of same process shares address space
-	t->space = currentThread->space; // all threads of same process has same AddrSpace
-	t->Fork((VoidFunctionPtr)kernel_fork, pc);
+  // Creates new Thread
+  Thread* t = new Thread("kernel_forker");
+  memlock->Acquire();
+    // Allocates 8 pages to Thread's stack in physical memory
+    t->stackreg = currentThread->space->AddStack(); // calls AddrSpace's private function as a friend
+  memlock->Release();
+  // Thread of same process shares address space
+  t->space = currentThread->space; // all threads of same process has same AddrSpace
+  t->Fork((VoidFunctionPtr)kernel_fork, pc);
 
 }
 
 void kernel_exec(int pc) {
-	currentThread->space->InitRegisters();
-//	machine->WriteRegister(PCReg, pc);
-//	machine->WriteRegister(NextPCReg, pc+4);
-//	machine->WriteRegister(StackReg, currentThread->stackreg);
+  currentThread->space->InitRegisters();
+//  machine->WriteRegister(PCReg, pc);
+//  machine->WriteRegister(NextPCReg, pc+4);
+//  machine->WriteRegister(StackReg, currentThread->stackreg);
 
-	currentThread->space->RestoreState();
+  currentThread->space->RestoreState();
 
-	machine->Run();
+  machine->Run();
 }
 
 void Exec_Syscall(unsigned int vaddr, int len) {
-	// read in char*
-	char* filename;
+  // read in char*
+  char* filename;
 
-	if (!(filename = new char[len])) {
-		printf("Error allocating kernel buffer for Exec!\n");
-		return;
-	}
-	else {
-		if (copyin(vaddr, len, filename) == -1) {
-			printf("Bad pointer passed to write: data not written\n");
-			delete [] filename;
-			return;
-		}
-	}
+  if (!(filename = new char[len])) {
+    printf("Error allocating kernel buffer for Exec!\n");
+    return;
+  }
+  else {
+    if (copyin(vaddr, len, filename) == -1) {
+      printf("Bad pointer passed to write: data not written\n");
+      delete [] filename;
+      return;
+    }
+  }
 
 //printf("%s\n", filename);
 
-	// read in file
-	OpenFile* executable = fileSystem->Open(filename);
-	AddrSpace* space;
+  // read in file
+  OpenFile* executable = fileSystem->Open(filename);
+  AddrSpace* space;
 
-	if (executable == NULL) {
-		printf("Unable to open file %s\n", filename);
-		return;
-	}
+  if (executable == NULL) {
+    printf("Unable to open file %s\n", filename);
+    return;
+  }
 
-	// make new addrspace and new thread and fork
-	space = new AddrSpace(executable);
-	Thread* t = new Thread("new_exec");
-	t->space = space;
-	memlock->Acquire();
-		t->stackreg = currentThread->space->AddStack();
-	memlock->Release();
+  // make new addrspace and new thread and fork
+  space = new AddrSpace(executable);
+  Thread* t = new Thread("new_exec");
+  t->space = space;
+  memlock->Acquire();
+    t->stackreg = currentThread->space->AddStack();
+  memlock->Release();
 
-	// add process to processTable
-	kernelProcess* kp = new kernelProcess();
-	processLock->Acquire();
-	kp->adds = space;
-	processLock->Release();
-	int index = processTable->Put((void*)kp);
-	if (index == -1) { // if no space in processtable
-		printf("No more room in the processtable for %s\n", filename);
-		return;
-	}
+  // add process to processTable
+  kernelProcess* kp = new kernelProcess();
+  processLock->Acquire();
+  kp->adds = space;
+  processLock->Release();
+  int index = processTable->Put((void*)kp);
+  if (index == -1) { // if no space in processtable
+    printf("No more room in the processtable for %s\n", filename);
+    return;
+  }
 
-	t->Fork((VoidFunctionPtr)kernel_exec, 0);
+  t->Fork((VoidFunctionPtr)kernel_exec, 0);
 
-	delete executable;
-	delete [] filename;
+  delete executable;
+  delete [] filename;
 }
 
 void Exit_Syscall(int status) {
-	processLock->Acquire();
+/*  processLock->Acquire();
 
-		// check if this is the last process
-		bool lastProcess = false;
-		if (processTable->NumUsed() == 1) {
-			lastProcess = true;
-		}
+    // check if this is the last process
+    bool lastProcess = false;
+    if (processTable->NumUsed() == 1) {
+      lastProcess = true;
+    }
 
-		// find the current process
-		int PID = -1;
-		kernelProcess* kp;
-		for (int i=0; i < NumProcesses; i++) {
-			kp = (kernelProcess*) processTable->Get(i);
-			if (kp == NULL) {
-				continue;
-			}
-			if (kp->adds == currentThread->space) {
-				PID = i;
-				break;
-			}
-		}
-		if (PID == -1) {
-			printf("Error: invalid process identifier (Fork_Syscall)\n");
-			processLock->Release();
-			return;
-		}
+    // find the current process
+    int PID = -1;
+    kernelProcess* kp;
+    for (int i=0; i < NumProcesses; i++) {
+      kp = (kernelProcess*) processTable->Get(i);
+      if (kp == NULL) {
+        continue;
+      }
+      if (kp->adds == currentThread->space) {
+        PID = i;
+        break;
+      }
+    }
+    if (PID == -1) {
+      printf("Error: invalid process identifier (Fork_Syscall)\n");
+      processLock->Release();
+      return;
+    }
+*/
+    /*  Case 1: last executing thread in last process
+      completely stop nachos
+      interrupt->Halt();
+    */
+/*    if (lastProcess && kp->threadCount == 1) {
+      // reclaim all pages
 
-		/*	Case 1: last executing thread in last process
-			completely stop nachos
-			interrupt->Halt();
-		*/
-		if (lastProcess && kp->threadCount == 1) {
-			// reclaim all pages
+      // reclaim all locks
 
-			// reclaim all locks
+      // reclaim cvs
+      
+      // delete process
+      processTable->Remove(PID);
+      delete kp;
 
-			// reclaim cvs
-			
-			// delete process
-			processTable->Remove(PID);
-			delete kp;
+      processLock->Release();
 
-			processLock->Release();
+      // delete all globally instantiated variables
+      delete memlock;
+      delete memMap;
+      delete locktable;
+      delete cvtable;
+      delete processTable;
+      delete processLock;
 
-			// delete all globally instantiated variables
-			delete memlock;
-			delete memMap;
-			delete locktable;
-			delete cvtable;
-			delete processTable;
-			delete processLock;
+      // terminate program
+      interrupt->Halt();
+    }
+*/
+    /*  Case 2: thread in process but not last thread
+      reclaim 8 stack pages
+    */
+/*    else if (kp->threadCount > 1) {
+      // reclaim pages
 
-			// terminate program
-			interrupt->Halt();
-		}
+      // decrement
+      kp->threadCount--;
+    }
+*/
+    /*  Case 3: last thread in process but not last process
+      reclaim all memory not reclaimed
+      reclaim all locks and cvs
+    */
+/*    else if (!lastProcess && kp->threadCount == 1) {
+      // reclaim pages
 
-		/*	Case 2: thread in process but not last thread
-			reclaim 8 stack pages
-		*/
-		else if (kp->threadCount > 1) {
-			// reclaim pages
+      // reclaim locks
 
-			// decrement
-			kp->threadCount--;
-		}
+      // reclaim cvs
 
-		/*	Case 3: last thread in process but not last process
-			reclaim all memory not reclaimed
-			reclaim all locks and cvs
-		*/
-		else if (!lastProcess && kp->threadCount == 1) {
-			// reclaim pages
+      // delete process
+      processTable->Remove(PID);
+      delete kp;
+    }
 
-			// reclaim locks
+    else {
+      printf("Some other case not accounted for in Exit_Syscall.. go back and debug!\n");
+    }
 
-			// reclaim cvs
-
-			// delete process
-			processTable->Remove(PID);
-			delete kp;
-		}
-
-		else {
-			printf("Some other case not accounted for in Exit_Syscall.. go back and debug!\n");
-		}
-
-	processLock->Release();
-
-	currentThread->Finish();
+  processLock->Release();
+*/
+  currentThread->Finish();
 
 }
 
 void Yield_Syscall() {
-	printf("Current thread yielded\n");
-	currentThread->Yield();
+  printf("Current thread yielded\n");
+  currentThread->Yield();
 }
 
 int CreateLock_Syscall(int vaddr, int size) {
@@ -451,29 +451,26 @@ int CreateLock_Syscall(int vaddr, int size) {
   printf("ChreaLock starts\n");
   char *buf = new char[size+1]; // Kernel buffer to put the name in
    
-    if (!buf) {
+  if (!buf) {
     printf("%s","Can't allocate kernel buffer CreateLock(CreateLock)\n");
     return -1;
-    }
+  }
 
   if(copyin(vaddr, size, buf) == -1) {
     //check if the pointer is valid one. if pointer is not valid, then return.
     printf("error: Pointer is invalid(CreateLock)\n");
     return -1;
   }
-  char * name = currentThread->getName();
-
-  if(name == buf) {
-    printf("it already exist in table. You can not create the lock(CreateLock)\n");
-    return -1;
-  }
-
+  //
+    char * name = currentThread->getName();
   //creating lock
   Lock * l = new Lock(name);
   kernelLock * kl = new kernelLock();
   kl->lock = l;
   kl->isToBeDeleted = false;
   kl->adds = currentThread->space;
+  //to check and to know when I can destroy!
+  kl->counter = 0;
 
   int index = locktable->Put((void * )kl);
   //return when you can't put lock in the table.
@@ -487,7 +484,7 @@ int CreateLock_Syscall(int vaddr, int size) {
 int DestroyLock_Syscall(int index) {
     // it returns -1 when lock can't be destroyed
     // otherwise, it returns index.
-
+    printf("DestroyLock starts\n");
     //if it is ready to be destroyed, then set the boolean value true and make the lock pointer NULL
     //it has to be checked whether the lock is already used or not AND the boolean(destroyed) is false;
     if(index > NumLocks || index < 0) {
@@ -497,7 +494,7 @@ int DestroyLock_Syscall(int index) {
 
     }
     int temp = (int)locktable->Get(index);
-    if(temp == -1) {
+    if(temp == 0) {
         //invalid index passed in. Return -1 since it can't be deleted
       printf("ERROR: there is not lock that you can destroy in table(DestoryLock)\n");
         return -1;
@@ -508,12 +505,11 @@ int DestroyLock_Syscall(int index) {
         printf("ERROR: Current thread does not hold the lock. you can't destory!(DestoryLock)\n");
         return -1;
     }
-      //To check if the lock is ready to be deleted!, if it is, then you can delete it !
-    if(((kernelLock * )locktable->Get(index))->isToBeDeleted == TRUE) {
-        ((kernelLock * )locktable->Get(index))->lock= NULL;
-        
-
-    }
+    //to set isToBeDeleted value true so that at the last release, we can check the boolean and destory it if it is ready
+    printf("Destory Lock call 1\n");
+    ((kernelLock * )locktable->Get(index))->isToBeDeleted = true;
+    printf("Destory Lock call 2 %d\n", ((kernelLock * )locktable->Get(index))->isToBeDeleted);
+    printf("Lock index in DestoryLock   : %d \n", index);
     return index;
 }
 
@@ -525,6 +521,10 @@ int Acquire_Syscall(int index) {
       //first error checking, if index can't be larger then the maximum number of lock.
       if(index > NumLocks || index < 0) {
           printf("ERROR: invalid index number was passed in.(Acquire)\n");
+          return -1;
+      }
+      if(((int)locktable->Get(index)) == 0) {
+          printf("ERROR: the lock you are trying to acquire is not in table(Acqurie)\n");
           return -1;
       }
       //if lock user try to acquire is NULL, then you can't acquire
@@ -539,6 +539,8 @@ int Acquire_Syscall(int index) {
       }
 
       ((kernelLock * )locktable->Get(index))->lock->Acquire();
+      //increment counter so that we know how many time the lock is acquired
+      ((kernelLock * )locktable->Get(index))->counter++;
       return index;
 }
 
@@ -552,6 +554,10 @@ int Release_Syscall(int index) {
           return -1;
       }
       //if lock user try to acquire is NULL, then you can't acquire
+      if(((int)locktable->Get(index)) == 0) {
+          printf("ERROR: the lock you are trying to acquire is not in table(Release)\n");
+          return -1;
+      }
       if(((kernelLock * )locktable->Get(index))->lock == NULL) {
           printf("ERROR: the lock you are trying to Release is NULL.(Release)\n");
           return -1;
@@ -563,6 +569,14 @@ int Release_Syscall(int index) {
       }
 
       ((kernelLock * )locktable->Get(index))->lock->Release();
+      ((kernelLock * )locktable->Get(index))->counter--;
+      if(((kernelLock * )locktable->Get(index))->counter == 0 && ((kernelLock * )locktable->Get(index))->isToBeDeleted == true) {
+          ((kernelLock * )locktable->Get(index))->lock == NULL;
+          printf("Lock is deleted\n");
+      }
+      printf("Lock index in release  : %d \n", index);
+      printf("Lock Counter : %d \n",((kernelLock * )locktable->Get(index))->counter);
+      printf("Lock Boolean : %d \n",((kernelLock * )locktable->Get(index))->isToBeDeleted);
       return index;
 }
 
@@ -585,17 +599,14 @@ int CreateCV_Syscall(int vaddr, int size) {
 
       char * name = currentThread->getName();
 
-      if(name == buf) {
-        printf("it already exist in table. You can not create the lock.(CreateCV)\n");
-        return -1;
-      }
-
       //creating lock
       Condition * c = new Condition(name);
       kernelCV * kc = new kernelCV();
       kc->condition = c;
       kc->isToBeDeleted = false;
       kc->adds = currentThread->space;
+      //to check and to know when I can destroy!
+      kc->counter = 0;
 
       int index = cvtable->Put((void * )kc);
       //return when you can't put lock in the table.
@@ -609,7 +620,7 @@ int CreateCV_Syscall(int vaddr, int size) {
 int DestroyCV_Syscall(int index) {
       // it returns -1 when lock can't be destroyed
     // otherwise, it returns index.
-    
+    printf("DestroyCV starts\n");
       //if it is ready to be destroyed, then set the boolean value true and make the lock pointer NULL
     //it has to be checked whether the lock is already used or not AND the boolean(destroyed) is false
     if(index > NumCVs || index < 0) {
@@ -630,10 +641,8 @@ int DestroyCV_Syscall(int index) {
         return -1;
     }
       //if the lock is being used, it can't be destoryed
-      //To check if the lock is ready to be deleted!, if it is, then you can delete it !
-    if(((kernelCV * )cvtable->Get(index))->isToBeDeleted == TRUE) {
-        ((kernelCV * )cvtable->Get(index))->condition= NULL;
-    }
+      //To check if the lock is ready to be deleted!, if it is, then you can delete it at the last wait/signal/broadcast CV
+    ((kernelCV * )cvtable->Get(index))->isToBeDeleted = TRUE;
     return index;
 }
 
@@ -650,13 +659,13 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
     //if you can not find it in the table, then return -1 and do nothing
     if(((int)locktable->Get(lockIndex)) == 0) {
         //invalid index passed in. Return -1 since it can't be deleted
-      printf("ERROR: there is not lock that you can destroy in table.(Wait)\n");
+      printf("ERROR: there is not lock that you can wait in table.(Wait)\n");
         return -1;
     }
     //if you can not find CV in the CV table, then return -1 and do nothing
     if(((int)cvtable->Get(CVIndex)) == 0) {
         //invalid index passed in. Return -1 since it can't be deleted
-      printf("ERROR: There is no conditinon you can destroy in CV table.(Wait)\n");
+      printf("ERROR: There is no conditinon you can wait in CV table.(Wait)\n");
         return -1;
     }
     //3rd check the current thread is the one that create condition in the CV table. if not, return -1 and do nothing
@@ -672,8 +681,15 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
       printf("ERROR: Current Thread did not create LOCK you are trying to wait.(Wait)\n");
       return -1;
     }
-
+    printf("before being called wait!\n");
+    //increment counter so we know how many CV is being used.
+    ((kernelCV * )cvtable->Get(CVIndex))->counter++;
     ((kernelCV * )cvtable->Get(CVIndex))->condition->Wait(((kernelLock * )locktable->Get(lockIndex))->lock);
+    //to check when we can destory lock 
+    if(((kernelCV * )cvtable->Get(CVIndex))->counter == 0 && ((kernelCV * )cvtable->Get(CVIndex))->isToBeDeleted == TRUE) {
+      ((kernelCV * )cvtable->Get(CVIndex))->condition = NULL;
+      printf("condition is deleted\n");
+    }
     return CVIndex;
 
 }
@@ -713,15 +729,23 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
       printf("ERROR: Current Thread did not create LOCK you are trying to wait.(Signal)\n");
       return -1;
     }
-
+    //increment counter so we know how many CV is being used.
+    ((kernelCV * )cvtable->Get(CVIndex))->counter++;
     ((kernelCV * )cvtable->Get(CVIndex))->condition->Signal(((kernelLock * )locktable->Get(lockIndex))->lock);
+    //to check when we can destory lock 
+    if(((kernelCV * )cvtable->Get(CVIndex))->counter == 0 && ((kernelCV * )cvtable->Get(CVIndex))->isToBeDeleted == TRUE) {
+      ((kernelCV * )cvtable->Get(CVIndex))->condition = NULL;
+      printf("Lock is deleted\n");
+    }
+
+
     return CVIndex;
 }
 
 int Broadcast_Syscall(int lockIndex, int CVIndex) {
     //if you can't call Broadcast properly, then it returns -1 so we know if there is something wrong.
     //Otherwise, it returns CV index number
-    printf("lock index %d and CVIndex %d in Broadcast\n", lockIndex, CVIndex);
+    printf("lock index %d and CVIndex %d in Broadcasts\n", lockIndex, CVIndex);
     //first you need to check if the valid index is passed in
     if(lockIndex > NumLocks || lockIndex < 0 || CVIndex > NumCVs || CVIndex < 0) {
         printf("ERROR: invalid index number was passed in.(BroadCast)\n");
@@ -754,110 +778,114 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
       return -1;
     }
 
-    ((kernelCV * )cvtable->Get(CVIndex))->condition->Broadcast(((kernelLock * )locktable->Get(lockIndex))->lock);
+    int temp = ((kernelCV * )cvtable->Get(CVIndex))->counter;
+    for(int i = 0; i < temp; i++) {
+          Signal_Syscall(lockIndex, CVIndex);
+    }
+    //((kernelCV * )cvtable->Get(CVIndex))->condition->Broadcast(((kernelLock * )locktable->Get(lockIndex))->lock);
     return CVIndex;
 }
 
 void Printf0_Syscall(unsigned int vaddr, int len) {
-	// Supposed to work similarly to a standard C printf function
-	// First check to see if allocation is possible
-	// Second check validity of pointer
-	// Printf0 has no additional arguments and is purely a char*
-	// Last, print out the statement
-	
-	char* buf;
-	
-	if (!(buf = new char[len])) {
-		printf("Error allocating kernel buffer for Printf0!\n");
-		return;
-	}
-	else {
-		if (copyin(vaddr, len, buf) == -1) {
-			printf("Bad pointer passed to write: data not written\n");
-			delete [] buf;
-			return;
-		}
-	}
+  // Supposed to work similarly to a standard C printf function
+  // First check to see if allocation is possible
+  // Second check validity of pointer
+  // Printf0 has no additional arguments and is purely a char*
+  // Last, print out the statement
+  
+  char* buf;
+  
+  if (!(buf = new char[len])) {
+    printf("Error allocating kernel buffer for Printf0!\n");
+    return;
+  }
+  else {
+    if (copyin(vaddr, len, buf) == -1) {
+      printf("Bad pointer passed to write: data not written\n");
+      delete [] buf;
+      return;
+    }
+  }
 
-	printf(buf);
+  printf(buf);
 
-	delete [] buf;
+  delete [] buf;
 }
 
 void Printf1_Syscall(unsigned int vaddr, int len, int num1) {
-	// Supposed to work similarly to a standard C printf function
-	// First check to see if allocation is possible
-	// Second check validity of pointer
-	// Printf1 has one additional argument and can support up to 3 numbers
-	// Last, print out the statement
-	
-	char* buf;
-	
-	if (!(buf = new char[len])) {
-		printf("Error allocating kernel buffer for Printf1!\n");
-		return;
-	}
-	else {
-		if (copyin(vaddr, len, buf) == -1) {
-			printf("Bad pointer passed to write: data not written\n");
-			delete [] buf;
-			return;
-		}
-	}
-	
-	// Printf1 can support up to 3 numbers less than 1000 decimal
-	// By using decimal shifts of up to 1000
-	if (num1 / 1000000 > 0) { // 3 numbers
-		printf(buf, num1/1000000, (num1%1000000)/1000, (num1%1000));
-	}
-	else if (num1 / 1000 > 0) { // 2 numbers
-		printf(buf, num1/1000, num1%1000);
-	}
-	else { // 1 number
-		printf(buf, num1);
-	}
+  // Supposed to work similarly to a standard C printf function
+  // First check to see if allocation is possible
+  // Second check validity of pointer
+  // Printf1 has one additional argument and can support up to 3 numbers
+  // Last, print out the statement
+  
+  char* buf;
+  
+  if (!(buf = new char[len])) {
+    printf("Error allocating kernel buffer for Printf1!\n");
+    return;
+  }
+  else {
+    if (copyin(vaddr, len, buf) == -1) {
+      printf("Bad pointer passed to write: data not written\n");
+      delete [] buf;
+      return;
+    }
+  }
+  
+  // Printf1 can support up to 3 numbers less than 1000 decimal
+  // By using decimal shifts of up to 1000
+  if (num1 / 1000000 > 0) { // 3 numbers
+    printf(buf, num1/1000000, (num1%1000000)/1000, (num1%1000));
+  }
+  else if (num1 / 1000 > 0) { // 2 numbers
+    printf(buf, num1/1000, num1%1000);
+  }
+  else { // 1 number
+    printf(buf, num1);
+  }
 
-	delete [] buf;
+  delete [] buf;
 }
 
 void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
-	// Supposed to work similarly to a standard C printf function
-	// First check to see if allocation is possible
-	// Second check validity of pointer
-	// Printf2 has two additional arguments and can support up to 6 numbers
-	// Last, print out the statement
-	
-	char* buf;
-	
-	if (!(buf = new char[len])) {
-		printf("Error allocating kernel buffer for Printf2!\n");
-		return;
-	}
-	else {
-		if (copyin(vaddr, len, buf) == -1) {
-			printf("Bad pointer passed to write: data not written\n");
-			delete [] buf;
-			return;
-		}
-	}
+  // Supposed to work similarly to a standard C printf function
+  // First check to see if allocation is possible
+  // Second check validity of pointer
+  // Printf2 has two additional arguments and can support up to 6 numbers
+  // Last, print out the statement
+  
+  char* buf;
+  
+  if (!(buf = new char[len])) {
+    printf("Error allocating kernel buffer for Printf2!\n");
+    return;
+  }
+  else {
+    if (copyin(vaddr, len, buf) == -1) {
+      printf("Bad pointer passed to write: data not written\n");
+      delete [] buf;
+      return;
+    }
+  }
 
-	// Printf2 can support up to 6 numbers less than 1000 decimal
-	// By using decimal shifts of up to 1000
-	// Printf2 assumes you are using more than 3 numbers
-	if (num2 / 1000000 > 0) { // 6 numbers
-		printf(buf, num1/1000000, (num1%1000000)/1000, (num1%1000),
-					num2/1000000, (num2%1000000)/1000, (num2%1000));
-	}
-	else if (num2 / 1000 > 0) { // 5 numbers
-		printf(buf, num1/1000000, (num1%1000000)/1000, (num1%1000),
-					num2/1000, num1%1000);
-	}
-	else { // 4 numbers
-		printf(buf, num1/1000000, (num1%1000000)/1000, (num1%1000),
-					num2);
-	}
+  // Printf2 can support up to 6 numbers less than 1000 decimal
+  // By using decimal shifts of up to 1000
+  // Printf2 assumes you are using more than 3 numbers
+  if (num2 / 1000000 > 0) { // 6 numbers
+    printf(buf, num1/1000000, (num1%1000000)/1000, (num1%1000),
+          num2/1000000, (num2%1000000)/1000, (num2%1000));
+  }
+  else if (num2 / 1000 > 0) { // 5 numbers
+    printf(buf, num1/1000000, (num1%1000000)/1000, (num1%1000),
+          num2/1000, num1%1000);
+  }
+  else { // 4 numbers
+    printf(buf, num1/1000000, (num1%1000000)/1000, (num1%1000),
+          num2);
+  }
 
-	delete [] buf;
+  delete [] buf;
 }
 
 void ExceptionHandler(ExceptionType which) {
@@ -865,117 +893,110 @@ void ExceptionHandler(ExceptionType which) {
     int rv=0;   // the return value from a syscall
 
     if ( which == SyscallException ) {
-		switch (type) {
-			default:
-				DEBUG('a', "Unknown syscall - shutting down.\n");
-			case SC_Halt:
-				DEBUG('a', "Shutdown, initiated by user program.\n");
-				interrupt->Halt();
-				break;
-			case SC_Exit:
-				DEBUG('a', "Exit Syscall.\n");
-				Exit_Syscall(machine->ReadRegister(4));
-				break;
-			case SC_Create:
-				DEBUG('a', "Create syscall.\n");
-				Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-				break;
-			case SC_Open:
-				DEBUG('a', "Open syscall.\n");
-				rv = Open_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-				break;
-			case SC_Write:
-				DEBUG('a', "Write syscall.\n");
-				Write_Syscall(machine->ReadRegister(4),
-						  machine->ReadRegister(5),
-						  machine->ReadRegister(6));
-				break;
-			case SC_Read:
-				DEBUG('a', "Read syscall.\n");
-				rv = Read_Syscall(machine->ReadRegister(4),
-						  machine->ReadRegister(5),
-						  machine->ReadRegister(6));
-				break;
-			case SC_Close:
-				DEBUG('a', "Close syscall.\n");
-				Close_Syscall(machine->ReadRegister(4));
-				break;
-			case SC_Fork:
-				DEBUG('a', "Fork syscall.\n");
-				Fork_Syscall(machine->ReadRegister(4));
-				break;
-			case SC_Exec:
-				DEBUG('a', "Exec syscall\n");
-				Exec_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-				break;
-			case SC_Yield:
-				DEBUG('a', "Yield syscall.\n");
-				Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-				break;
-			case SC_CreateLock:
-				DEBUG('a', "CreateLock syscall.\n");
-				CreateLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-				break;
-			case SC_DestroyLock:
-				DEBUG('a', "DestroyLock syscall.\n");
-				DestroyLock_Syscall(machine->ReadRegister(4));
-				break;
-			case SC_Acquire:
-				DEBUG('a', "Acquire syscall.\n");
-				Acquire_Syscall(machine->ReadRegister(4));
-				break;
-			case SC_Release:
-				DEBUG('a', "Release syscall.\n");
-				Release_Syscall(machine->ReadRegister(4));
-				break;
-			case SC_CreateCV:
-				DEBUG('a', "CreateCV syscall.\n");
-				CreateCV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-				break;
-			case SC_DestroyCV:
-				DEBUG('a', "DestroyCV syscall.\n");
-				DestroyCV_Syscall(machine->ReadRegister(4));
-				break;
-			case SC_Wait:
-				DEBUG('a', "Wait syscall.\n");
-				Wait_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-				break;
-			case SC_Signal:
-				DEBUG('a', "Signal syscall.\n");
-				Signal_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-				break;
-			case SC_Broadcast:
-				DEBUG('a', "Broadcast syscall.\n");
-				Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-				break;
-			case SC_Printf0:
-				DEBUG('a', "Printf0 syscall.\n");
-				Printf0_Syscall(machine->ReadRegister(4),
-							machine->ReadRegister(5));
-				break;
-			case SC_Printf1:
-				DEBUG('a', "Printf1 syscall.\n");
-				Printf1_Syscall(machine->ReadRegister(4),
-							machine->ReadRegister(5),
-							machine->ReadRegister(6));
-				break;
-			case SC_Printf2:
-				DEBUG('a', "Printf2 syscall.\n");
-				Printf2_Syscall(machine->ReadRegister(4),
-							machine->ReadRegister(5),
-							machine->ReadRegister(6),
-							machine->ReadRegister(7));
-				break;
-		}
-
-		// Put in the return value and increment the PC
-		machine->WriteRegister(2,rv);
-		machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
-		machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
-		machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
-		return;
+    switch (type) {
+      default:
+        DEBUG('a', "Unknown syscall - shutting down.\n");
+      case SC_Halt:
+        DEBUG('a', "Shutdown, initiated by user program.\n");
+        interrupt->Halt();
+        break;
+      case SC_Exit:
+        DEBUG('a', "Exit Syscall.\n");
+        Exit_Syscall(machine->ReadRegister(4));
+        break;
+      case SC_Create:
+        DEBUG('a', "Create syscall.\n");
+        Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+        break;
+      case SC_Open:
+        DEBUG('a', "Open syscall.\n");
+        rv = Open_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+        break;
+      case SC_Write:
+        DEBUG('a', "Write syscall.\n");
+        Write_Syscall(machine->ReadRegister(4),
+              machine->ReadRegister(5),
+              machine->ReadRegister(6));
+        break;
+      case SC_Read:
+        DEBUG('a', "Read syscall.\n");
+        rv = Read_Syscall(machine->ReadRegister(4),
+              machine->ReadRegister(5),
+              machine->ReadRegister(6));
+        break;
+      case SC_Close:
+        DEBUG('a', "Close syscall.\n");
+        Close_Syscall(machine->ReadRegister(4));
+        break;
+      case SC_Fork:
+        DEBUG('a', "Fork syscall.\n");
+        Fork_Syscall(machine->ReadRegister(4));
+        break;
+      case SC_Yield:
+        DEBUG('a', "Yield syscall.\n");
+        Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+        break;
+      case SC_CreateLock:
+        DEBUG('a', "CreateLock syscall.\n");
+        rv = CreateLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+        break;
+      case SC_DestroyLock:
+        DEBUG('a', "DestroyLock syscall.\n");
+        rv = DestroyLock_Syscall(machine->ReadRegister(4));
+        break;
+      case SC_Acquire:
+        DEBUG('a', "Acquire syscall.\n");
+        rv = Acquire_Syscall(machine->ReadRegister(4));
+        break;
+      case SC_Release:
+        DEBUG('a', "Release syscall.\n");
+        rv = Release_Syscall(machine->ReadRegister(4));
+        break;
+      case SC_CreateCV:
+        DEBUG('a', "CreateCV syscall.\n");
+        rv = CreateCV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+        break;
+      case SC_DestroyCV:
+        DEBUG('a', "DestroyCV syscall.\n");
+        rv = DestroyCV_Syscall(machine->ReadRegister(4));
+        break;
+      case SC_Wait:
+        DEBUG('a', "Wait syscall.\n");
+        rv = Wait_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+        break;
+      case SC_Signal:
+        DEBUG('a', "Signal syscall.\n");
+        rv = Signal_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+        break;
+      case SC_Broadcast:
+        DEBUG('a', "Broadcast syscall.\n");
+        rv = Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+        break;
+      case SC_Printf0:
+        DEBUG('a', "Printf0 syscall.\n");
+        Printf0_Syscall(machine->ReadRegister(4),
+              machine->ReadRegister(5));
+      case SC_Printf1:
+        DEBUG('a', "Printf1 syscall.\n");
+        Printf1_Syscall(machine->ReadRegister(4),
+              machine->ReadRegister(5),
+              machine->ReadRegister(6));
+      case SC_Printf2:
+        DEBUG('a', "Printf2 syscall.\n");
+        Printf2_Syscall(machine->ReadRegister(4),
+              machine->ReadRegister(5),
+              machine->ReadRegister(6),
+              machine->ReadRegister(7));
+        break;
     }
-    else {
+
+    // Put in the return value and increment the PC
+    machine->WriteRegister(2,rv);
+    machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
+    machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
+    machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
+    return;
+    } else {
       cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
       interrupt->Halt();
     }
