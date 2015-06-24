@@ -1696,7 +1696,10 @@ exception.o: ../userprog/exception.cc ../threads/copyright.h \
   ../userprog/bitmap.h ../threads/utility.h ../filesys/openfile.h \
   ../threads/list.h ../threads/scheduler.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
+<<<<<<< HEAD
   ../threads/synch.h ../userprog/bitmap.h ../userprog/table.h \
+=======
+>>>>>>> airport_final
   ../filesys/filesys.h ../userprog/syscall.h \
   ../userprog/../threads/copyright.h
 progtest.o: ../userprog/progtest.cc ../threads/copyright.h \

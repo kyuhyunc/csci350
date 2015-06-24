@@ -135,6 +135,7 @@ void Lock::Acquire() {
 	else {
 		// add myself to queue and put myself to sleep
     //if (strcmp(currentThread->getName(), "manager"))
+        // std::cout << "ACQUIRE: "<< currentThread->getName() << " is trying to acquire the lock [" << name << "] " << "but it's owned by " << owner->getName() << std::endl;
 		waitQueue->Append((void *)currentThread);
 		currentThread->Sleep();
 	}
@@ -150,7 +151,7 @@ void Lock::Release() {
 	// checks if I'm not the lock owner
 	// a non-lock owner cannot release a lock they don't own...
 	if (!isHeldByCurrentThread()) {
-		printf("Error in Lock::Release -- only lock owners can release locks...\n");
+		printf("Error in Lock %s::Release -- only lock owners can release locks...\n", getName());
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
@@ -162,6 +163,7 @@ void Lock::Release() {
 		Thread* t = (Thread*) waitQueue->Remove();
 		scheduler->ReadyToRun(t); // wake up sleepy thread
 		owner = t;
+        // std::cout << "RELEASE: "<< currentThread->getName() << " is releasing the lock, [" << name << "] and " << owner->getName() << " is woken up" << std::endl;
 	}
 
 	// if there are no threads waiting for this lock,
@@ -229,8 +231,16 @@ void Condition::Signal(Lock* conditionLock) {
 	// disable interrupts
 	IntStatus old = interrupt->SetLevel(IntOff);
 
+	if (conditionLock == NULL) {
+		printf("Error in Condition::Signal -- There is no lock for this condition -- Condition is unused.\n");
+		// restore interrupts and return
+		(void) interrupt->SetLevel(old);
+		return;
+	}
+
 	// if no waiting threads, then nothing to do
 	if (waitQueue->IsEmpty()) {
+		printf("Error in Condition::Signal -- There is no thread to signal in %s, sorry, %s...\n", getName(), currentThread->getName());
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;
@@ -248,6 +258,8 @@ void Condition::Signal(Lock* conditionLock) {
 	// Wakeup 1 waiting thread
 	Thread* t = (Thread*) waitQueue->Remove();
 	scheduler->ReadyToRun(t); // wake up sleepy thread
+
+// std::cout << currentThread->getName() << " signalled " << t->getName() << std::endl;
 
 	// if after waking up this thread there are none left,
 	// release the lock
