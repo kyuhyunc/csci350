@@ -370,10 +370,8 @@ int CreateLock_Syscall(int vaddr, int size) {
     printf("error: Pointer is invalid(CreateLock)\n");
     return -1;
   }
-  //
-    char * name = currentThread->getName();
   //creating lock
-  Lock * l = new Lock(name);
+  Lock * l = new Lock(buf);
   kernelLock * kl = new kernelLock();
   kl->lock = l;
   kl->isToBeDeleted = false;
@@ -505,10 +503,8 @@ int CreateCV_Syscall(int vaddr, int size) {
         return -1;
       }
 
-      char * name = currentThread->getName();
-
       //creating lock
-      Condition * c = new Condition(name);
+      Condition * c = new Condition(buf);
       kernelCV * kc = new kernelCV();
       kc->condition = c;
       kc->isToBeDeleted = false;
