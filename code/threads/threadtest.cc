@@ -718,8 +718,8 @@ public:
         _state = BUSY;
         _passCount = 0;
         _rtnPassSize = 0;
-        _currentPassenger = NULL;
-        newPassenger = false;
+        _rtnPassenger = NULL;
+        _newPassenger = NULL;
 
         char* myname;
         myname = new char[20];
@@ -1443,7 +1443,7 @@ void SecurityInspector::Start()
                 printf("Security Inspector %s is not suspicious of the hand luggage of passenger %s\n", getName(), _newPassenger->getName());
             }
             if (guilty) {
-                _currentPassenger->_furtherQuestioning = true;
+                _newPassenger->_furtherQuestioning = true;
                 printf("Security inspector %s asks passenger %s to go for further examination\n", getName(), _newPassenger->getName());
             } else {
                 printf("Security inspector %s allows passenger %s to board \n", getName(), _newPassenger->getName());
