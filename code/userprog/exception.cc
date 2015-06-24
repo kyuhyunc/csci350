@@ -232,214 +232,218 @@ void Close_Syscall(int fd) {
 }
 
 void kernel_fork(int pc) {
-  currentThread->space->InitRegisters();
-  machine->WriteRegister(PCReg, pc);
-  machine->WriteRegister(NextPCReg, pc+4);
-  machine->WriteRegister(StackReg, currentThread->stackreg);
+	currentThread->space->InitRegisters();
+	machine->WriteRegister(PCReg, pc);
+	machine->WriteRegister(NextPCReg, pc+4);
+	machine->WriteRegister(StackReg, currentThread->stackreg);
 
-  currentThread->space->RestoreState();
+	currentThread->space->RestoreState();
 
-  machine->Run();
+	machine->Run();
 }
 
 void Fork_Syscall(int pc) {
-  // The Fork Syscall takes in a user program's function pointer,
-  // creates a new Thread, allocates 8 pages in physical memory
-  // for the Thread's stack.
-  
-  // *** update process table for multiprogramming part
-  // increment current process's threadCount
-  processLock->Acquire();
-  int PID = -1;
-  kernelProcess* kp;
-  for (int i=0; i < NumProcesses; i++) {
-    kp = (kernelProcess*) processTable->Get(i);
-	if (kp == NULL) {
-		continue;
+	// The Fork Syscall takes in a user program's function pointer,
+	// creates a new Thread, allocates 8 pages in physical memory
+	// for the Thread's stack.
+
+	// *** update process table for multiprogramming part
+	// increment current process's threadCount
+	processLock->Acquire();
+	int PID = -1;
+	kernelProcess* kp;
+	for (int i=0; i < NumProcesses; i++) {
+		kp = (kernelProcess*) processTable->Get(i);
+		if (kp == NULL) {
+			continue;
 	}
-    if (kp->adds == currentThread->space) {
-      PID = i;
-      break;
-    }
-  }
-  if (PID == -1) {
-    printf("Error: invalid process identifier (Fork_Syscall)\n");
-    processLock->Release();
-    return;
-  }
-  kp->threadCount++;
-  processLock->Release();
+		if (kp->adds == currentThread->space) {
+			PID = i;
+			break;
+		}
+	}
+	if (PID == -1) {
+		printf("Error: invalid process identifier (Fork_Syscall)\n");
+		processLock->Release();
+		return;
+	}
+	kp->threadCount++;
+	processLock->Release();
 
-  // Verifies that the user program passes in a non-NULL pointer
-  if (pc == 0) {
-    printf("Error: cannot pass in NULL pointer to Fork\n");
-  }
+	// Verifies that the user program passes in a non-NULL pointer
+	if (pc == 0) {
+		printf("Error: cannot pass in NULL pointer to Fork\n");
+	}
 
-  // Creates new Thread
-  Thread* t = new Thread("kernel_forker");
-  memlock->Acquire();
-    // Allocates 8 pages to Thread's stack in physical memory
-    t->stackreg = currentThread->space->AddStack(); // calls AddrSpace's private function as a friend
-  memlock->Release();
-  // Thread of same process shares address space
-  t->space = currentThread->space; // all threads of same process has same AddrSpace
-  t->Fork((VoidFunctionPtr)kernel_fork, pc);
+	// Creates new Thread
+	Thread* t = new Thread("kernel_forker");
+	memlock->Acquire();
+		// Allocates 8 pages to Thread's stack in physical memory
+		t->stackreg = currentThread->space->AddStack(); // calls AddrSpace's private function as a friend
+	memlock->Release();
+	// Thread of same process shares address space
+	t->space = currentThread->space; // all threads of same process has same AddrSpace
+	t->Fork((VoidFunctionPtr)kernel_fork, pc);
 
 }
 
 void kernel_exec(int pc) {
-  currentThread->space->InitRegisters();
-//  machine->WriteRegister(PCReg, pc);
-//  machine->WriteRegister(NextPCReg, pc+4);
-//  machine->WriteRegister(StackReg, currentThread->stackreg);
-
-  currentThread->space->RestoreState();
-
-  machine->Run();
+	currentThread->space->InitRegisters();
+	currentThread->space->RestoreState();
+	machine->Run();
 }
 
 void Exec_Syscall(unsigned int vaddr, int len) {
-  // read in char*
-  char* filename;
+	// read in char*
+	char* filename;
 
-  if (!(filename = new char[len])) {
-    printf("Error allocating kernel buffer for Exec!\n");
-    return;
-  }
-  else {
-    if (copyin(vaddr, len, filename) == -1) {
-      printf("Bad pointer passed to write: data not written\n");
-      delete [] filename;
-      return;
-    }
-  }
+	if (!(filename = new char[len])) {
+		printf("Error allocating kernel buffer for Exec!\n");
+		return;
+	}
+	else {
+		if (copyin(vaddr, len, filename) == -1) {
+			printf("Bad pointer passed to write: data not written\n");
+			delete [] filename;
+			return;
+		}
+	}
 
-//printf("%s\n", filename);
+	//printf("%s\n", filename);
 
-  // read in file
-  OpenFile* executable = fileSystem->Open(filename);
-  AddrSpace* space;
+	// read in file
+	OpenFile* executable = fileSystem->Open(filename);
+	AddrSpace* space;
 
-  if (executable == NULL) {
-    printf("Unable to open file %s\n", filename);
-    return;
-  }
+	if (executable == NULL) {
+		printf("Unable to open file %s\n", filename);
+		return;
+	}
 
-  // make new addrspace and new thread and fork
-  space = new AddrSpace(executable);
-  Thread* t = new Thread("new_exec");
-  t->space = space;
-  memlock->Acquire();
-    t->stackreg = currentThread->space->AddStack();
-  memlock->Release();
+	// make new addrspace and new thread and fork
+	space = new AddrSpace(executable);
+	Thread* t = new Thread("new_exec");
+	t->space = space;
+	memlock->Acquire();
+		t->stackreg = currentThread->space->AddStack();
+	memlock->Release();
 
-  // add process to processTable
-  kernelProcess* kp = new kernelProcess();
-  processLock->Acquire();
-  kp->adds = space;
-  processLock->Release();
-  int index = processTable->Put((void*)kp);
-  if (index == -1) { // if no space in processtable
-    printf("No more room in the processtable for %s\n", filename);
-    return;
-  }
+	// add process to processTable
+	kernelProcess* kp = new kernelProcess();
+	processLock->Acquire();
+		kp->adds = space;
+	processLock->Release();
+	int index = processTable->Put((void*)kp);
+	if (index == -1) { // if no space in processtable
+		printf("No more room in the processtable for %s\n", filename);
+		return;
+	}
 
-  t->Fork((VoidFunctionPtr)kernel_exec, 0);
+	t->Fork((VoidFunctionPtr)kernel_exec, 0);
 
-  delete executable;
-  delete [] filename;
+	delete executable;
+	delete [] filename;
 }
 
 void Exit_Syscall(int status) {
-/*  processLock->Acquire();
+	processLock->Acquire();
 
-    // check if this is the last process
-    bool lastProcess = false;
-    if (processTable->NumUsed() == 1) {
-      lastProcess = true;
-    }
+		// check if this is the last process
+		bool lastProcess = false;
+		if (processTable->NumUsed() == 1) {
+			lastProcess = true;
+		}
 
-    // find the current process
-    int PID = -1;
-    kernelProcess* kp;
-    for (int i=0; i < NumProcesses; i++) {
-      kp = (kernelProcess*) processTable->Get(i);
-      if (kp == NULL) {
-        continue;
-      }
-      if (kp->adds == currentThread->space) {
-        PID = i;
-        break;
-      }
-    }
-    if (PID == -1) {
-      printf("Error: invalid process identifier (Fork_Syscall)\n");
-      processLock->Release();
-      return;
-    }
-*/
-    /*  Case 1: last executing thread in last process
-      completely stop nachos
-      interrupt->Halt();
-    */
-/*    if (lastProcess && kp->threadCount == 1) {
-      // reclaim all pages
+		// find the current process
+		int PID = -1;
+		kernelProcess* kp;
+		for (int i=0; i < NumProcesses; i++) {
+			kp = (kernelProcess*) processTable->Get(i);
+			if (kp == NULL) {
+				continue;
+			}
+			if (kp->adds == currentThread->space) {
+				PID = i;
+				break;
+			}
+		}
+		if (PID == -1) {
+			printf("Error: invalid process identifier (Fork_Syscall)\n");
+			processLock->Release();
+			return;
+		}
 
-      // reclaim all locks
+		/*  Case 1: last executing thread in last process
+		completely stop nachos
+		interrupt->Halt();
+		*/
+		if (lastProcess && kp->threadCount == 1) {
+			// reclaim all pages
 
-      // reclaim cvs
-      
-      // delete process
-      processTable->Remove(PID);
-      delete kp;
+			// reclaim all locks
 
-      processLock->Release();
+			// reclaim cvs
 
-      // delete all globally instantiated variables
-      delete memlock;
-      delete memMap;
-      delete locktable;
-      delete cvtable;
-      delete processTable;
-      delete processLock;
+			// delete process
+			processTable->Remove(PID);
+			delete kp;
 
-      // terminate program
-      interrupt->Halt();
-    }
-*/
-    /*  Case 2: thread in process but not last thread
-      reclaim 8 stack pages
-    */
-/*    else if (kp->threadCount > 1) {
-      // reclaim pages
+			processLock->Release();
 
-      // decrement
-      kp->threadCount--;
-    }
-*/
-    /*  Case 3: last thread in process but not last process
-      reclaim all memory not reclaimed
-      reclaim all locks and cvs
-    */
-/*    else if (!lastProcess && kp->threadCount == 1) {
-      // reclaim pages
+			// delete all globally instantiated variables
+			delete memlock;
+			delete memMap;
+			delete locktable;
+			delete cvtable;
+			delete processTable;
+			delete processLock;
 
-      // reclaim locks
+			// terminate program
+			interrupt->Halt();
+		}
 
-      // reclaim cvs
+		/*  Case 2: thread in process but not last thread
+		reclaim 8 stack pages
+		*/
+		else if (kp->threadCount > 1) {
+			// reclaim pages
+			while (!currentThread->pages->IsEmpty()) {
+				int* index;
+				index = (int*) currentThread->pages->Remove();
+				memlock->Acquire();
+					memMap->Clear(currentThread->space->pageTable[*index].physicalPage);
+					currentThread->space->pageTable[*index].valid = FALSE;
+				memlock->Release();
+				delete index;
+			}
 
-      // delete process
-      processTable->Remove(PID);
-      delete kp;
-    }
+			// decrement
+			kp->threadCount--;
+		}
 
-    else {
-      printf("Some other case not accounted for in Exit_Syscall.. go back and debug!\n");
-    }
+		/*  Case 3: last thread in process but not last process
+		reclaim all memory not reclaimed
+		reclaim all locks and cvs
+		*/
+		else if (!lastProcess && kp->threadCount == 1) {
+			// reclaim pages
 
-  processLock->Release();
-*/
-  currentThread->Finish();
+			// reclaim locks
+
+			// reclaim cvs
+
+			// delete process
+			processTable->Remove(PID);
+			delete kp;
+		}
+
+		else {
+			printf("Some other case not accounted for in Exit_Syscall.. go back and debug!\n");
+		}
+
+	processLock->Release();
+
+	currentThread->Finish();
 
 }
 
@@ -979,11 +983,13 @@ void ExceptionHandler(ExceptionType which) {
         DEBUG('a', "Printf0 syscall.\n");
         Printf0_Syscall(machine->ReadRegister(4),
               machine->ReadRegister(5));
+		break;
       case SC_Printf1:
         DEBUG('a', "Printf1 syscall.\n");
         Printf1_Syscall(machine->ReadRegister(4),
               machine->ReadRegister(5),
               machine->ReadRegister(6));
+		break;
       case SC_Printf2:
         DEBUG('a', "Printf2 syscall.\n");
         Printf2_Syscall(machine->ReadRegister(4),

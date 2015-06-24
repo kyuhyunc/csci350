@@ -31,7 +31,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
-all: halt matmult sort testfiles airportsim
+all: halt matmult sort testfiles testprint airportsim
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -62,6 +62,12 @@ testfiles: testfiles.o start.o
 	$(LD) $(LDFLAGS) start.o testfiles.o -o testfiles.coff
 	../bin/coff2noff testfiles.coff testfiles
 
+testprint.o: testprint.c
+	$(CC) $(CFLAGS) -c testprint.c
+testprint: testprint.o start.o
+	$(LD) $(LDFLAGS) start.o testprint.o -o testprint.coff
+	../bin/coff2noff testprint.coff testprint
+
 airportsim.o: airportsim.c
 	$(CC) $(CFLAGS) -c airportsim.c
 airportsim: airportsim.o start.o
@@ -70,5 +76,5 @@ airportsim: airportsim.o start.o
 
 clean:
 	rm -f *.o *.coff
-	rm halt sort matmult testfiles airportsim
+	rm halt sort matmult testfiles testprint airportsim
 	rm *~

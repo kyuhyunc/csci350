@@ -176,6 +176,9 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 		pageTable = new TranslationEntry[numPages];
 		for (i = 0; i < numPages; i++) {
 			pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+				int* index = new int;
+				*index = i;
+				currentThread->pages->Append((void*)index);
 			pageTable[i].physicalPage = memMap->Find();
 //printf("pageTable[%d]=%d\n", i, pageTable[i].physicalPage);
 			pageTable[i].valid = TRUE;
@@ -314,6 +317,9 @@ int AddrSpace::AddStack()
 	for (i; i < numPages; i++) {
 //printf("i=%d\n", i);
 		pageTable[i].virtualPage = i;
+			int* index = new int;
+			*index = i;
+			currentThread->pages->Append((void*)index);
 		pageTable[i].physicalPage = memMap->Find();
 //printf("pageTable[%d]=%d\n", i, pageTable[i].physicalPage);
 		pageTable[i].valid = TRUE;

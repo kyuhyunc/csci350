@@ -43,6 +43,7 @@
 #ifdef USER_PROGRAM
 #include "machine.h"
 #include "addrspace.h"
+#include "list.h"
 #endif
 
 // CPU register state to be saved on context switch.  
@@ -128,6 +129,7 @@ class Thread {
 
 	int pid;	// process id
 	int index;	// thread index
+	List* pages; // keep track of virtual pages used by the thread
 	int stackreg; // set as new pages are being allocated
 					// later to be used by kernel_fork to properly set stack
 					// to prevent race condition

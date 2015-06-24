@@ -45,6 +45,7 @@ class AddrSpace {
 	
 	friend void Fork_Syscall(int pc);
 	friend void Exec_Syscall(unsigned int vaddr, int size);
+	friend void Exit_Syscall(int status);
 	int AddStack(); // called by Fork_Syscall
 					// returns the stack register's address
 					// prevents race condition of multiple forks
