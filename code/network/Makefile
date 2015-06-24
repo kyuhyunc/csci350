@@ -1697,13 +1697,8 @@ exception.o: ../userprog/exception.cc ../threads/copyright.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
   ../threads/synch.h ../userprog/bitmap.h ../userprog/table.h \
   ../filesys/filesys.h ../network/post.h ../threads/copyright.h \
-<<<<<<< HEAD
   ../machine/network.h ../threads/synchlist.h ../userprog/syscall.h \
   ../userprog/../threads/copyright.h
-=======
-  ../machine/network.h ../threads/synchlist.h ../threads/synch.h \
-  ../userprog/syscall.h ../userprog/../threads/copyright.h
->>>>>>> airport_final
 progtest.o: ../userprog/progtest.cc ../threads/copyright.h \
   ../threads/system.h ../threads/copyright.h ../threads/utility.h \
   ../threads/bool.h ../machine/sysdep.h ../threads/copyright.h \
