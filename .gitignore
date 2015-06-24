@@ -1,4 +1,4 @@
 .DS_Store
-.swo
-.swp
-.o
+*.swo
+*.swp
+*.o
