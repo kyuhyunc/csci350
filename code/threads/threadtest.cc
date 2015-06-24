@@ -969,20 +969,16 @@ void Passenger::Start()
 
     if (liaisons[myLine]->_state == BUSY) {
         liaisons[myLine]->_lineSize++;
-std::cout << getName() << " says liaison is busy: " << liaisons[myLine]->getName() << std::endl;
         liaisons[myLine]->_lineCV->Wait(LiaisonGlobalLineLock);
-std::cout << getName() << " made it past WAIT: " << liaisons[myLine]->getName() << std::endl;
         liaisons[myLine]->_lineSize--;
         liaisons[myLine]->_totalNumber++;
     }
-std::cout << getName() << " made it past liasion busy" << std::endl;
 
     liaisons[myLine]->_lock->Acquire();
     LiaisonGlobalLineLock->Release();
 
     // hands ticket to Liaison
     liaisons[myLine]->updatePassengerInfo(this);
-std::cout << getName() << " updated the liasison's info" << std::endl;
 
     liaisons[myLine]->_commCV->Signal(liaisons[myLine]->_lock);
     liaisons[myLine]->_commCV->Wait(liaisons[myLine]->_lock);
@@ -1112,8 +1108,9 @@ std::cout << getName() << " updated the liasison's info" << std::endl;
 #undef officer 
     
     inspector->_newPassenger = (Passenger*)currentThread;
-    if (inspector->_state == AVAIL)
+    if (inspector->_state == AVAIL) {
         inspector->_commCV->Signal(inspector->_lock); // initial alert to officer
+    } 
     inspector->_newPassCV->Wait(inspector->_lock); // wait for security results
     if (_furtherQuestioning) {
         printf("Passenger %s goes for futher questioning\n", getName());
@@ -1161,9 +1158,7 @@ void Liaison::Start()
     while (true) {
         LiaisonGlobalLineLock->Acquire();
         _lock->Acquire();
-std::cout << getName() << " acquired both locks" << std::endl;
         if (_lineSize == 0) {
-std::cout << getName() << " is waiting for a passenger" << std::endl;
             LiaisonGlobalLineLock->Release();
             _state = AVAIL;
             _commCV->Wait(_lock);
@@ -1173,7 +1168,6 @@ std::cout << getName() << " is waiting for a passenger" << std::endl;
             }
         }
         else {
-std::cout << getName() << " is moving on to the next passenger" << std::endl;
             _lineCV->Signal(LiaisonGlobalLineLock);
             LiaisonGlobalLineLock->Release();
             _commCV->Wait(_lock);
@@ -1214,17 +1208,10 @@ void CheckInStaff::Start()
                 // _lock->Release();
                 printf("Airline check-in staff %s is closing the counter\n", getName());
                 _commCV->Wait(_lock);
-                std::cout << "        ********        ERROR! SHOULD NOT HAVE WOKEN UP AGAIN! WTF!!!!" << std::endl;
-                // return; 
             }
-            // GlobalLock->Acquire();
-            // ExecLock->Acquire();
-
             myairline->_airlineLock->Acquire();
             myairline->_numOnBreakCIS--;
             myairline->_airlineLock->Release();
-            
-            // _lock->Release();
         }
 
         _state = BUSY;
@@ -1243,7 +1230,6 @@ void CheckInStaff::Start()
 
 			printf("Airline check-in staff %s of airline %i serves an executive class passenger and economy line length = %i\n", getName(), _airline, _lineSize);
 
-            // _lock->Acquire();
 			myairline->_execLineCV->Signal(ExecLock);
 
             //Testing 4. To wait all executive passengers are processes and to see what happends right after that.
@@ -1383,9 +1369,9 @@ void ScreeningOfficer::Start()
                 #define inspector securityinspectors[i]
                 for (int i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
                     inspector->_lock->Acquire();
-                    if (inspector->_state == AVAIL) {
+                    if (inspector->_state == AVAIL && inspector->_newPassenger == NULL) {
                         shortLineIndex = inspector->_id;
-                        securityinspectors[shortLineIndex]->_state = BUSY;
+                        inspector->_newPassenger = _currentPassenger;
                         inspector->_lock->Release();
                         break;
                     }
@@ -1527,7 +1513,6 @@ void Manager::Start()
             _cisDone = true;
         } else {
             _cisDone = false;
-// std::cout << "_cisDone: " << _cisDone << ", numDoneCIS:" << numDoneCIS << std::endl;
         }
       } // end !_cisDone if statement
 
@@ -1619,12 +1604,7 @@ void Manager::Start()
                 _cargoDone = true;
             }
             ConveyorLock->Release();
-        } /*else {
-            for (int i = 0; i < NUM_AIRLINES; ++i) {
-std::cout << "_numLoadedBaggages: " << airlines[i]->_numLoadedBaggages << " _numExpectedBaggages: " << airlines[i]->_numExpectedBaggages 
-        << " _numReadyPassengers: " << airlines[i]->_numReadyPassengers << " _numExpectedPassengers: " << airlines[i]->_numExpectedPassengers << std::endl;
-            }
-        }*/
+        }
 
         //----------------------------------------------
         // END MANAGER CHECKS CONVEYOR BELT
