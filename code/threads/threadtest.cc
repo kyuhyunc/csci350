@@ -1195,6 +1195,7 @@ void CheckInStaff::Start()
 #define GlobalLock airlines[_airline]->_CisGlobalLineLock
 // CHECK-IN-STAFF
 	while (true) {
+        _lock->Acquire();
 		if (_lineSize == 0 && myairline->_execLineSize == 0) {
 			_state = ONBREAK;
 		    _currentPassenger = NULL;
@@ -1203,7 +1204,6 @@ void CheckInStaff::Start()
 			// GlobalLock->Release();
 			// ExecLock->Release();
             myairline->_airlineLock->Release();
-            _lock->Acquire();
 			_commCV->Wait(_lock); // wait for manager to wake me up
             // if there are no more passengers, cis can exit and be done!
             if (_done) {
@@ -1308,14 +1308,13 @@ void CheckInStaff::Start()
 
 			_commCV->Signal(_lock); // Release passenger to board gate
 			_commCV->Wait(_lock);
-			_lock->Release();
-
         }
         else {
             printf("Manager woke %s up because there were executive passengers, by the time my sleepy ass woke up, other CIS helped all executive passengers.\n", getName());
         }   
 
         _currentPassenger = NULL;
+		_lock->Release();
     }
 #undef myairline
 #undef ExecLock
