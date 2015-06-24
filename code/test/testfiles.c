@@ -202,6 +202,7 @@ int main() {
 	bytesread = Read( buf, 100, fd );
 	Write( buf, bytesread, ConsoleOutput );
 	Close(fd);
+	Write("Test1: Broadcast/signal test passed\n", sizeof("Test1: Broadcast/signal test passed\n"), ConsoleOutput);
 
 	LockIndex1 = CreateLock("FirstLOCK", 9);
 	CVIndex1 = CreateCV("FirstCV", 7);
