@@ -1,23 +1,140 @@
-/*	airportsim.c
-	Airport Simulation
+/*	
+
+	airportsim.c	
+	Airport Simulation - User Program
+ 
  */
 
 #include "syscall.h"
 
-struct random {
-	int a;
-	int b;
-	int c;
+/*
+	Structs
+*/
+/*typedef struct {
+	char* name;
+
+} Airline;*/
+
+/*typedef struct {
+	char* name;
+	int id;
+} Passenger;*/
+
+struct Passenger {
+	int id;
 };
 
-int main() {
-	struct random Try1;
-	Try1.a = 1;
-	Try1.b = 2;
-	Try1.c = 3;
+/*
+	Global Data
+*/
+int NUM_PASSENGERS;
+int NUM_LIASONS;
+int NUM_AIRLINES;
+int NUM_CIS_PER_AIRLINE;
+int NUM_CARGO_HANDLERS;
+int NUM_SCREENING_OFFICERS;
+int NUM_SECURITY_INSPECTORS;
 
-	Printf0("Write all airport code in this file!\n", sizeof("Write all airport code in this file!\n"));
+/* Pointers to Entities */
+struct Passenger** passengers;
 
+/* Number of currently active entities */
+int numInitPassengers; 
+
+/* States used by various employees */
+enum State {
+    AVAIL,
+    BUSY,
+    ONBREAK
+};
+
+/*
+	Start Functions - functions called by Fork() syscall.
+	One per Type of Thread
+*/
+void startPassenger() {
+	Printf0("startPassenger\n", sizeof("startPassenger\n"));
+/*	struct Passenger p;
+	p.id = 69;
+	Printf1("startPassenger %d\n", sizeof("startPassenger %d\n"), p.id);*/
 	Exit(0);
+}
 
+void startLiaison() {
+	Printf0("startLiaison\n", sizeof("startLiaison\n"));
+	Exit(0);
+}
+
+void startCheckInStaff() {
+	Printf0("startCheckInStaff\n", sizeof("startCheckInStaff\n"));
+	Exit(0);
+}
+
+void startCargoHandler() {
+	Printf0("startCargoHandler\n", sizeof("startCargoHandler\n"));
+	Exit(0);
+}
+
+void startScreeningOfficer() {
+	Printf0("startScreeningOfficer\n", sizeof("startScreeningOfficer\n"));
+	Exit(0);
+}
+
+void startSecurityInspector() {
+	Printf0("startSecurityInspector\n", sizeof("startSecurityInspector\n"));
+	Exit(0);
+}
+
+/*
+	main - start the airport sim
+*/
+int main() {
+	/*
+		Init Local Data
+	*/
+	int i = 0; /* for-loop iterator */
+	/*struct Passenger* p = (struct Passenger*)malloc(sizeof(struct Passenger));*/
+	char* j = (char*)malloc(1);
+
+	/*
+		Initialiaze Number of Entities
+	*/
+	NUM_PASSENGERS = 2;
+	NUM_LIASONS = 2;
+	NUM_AIRLINES = 2;
+	NUM_CIS_PER_AIRLINE = 2;
+	NUM_CARGO_HANDLERS = 2;
+	NUM_SCREENING_OFFICERS = 2;
+	NUM_SECURITY_INSPECTORS = 2;
+
+
+	/*passengers = (struct Passenger**)malloc( 7 );*/
+/*	liaisons;
+	cis;
+	cargoHandlers;
+	screeningOfficers;
+	securityInspector;*/
+
+	/*
+		Initialize Threads
+	*/
+	for (i = 0; i < NUM_PASSENGERS; i++) {
+		/*passengers[i] = (struct Passenger*)malloc(sizeof(struct Passenger));*/
+		Fork(startPassenger);
+	}
+	for (i = 0; i < NUM_LIASONS; ++i) {
+		Fork(startLiaison);
+	}
+	for (i = 0; i < NUM_CIS_PER_AIRLINE; ++i) {
+		Fork(startCheckInStaff);
+	}
+	for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
+		Fork(startCargoHandler);
+	}
+	for (i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
+		Fork(startScreeningOfficer);
+	}
+	for (i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
+		Fork(startSecurityInspector);
+	}
 }
