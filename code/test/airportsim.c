@@ -6,20 +6,28 @@
  */
 #include "syscall.h"
 
+#define NULL 0
+#define NUM_PASSENGERS 10
+#define	NUM_LIASONS 2
+#define	NUM_AIRLINES 2
+#define	NUM_CIS_PER_AIRLINE 2
+#define	NUM_CARGO_HANDLERS 2
+#define	NUM_SCREENING_OFFICERS 2
+#define	NUM_SECURITY_INSPECTORS 2
+
 typedef int bool;
 enum bool {false, true};
-#define NULL 0
 
 /*
 	Structs
 */
 
 /* Passenger Structures */
-struct Ticket {
+typedef struct {
     bool _executive;
     int _airline; 
     int _seat; 
-};
+} Ticket;
 
 typedef struct {
     int _airline; 
@@ -27,7 +35,7 @@ typedef struct {
 } Baggage;
 
 typedef struct {
-	char *_name;
+	/*char *_name;*/
  	int _id;   
  	int _myInspector;
  	int _myOfficer;
@@ -35,40 +43,19 @@ typedef struct {
  	bool _furtherQuestioning;
  	Baggage _baggages[3];
  	int _numBaggages;
- 	struct Ticket _myTicket;
+ 	Ticket _myTicket;
 } Passenger;
 
 /*
 	Global Data
 */
-/*
-int NUM_PASSENGERS;
-int NUM_LIASONS;
-int NUM_AIRLINES;
-int NUM_CIS_PER_AIRLINE;
-int NUM_CARGO_HANDLERS;
-int NUM_SCREENING_OFFICERS;
-int NUM_SECURITY_INSPECTORS;
-*/
-static int NUM_PASSENGERS = 2;
-int	NUM_LIASONS = 2;
-int	NUM_AIRLINES = 2;
-int	NUM_CIS_PER_AIRLINE = 2;
-int	NUM_CARGO_HANDLERS = 2;
-int	NUM_SCREENING_OFFICERS = 2;
-int	NUM_SECURITY_INSPECTORS = 2;
-
 int countLock;
-/*
-    Statical values
-*/
-/*static struct Passenger passengers[NUM_PASSENGERS];*/
 
-/* Pointers to Entities */
-/* struct Passenger** passengers; */
+/* Airport Entities */
+Passenger passengers[NUM_PASSENGERS];
 
 /* Number of currently active entities */
-int numInitPassengers; 
+int numActivePassengers; 
 
 /* States used by various employees */
 enum State {
@@ -81,19 +68,17 @@ enum State {
 	Start Functions - functions called by Fork() syscall.
 	One per Type of Thread
 */
-void startPassenger() {
-	Printf0("startPassenger ", sizeof("startPassenger "));
-    Printf1("%d \n", sizeof("%d \n"), numInitPassengers);
-    
+#define p passengers[_myIndex]
+void startPassenger() {    
+	int _myIndex;
     Acquire(countLock);
-    numInitPassengers++;
+    _myIndex = numActivePassengers++;
     Release(countLock);
 
-/*	struct Passenger p;
-	p.id = 69;
-	Printf1("startPassenger %d\n", sizeof("startPassenger %d\n"), p.id);*/
+	Printf1("startPassenger %d\n", sizeof("startPassenger %d\n"), p._id);
 	Exit(0);
 }
+#undef p
 
 void startLiaison() {
 	Printf0("startLiaison\n", sizeof("startLiaison\n"));
@@ -121,46 +106,34 @@ void startSecurityInspector() {
 }
 
 /*
-	main - start the airport sim
+	Init
 */
-int main() {
-	/*
-		Init Local Data
-	*/
-    int i;  /* For loop iterator */
-
-	/*
-		Init Global Data
-	*/
-    numInitPassengers = 0; 
-    countLock = CreateLock("countLock", sizeof("countLock"));
-/*
-	NUM_PASSENGERS = 2;
-	NUM_LIASONS = 2;
-	NUM_AIRLINES = 2;
-	NUM_CIS_PER_AIRLINE = 2;
-	NUM_CARGO_HANDLERS = 2;
-	NUM_SCREENING_OFFICERS = 2;
-	NUM_SECURITY_INSPECTORS = 2;
-*/
-
-	/*passengers = (struct Passenger**)malloc( 7 );*/
-/*	liaisons;
-	cis;
-	cargoHandlers;
-	screeningOfficers;
-	securityInspector;*/
-
-	/*
-		Misc. Inits
-	*/
-	srand(time(NULL));
-
-	/*
-		Initialize Threads
-	*/
+void initPassengers() {
+	int i;
+	int j;
 	for (i = 0; i < NUM_PASSENGERS; i++) {
-		/*passengers[i] = (struct Passenger*)malloc(sizeof(struct Passenger));*/
+		passengers[i]._id = i;
+		passengers[i]._myInspector = -1;
+ 		passengers[i]._myOfficer = -1;
+ 		passengers[i]._myLine = -1;
+ 		passengers[i]._furtherQuestioning = false;
+ 		/* Baggages */
+ 		passengers[i]._numBaggages = i % 2 + 2;
+ 		for (j = 0; j < passengers[i]._numBaggages; j++) {
+			passengers[i]._baggages[j]._weight = (i * 13) % 31 + 30; 
+		}
+ 		/* Ticket */
+ 		passengers[i]._myTicket._airline = (i*17) % NUM_AIRLINES;
+		passengers[i]._myTicket._executive = false;
+		if ( (i % 4) == 1 ) {
+			passengers[i]._myTicket._executive = true;
+		}
+	}
+}
+
+void forkThreads() {
+	int i;
+	for (i = 0; i < NUM_PASSENGERS; i++) {
 		Fork(startPassenger);
 	}
 	/*for (i = 0; i < NUM_LIASONS; ++i) {
@@ -178,4 +151,19 @@ int main() {
 	for (i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
 		Fork(startSecurityInspector);
 	}*/
+}
+
+void init() {
+	countLock = CreateLock("countLock", sizeof("countLock"));
+	/* Inits */
+	initPassengers();
+	/* Fork */
+	forkThreads();
+}
+
+/*
+	main - start the airport sim
+*/
+int main() {
+    init();
 }
