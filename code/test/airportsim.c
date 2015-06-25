@@ -15,6 +15,7 @@
 #define	NUM_CARGO_HANDLERS 2
 #define	NUM_SCREENING_OFFICERS 2
 #define	NUM_SECURITY_INSPECTORS 2
+#define QUEUE_MAX 100
 
 typedef int bool;
 enum bool {false, true};
@@ -30,7 +31,12 @@ enum State {
 	Structs
 */
 
-/* Passenger */
+typedef struct {
+    int _queue[QUEUE_MAX];
+    int _rear;
+    int _front;
+} Queue;
+
 typedef struct {
     bool _executive;
     int _airline; 
@@ -42,6 +48,7 @@ typedef struct {
     int _weight; 
 } Baggage;
 
+/* Passenger */
 typedef struct {
  	int _id;   
  	int _inspectorID;
@@ -94,8 +101,8 @@ typedef struct {
     int _lock; 
     int _execLineLock;
     int _execLineCV;
-    int _execQueue[NUM_PASSENGERS];
     int _execLineSize;
+    Queue _execQueue;
     int _boardLoungeCV;
     int _cisLineLock;
     CIS _cis[NUM_CIS_PER_AIRLINE];
@@ -135,6 +142,11 @@ int ConveyorLock;
 
 /* CVs */
 
+
+/* Queue */
+Queue OfficersLine;
+Queue ConveyorBelt;
+
 /*
 	Utilities	
 */
@@ -148,6 +160,39 @@ char* concatNumToString(char* str, int num) { /* TODO - Not working Properly */
 int concatNum(int i, int j, int k) {
 	return 1000000 * i + 1000 * j + k;
 } 
+
+#define front queue->_front
+#define rear queue->_rear
+void queue_insert (Queue* queue, int index) {
+    if (rear == QUEUE_MAX-1)
+        printf0("ERROR: QUEUE OVERFLOW\n", sizeof("ERROR: QUEUE OVERFLOW\n"));
+    else {
+        /* If queue is initially empty */
+        if (front == -1)
+            front = 0;
+        queue->_arrary[++rear] = index;
+    }
+}
+
+int queue_pop (Queue* queue) {
+    if (front == -1 || front > rear) {
+        printf0("ERROR: QUEUE IS EMPTY\n", sizeof("ERROR: QUEUE IS EMPTY\n"));
+        return -1;
+    }
+    return queue->_arrary[front++];    
+}
+
+int queue_size (Queue* queue) {
+    if (front == -1 || front > rear) return 0;
+    return rear - front + 1;
+}
+
+bool queue_empty (Queue* queue) {
+    if (queue_size (queue) == 0) return true;
+    else return false;
+}
+#undef front
+#undef reqr
 
 /*
 	Start Functions - functions called by Fork() syscall.
@@ -473,6 +518,16 @@ void initGlobalData() {
 	GlobalDataLock = CreateLock("GlobalDataLock", sizeof("GlobalDataLock"));
 	LiaisonLineLock = CreateLock("LiaisonLineLock", sizeof("LiaisonLineLock"));
 	ConveyorLock = CreateLock("ConveyorLock", sizeof("ConveyorLock"));
+
+    int i;
+    for (i = 0; i < QUEUE_MAX; i++) {
+        OfficersLine._queue[i] = -1;
+        ConveyorBelt._queue[i] = -1;
+    }
+    OfficersLine._front = -1;
+    OfficersLine._rear = -1;
+    ConveyorBelt._front = -1;
+    ConveyorBelt._rear= -1;
 }
 
 void initPassengers() {
@@ -521,6 +576,7 @@ void initLiaisons() {
 void initCIS(int airline) { 
 #define c Airlines[airline]._cis[i]
 	int i;
+    int j;
 	NumActiveCIS = 0;
 	for (i = 0; i < NUM_CIS_PER_AIRLINE; i++) {
 		c._lock = CreateLock(concatNumToString("CIS_lock_", i), 10);
@@ -535,6 +591,7 @@ void initCIS(int airline) {
     	c._airline = airline;
     	c._done = false;
 	}
+#undef c
 }
 
 void initManager() {
@@ -557,6 +614,12 @@ void initAirlines() {
     	for (j = 0; j < NUM_CIS_PER_AIRLINE; ++j) {
     		initCIS(j);
     	}
+        for (j = 0; j < QUEUE_MAX; j++) {
+            a._execQueue._queue[j] = -1;
+        }
+        a._execQueue._front = -1;
+        a._execQueue._rear = -1;
+
   		/* Stats */
     	a._numExpectedPassengers = 0;
     	a._numCheckedinPassengers = 0;
