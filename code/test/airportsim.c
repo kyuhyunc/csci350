@@ -15,7 +15,6 @@
 #define	NUM_CARGO_HANDLERS 2
 #define	NUM_SCREENING_OFFICERS 2
 #define	NUM_SECURITY_INSPECTORS 2
-#define QUEUE_MAX 100
 
 typedef int bool;
 enum bool {false, true};
@@ -32,7 +31,7 @@ enum State {
 */
 
 typedef struct {
-    int _queue[QUEUE_MAX];
+    int _array[NUM_PASSENGERS];
     int _rear;
     int _front;
 } Queue;
@@ -101,7 +100,6 @@ typedef struct {
     int _lock; 
     int _execLineLock;
     int _execLineCV;
-    int _execLineSize;
     Queue _execQueue;
     int _boardLoungeCV;
     int _cisLineLock;
@@ -164,26 +162,26 @@ int concatNum(int i, int j, int k) {
 #define front queue->_front
 #define rear queue->_rear
 void queue_insert (Queue* queue, int index) {
-    if (rear == QUEUE_MAX-1)
-        printf0("ERROR: QUEUE OVERFLOW\n", sizeof("ERROR: QUEUE OVERFLOW\n"));
+    if (queue->_rear == NUM_PASSENGERS-1)
+        Printf0("ERROR: QUEUE OVERFLOW\n", sizeof("ERROR: QUEUE OVERFLOW\n"));
     else {
         /* If queue is initially empty */
-        if (front == -1)
-            front = 0;
-        queue->_arrary[++rear] = index;
+        if (queue->_front == -1)
+            queue->_front = 0;
+        queue->_array[++rear] = index;
     }
 }
 
 int queue_pop (Queue* queue) {
-    if (front == -1 || front > rear) {
-        printf0("ERROR: QUEUE IS EMPTY\n", sizeof("ERROR: QUEUE IS EMPTY\n"));
+    if (queue->_front == -1 || queue->_front > queue->_rear) {
+        Printf0("ERROR: QUEUE IS EMPTY\n", sizeof("ERROR: QUEUE IS EMPTY\n"));
         return -1;
     }
-    return queue->_arrary[front++];    
+    return queue->_array[front++];    
 }
 
 int queue_size (Queue* queue) {
-    if (front == -1 || front > rear) return 0;
+    if (queue->_front == -1 || queue->_front > queue->_rear) return 0;
     return rear - front + 1;
 }
 
@@ -255,8 +253,7 @@ void startPassenger() {
 #define myCIS myAirline._cis[my._cisID]
 	if (my._ticket._executive) {
 		Acquire(myAirline._execLineLock);
-		/* TODO - Add myself to execQueue */
-		myAirline._execLineSize++;
+		queue_insert(&myAirline._execQueue, _myIndex);
 		Printf1("Passenger %d of Airline %d is waiting in the executive class line\n", 
 			sizeof("Passenger %d of Airline %d is waiting in the executive class line\n"),
 			concatNum(0, _myIndex, my._ticket._airline));
@@ -358,7 +355,7 @@ void startCheckInStaff() {
     while (true) {
 		/* Check lines */
 		Acquire(myAirline._lock);
-		if (my._lineSize == 0 && myAirline._execLineSize == 0) {
+		if (my._lineSize == 0 && queue_empty(&myAirline._execQueue)) {
 			my._state = ONBREAK;
 			my._currentPassenger = NULL;
 			/* 'Clock Out' for Break */
@@ -380,10 +377,9 @@ void startCheckInStaff() {
 		my._state = BUSY;
 		Acquire(myAirline._cisLineLock);
 		Acquire(myAirline._execLineLock);
-		if (myAirline._execLineSize > 0) {
-			/*_currentPassenger = */ /* TODO - Grab executive passenger off execQueue */
+		if (queue_size(&myAirline._execQueue) > 0) {
+			my._currentPassenger = queue_pop(&myAirline._execQueue);
 			passenger._cisID = _myIndex;
-			myAirline._execLineSize--;
 			Printf1("Airline check-in staff %d of airline %d serves an executive class passenger and economy line length = %d\n",
 				sizeof("Airline check-in staff %d of airline %d serves an executive class passenger and economy line length = %d\n"),
 				concatNum(_myIndex, _myAirline, my._lineSize));
@@ -391,7 +387,7 @@ void startCheckInStaff() {
 		} else if (my._lineSize > 0) {
 			Printf1("Airline check-in staff %d of airline %d serves an economy class passenger and executive class line length = %d\n",
 				sizeof("Airline check-in staff %d of airline %d serves an economy class passenger and executive class line length = %d\n"),
-				concatNum(_myIndex, _myAirline, myAirline._execLineSize));
+				concatNum(_myIndex, _myAirline, queue_size(&myAirline._execQueue)));
 			Signal(myAirline._execLineLock, myAirline._execLineCV); /* Signal Passenger */
 		}
 		/* Interact with Passenger */
@@ -515,14 +511,14 @@ void startManager() {
 	Init
 */
 void initGlobalData() {
+    int i;
 	GlobalDataLock = CreateLock("GlobalDataLock", sizeof("GlobalDataLock"));
 	LiaisonLineLock = CreateLock("LiaisonLineLock", sizeof("LiaisonLineLock"));
 	ConveyorLock = CreateLock("ConveyorLock", sizeof("ConveyorLock"));
 
-    int i;
-    for (i = 0; i < QUEUE_MAX; i++) {
-        OfficersLine._queue[i] = -1;
-        ConveyorBelt._queue[i] = -1;
+    for (i = 0; i < NUM_PASSENGERS; i++) {
+        OfficersLine._array[i] = -1;
+        ConveyorBelt._array[i] = -1;
     }
     OfficersLine._front = -1;
     OfficersLine._rear = -1;
@@ -610,14 +606,13 @@ void initAirlines() {
 		a._lock = CreateLock(concatNumToString("airline_lock_", i), 14);
     	a._execLineLock = CreateLock(concatNumToString("airline_exec_lock_", i), 19);
     	a._execLineCV = CreateCV(concatNumToString("airline_execLineCV_", i), 20);
-    	a._execLineSize = 0;
     	a._boardLoungeCV = CreateCV(concatNumToString("airline_boardLoungeCV_", i), 23);
     	a._cisLineLock = CreateLock(concatNumToString("airline_CIS_lock_", i), 18);
     	for (j = 0; j < NUM_CIS_PER_AIRLINE; ++j) {
     		initCIS(j);
     	}
-        for (j = 0; j < QUEUE_MAX; j++) {
-            a._execQueue._queue[j] = -1;
+        for (j = 0; j < NUM_PASSENGERS; j++) {
+            a._execQueue._array[j] = -1;
         }
         a._execQueue._front = -1;
         a._execQueue._rear = -1;
