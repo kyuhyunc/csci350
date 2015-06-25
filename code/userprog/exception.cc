@@ -605,13 +605,11 @@ int DestroyLock_Syscall(int index) {
           printf("ERROR: You could not create lock properly. Check your lock status.(Destroy)\n");
           return -1;
     }
-
     //it has to be checked whether the lock is already used or not AND the boolean(destroyed) is false;
-    if(index > NumLocks || index < 0) {
+    if(index < -1) {
       //invalid index passed in. Return -1 since it can't be deleted
       printf("ERROR: invalid index passed in. (DestoryLock)\n");
         return -1;
-
     }
     int temp = (int)locktable->Get(index);
     if(temp == 0) {
@@ -619,7 +617,6 @@ int DestroyLock_Syscall(int index) {
       printf("ERROR: there is not lock that you can destroy in table(DestoryLock)\n");
         return -1;
     }
-
     //if current thread is not the thread that create CV, then it can't be destroyed.
     if(((kernelLock * )locktable->Get(index))->adds != currentThread->space) {
         printf("ERROR: Current thread does not hold the lock. you can't destory!(DestoryLock)\n");
@@ -643,7 +640,7 @@ int Acquire_Syscall(int index) {
           return -1;
       }
       //first error checking, if index can't be larger than the maximum number of lock.
-      if(index > NumLocks || index < 0) {
+      if(index < -1) {
           printf("ERROR: Invalid index number was passed in.(Acquire)\n");
           return -1;
       }
@@ -678,7 +675,7 @@ int Release_Syscall(int index) {
           return -1;
       }
       //first error checking, if index can't be larger then the maximum number of lock.
-      if(index > NumLocks) {
+      if(index < -1) {
           printf("ERROR: invalid index number was passed in.(Release)\n");
           return -1;
       }
@@ -701,11 +698,13 @@ int Release_Syscall(int index) {
       ((kernelLock * )locktable->Get(index))->counter--;
       if(((kernelLock * )locktable->Get(index))->counter == 0 && ((kernelLock * )locktable->Get(index))->isToBeDeleted == true) {
           ((kernelLock * )locktable->Get(index))->lock == NULL;
+          DEBUG('c', "Lock index in release  : %d \n", index);
+          DEBUG('c', "Lock Counter : %d \n",((kernelLock * )locktable->Get(index))->counter);
+          DEBUG('c', "Lock Boolean : %d \n",((kernelLock * )locktable->Get(index))->isToBeDeleted);
+          ((kernelLock * )locktable->Remove(index)); //Remove lock from lock table;
           DEBUG('c', "Lock is deleted\n");
       }
-      DEBUG('c', "Lock index in release  : %d \n", index);
-      DEBUG('c', "Lock Counter : %d \n",((kernelLock * )locktable->Get(index))->counter);
-      DEBUG('c', "Lock Boolean : %d \n",((kernelLock * )locktable->Get(index))->isToBeDeleted);
+
       return index;
 }
 
@@ -761,7 +760,7 @@ int DestroyCV_Syscall(int index) {
         printf("ERROR: You could not create CV properly. Check your lock status.(DestroyCV)\n");
         return -1;
     }
-    if(index > NumCVs || index < 0) {
+    if(index < -1) {
         //invalid index passed in. Return -1 since it can't be deleted
         printf("ERROR: invalid index passed in.(DestroyCV)\n");
         return -1;
@@ -800,7 +799,7 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
         printf("ERROR: You could not create CV properly. Check your lock status.(wait)\n");
         return -1;
     }
-    if(lockIndex > NumLocks || lockIndex < 0 || CVIndex > NumCVs || CVIndex < 0) {
+    if(lockIndex < -1 || CVIndex < -1) {
         printf("ERROR: invalid index number was passed in.(Wait)\n");
         return -1;
     }
@@ -839,6 +838,7 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
     //to check when we can destory lock 
     if(((kernelCV * )cvtable->Get(CVIndex))->counter == 0 && ((kernelCV * )cvtable->Get(CVIndex))->isToBeDeleted == true) {
       ((kernelCV * )cvtable->Get(CVIndex))->condition = NULL;
+      ((kernelCV * )cvtable->Remove(CVIndex)); //Remove CV from CV table;
       DEBUG('c', "condition is deleted\n");
     }
     return CVIndex;
@@ -860,7 +860,7 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
         return -1;
     }
     //first you need to check if the valid index is passed in
-    if(lockIndex > NumLocks || lockIndex < 0 || CVIndex > NumCVs || CVIndex < 0) {
+    if(lockIndex < -1 || CVIndex < -1) {
         printf("ERROR: invalid index number was passed in.(Signal)\n");
         return -1;
     }
@@ -895,6 +895,7 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
     //to check when we can destory lock 
     if(((kernelCV * )cvtable->Get(CVIndex))->counter == 0 && ((kernelCV * )cvtable->Get(CVIndex))->isToBeDeleted == true) {
       ((kernelCV * )cvtable->Get(CVIndex))->condition = NULL;
+      ((kernelCV * )cvtable->Remove(CVIndex)); //Remove CV from CV table;
       DEBUG('c', "LOCK in CV is deleted");
     }
 
@@ -917,7 +918,7 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
         return -1;
     }
     //first you need to check if the valid index is passed in
-    if(lockIndex > NumLocks || lockIndex < 0 || CVIndex > NumCVs || CVIndex < 0) {
+    if(lockIndex < -1 || CVIndex < -1) {
         printf("ERROR: invalid index number was passed in.(BroadCast)\n");
         return -1;
     }

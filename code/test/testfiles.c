@@ -193,7 +193,7 @@ void testStart6() {
 	LockIndex8 = CreateLock("SIXTHLOCK", 9);
 	CVIndex7 = CreateCV("SIXTHCV", 7);
 	CVIndex8 = CreateCV("SIXTHCH", 7);
-	for(i = 0; i < 994; i++) {
+	for(i = 0; i < 996; i++) {
 		LockIndex8 = CreateLock("SIXTHLOCK", 9);
 		CVIndex8 = CreateCV("SIXTHCH", 7);
 	}
