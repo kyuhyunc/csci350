@@ -4,8 +4,11 @@
 	Airport Simulation - User Program
  
  */
-
 #include "syscall.h"
+
+typedef int bool;
+enum bool {false, true};
+#define NULL 0
 
 /*
 	Structs
@@ -14,14 +17,14 @@
 /* Passenger Structures */
 struct Ticket {
     bool _executive;
-    int _airline; // choices between 0, 1, and 2
-    int _seat; // uninitialized--done by cis
+    int _airline; 
+    int _seat; 
 };
 
-struct Baggage {
-    int _airline; // uninitialized--done by cis
-    int _weight; // between 30 and 60
-};
+/*struct Baggage {
+    int _airline; 
+    int _weight; 
+};*/
 
 struct Passenger {
 	char *_name;
@@ -30,12 +33,9 @@ struct Passenger {
  	int _myOfficer;
  	int _myLine;
  	bool _furtherQuestioning;
- 	struct Baggages _baggages[3];
-
-    Passenger(char *name, int id) {    
-        strcpy(_name, name);
-        _id = id;
-    }
+ 	/*Baggage _baggages;*/
+ 	int _numBaggages;
+ 	struct Ticket _myTicket;
 };
 
 /*
@@ -62,7 +62,7 @@ int countLock;
 /*
     Statical values
 */
-static struct Passenger passengers[NUM_PASSENGERS];
+/*static struct Passenger passengers[NUM_PASSENGERS];*/
 
 /* Pointers to Entities */
 //struct Passenger** passengers;
@@ -112,7 +112,6 @@ void startCargoHandler() {
 
 void startScreeningOfficer() {
 	Printf0("startScreeningOfficer\n", sizeof("startScreeningOfficer\n"));
-	Printf1("Try1.a = %d\n", sizeof("Try1.a = %d\n"), Try1.a);
 	Exit(0);
 }
 
@@ -151,6 +150,11 @@ int main() {
 	cargoHandlers;
 	screeningOfficers;
 	securityInspector;*/
+
+	/*
+		Misc. Inits
+	*/
+	srand(time(NULL));
 
 	/*
 		Initialize Threads
