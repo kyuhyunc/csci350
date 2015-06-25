@@ -4,6 +4,7 @@
 
 #include "syscall.h"
 
+/*initialize all int variable that be used as return value of create LOCK and CV so we can use it as index in lock/CV table for acquire/release/wait/signal/broadcast*/
  int LockIndex1, LockIndex2, LockIndex3, LockIndex4, LockIndex5, LockIndex6, LockIndex7, LockIndex8;
  int CVIndex1, CVIndex2, CVIndex3, CVIndex4, CVIndex5, CVIndex6, CVIndex7, CVIndex8;
  int invCheck1, invCheck2;
@@ -18,7 +19,7 @@ void testStart5();
 void testStart6();
 void testStart7();
 void testStart8();
-
+/*fucntion 1,2,3 are used for one test to see wait are actually waiting for the Broadcast.*/
 void function1() {
 	Acquire(LockIndex1);
 	Wait(LockIndex1, CVIndex1);
@@ -33,11 +34,13 @@ void function2() {
 	Wait(LockIndex1, CVIndex1);
 	testing1 = testing1 + 3;
 	Release(LockIndex1);
+	/*since this function is finished the last among three functions.*/
 	if(testing1 == 10) {
 		Write("Broadcast/signal test passed\n", sizeof("Broadcast/signal test passed\n"), ConsoleOutput);
 	}else {
 		Write("Broadcast/signal test failed\n", sizeof("Broadcast/signal test failed\n"), ConsoleOutput);
 	}
+	/*Fork test2 function so we can start the next one!*/
 	Fork(testStart2, "changeme", sizeof("changeme"));
 	Exit(0);
 }
@@ -68,6 +71,7 @@ void function6() {
 	Signal(LockIndex2, CVIndex2);
 
 	Release(LockIndex2);
+	/*this function is called the last among the functions that are used for the same test. print out the result and FORK next text function*/
 	if(testing2 == 1) {
 		Write("Two different lock TEST passed\n", sizeof("Two different lock TEST passed\n"), ConsoleOutput);
 		Fork(testStart3, "changeme", sizeof("changeme"));
@@ -90,6 +94,7 @@ void function8() {
 	Wait(LockIndex4, CVIndex4);
 	testing3 = testing3 + 1;
 	Release(LockIndex4);
+	/*this function is called the last among the functions that are used for the same test. print out the result and FORK next text function*/
 	if(testing3 == 2) {
 		Write("DestroyLock TEST passed\n", sizeof("DestroyLock TEST passed\n"), ConsoleOutput);
 		Fork(testStart4, "changeme", sizeof("changeme"));
@@ -109,6 +114,7 @@ void function10() {
 	invCheck1 = Acquire(LockIndex5+20);
 	Broadcast(LockIndex4, CVIndex4);
 	invCheck2 = Release(LockIndex4+20);
+	/*this function is called the last among the functions that are used for the same test. print out the result and FORK next text function*/
 	if(invCheck1 == - 1 && invCheck2 == -1) {
 		Write("invalid index TEST passed\n", sizeof("invalid index TEST passed\n"), ConsoleOutput);
 		Fork(testStart5, "changeme", sizeof("changeme"));
@@ -131,6 +137,7 @@ void function12() {
 	Wait(LockIndex6, CVIndex6);
 	testing5 = testing5 + 1;
 	invCheck2 = Release(LockIndex6);
+	/*this function is called the last among the functions that are used for the same test. print out the result and FORK next text function*/
 	if(testing5) {
 		Write("Destroy CV TEST passed\n", sizeof("Destroy CV TEST passed\n"), ConsoleOutput);
 		Fork(testStart6, "changeme", sizeof("changeme"));
@@ -152,7 +159,7 @@ void testStart2() {
 	CVIndex2 = CreateCV("SecondCV", 7);
 	LockIndex3 = CreateLock("ThirdLOCK", 9);
 	CVIndex3 = CreateCV("ThirdCV", 7);
-	
+	/*Fork three functions that are used for the test!*/
 	Fork(function4, "changeme", sizeof("changeme"));
 	Fork(function5, "changeme", sizeof("changeme"));
 	Fork(function6, "changeme", sizeof("changeme"));
@@ -162,7 +169,7 @@ void testStart3() {
 	Write("Test3: DestroyLock TEST\n", sizeof("Test3: DestroyLock TEST\n"), ConsoleOutput);
 	LockIndex4 = CreateLock("FOURTHLOCK", 10);
 	CVIndex4 = CreateCV("FOURTHCV", 8);
-
+	/*Fork three functions that are used for the test!*/
 	Fork(function7, "changeme", sizeof("changeme"));
 	Fork(function8, "changeme", sizeof("changeme"));
 	Fork(function9, "changeme", sizeof("changeme"));
@@ -172,22 +179,23 @@ void testStart4() {
 	Write("Test4: Invalid index TEST\n", sizeof("Test4: Invalid index TEST\n"), ConsoleOutput);
 	LockIndex5 = CreateLock("FIFTHLOCK", 9);
 	CVIndex5 = CreateCV("FIFTHCV", 7);
-
+	/*Fork function that are used for the test!*/
 	Fork(function10, "changeme", sizeof("changeme"));
 	Exit(0);
 }
 void testStart5() {
+
 	Write("Test5: Destroy CV TEST\n", sizeof("Test5: Destroy CV TEST\n"), ConsoleOutput);
 	LockIndex6 = CreateLock("SIXTHLOCK", 9);
 	CVIndex6 = CreateCV("SIXTHCV", 7);
-
-
+	/*Fork three functions that are used for the test!*/
 	Fork(function11, "changeme", sizeof("changeme"));
 	Fork(function12, "changeme", sizeof("changeme"));
 	Fork(function13, "changeme", sizeof("changeme"));
 	Exit(0);
 }
 void testStart6() {
+	/*For this test, we are making environment that LOCK and CV going to be full. then I see if we can add more in the table that is full*/
 	int i;
 	Write("Test6: 'Trying to create LOCK / CV over Maximum' TEST\n", sizeof("Test6: 'Trying to create LOCK / CV over Maximum' TEST\n"), ConsoleOutput);
 	LockIndex8 = CreateLock("SIXTHLOCK", 9);
@@ -202,11 +210,12 @@ void testStart6() {
 	}else{
 		Write("'Trying to create LOCK / CV over Maximum TEST' failed\n", sizeof("'Trying to create LOCK / CV over Maximum TEST' failed\n"), ConsoleOutput);
 	}
-
+	/*Fork function that are used for the test!*/
 	Fork(testStart7, "changeme", sizeof("changeme"));
 	Exit(0);
 }
 void testStart7() {
+	/*for this test, put invalid integer value in syscall to see if they create ERROR and returns -1*/
 	int test7_1, test7_2, test7_3, test7_4, test7_5, test7_6, test7_7;
 	Write("Test7: 'Passing in invalid index' TEST\n", sizeof("Test7: 'Passing in invalid index' TEST\n"), ConsoleOutput);
 
@@ -229,6 +238,7 @@ void testStart7() {
 	Exit(0);
 }
 void testStart8() {
+	/*text if exec is correctly working!*/
 	Write("Test8: '' TEST\n", sizeof("Test7: '' TEST\n"), ConsoleOutput);
 	Exec("../test/testexit", sizeof("../test/testexit"));
 
@@ -255,7 +265,7 @@ int main() {
 
 	LockIndex1 = CreateLock("FirstLOCK", 9);
 	CVIndex1 = CreateCV("FirstCV", 7);
-	
+	/*we fork these threee function so that we can start the first test for syscall!*/
 	Fork(function1, "changeme", sizeof("changeme"));
 	Fork(function2, "changeme", sizeof("changeme"));
 	Fork(function3, "changeme", sizeof("changeme"));
