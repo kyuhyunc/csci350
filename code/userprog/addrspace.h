@@ -44,7 +44,7 @@ class AddrSpace {
 					// address space
 	
 	friend void StartProcess(char* filename);
-	friend void Fork_Syscall(int pc);
+	friend void Fork_Syscall(int pc, unsigned int vaddr, int size);
 	friend void Exec_Syscall(unsigned int vaddr, int size);
 	friend void Exit_Syscall(int status);
 

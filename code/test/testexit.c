@@ -33,10 +33,10 @@ int main() {
 
 	Printf0("m1\n", sizeof("m1\n"));
 
-	Fork(f1);
-	Fork(f2);
-	Fork(f3);
-	Fork(f4);
-	Fork(f5);
+	Fork(f1, "changeme", sizeof("changeme"));
+	Fork(f2, "changeme", sizeof("changeme"));
+	Fork(f3, "changeme", sizeof("changeme"));
+	Fork(f4, "changeme", sizeof("changeme"));
+	Fork(f5, "changeme", sizeof("changeme"));
 
 }
