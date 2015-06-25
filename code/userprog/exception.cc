@@ -251,7 +251,7 @@ void Fork_Syscall(int pc, unsigned int vaddr, int len) {
 	// Read in Fork name
 	char* buf;
 	if (!(buf = new char[len])) {
-		printf("Error allocating kernel buffer for Printf0!\n");
+		printf("Error allocating kernel buffer for Fork!\n");
 		return;
 	}
 	else {
@@ -498,197 +498,285 @@ void Yield_Syscall() {
 }
 
 int CreateLock_Syscall(int vaddr, int size) {
+	IntStatus old = interrupt->SetLevel(IntOff);
+
 	//it returns -1 when user can't create lock for some reason.
 	//otherwise, it returns index of table where the lock that user creates is located. 
-	DEBUG('c',"CreateLock starts\n");
-	char *buf = new char[size+1]; // Kernel buffer to put the name in
+	//DEBUG('c',"CreateLock starts\n");
 
+	//**********************************************************************
+	//				PARSING NAME
+	//**********************************************************************
+
+	// reading in lock name
+	char *buf = new char[size+1]; // Kernel buffer to put the name in
 	if (!buf) {
 		printf("%s","Can't allocate kernel buffer CreateLock(CreateLock)\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
-
 	if(copyin(vaddr, size, buf) == -1) {
 		//check if the pointer is valid one. if pointer is not valid, then return.
 		printf("error: Pointer is invalid(CreateLock)\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
+
+	//**********************************************************************
+	//				ERROR CHECKING
+	//**********************************************************************
+
 	//check if the kernel lock table is full, then you can't put lock in there.
 	if(locktable->NumUsed() >= NumLocks) {
-		printf("kernel lock table is full, you can not put more lock!\n");
+		printf("ERROR: No more Locks available. Lock not created.\n");
 	}
 
-	//creating lock
+	//**********************************************************************
+	//				CREATING LOCK
+	//**********************************************************************
+
 	Lock * l = new Lock(buf);
 	kernelLock * kl = new kernelLock();
 	kl->lock = l;
 	kl->isToBeDeleted = false;
 	kl->adds = currentThread->space;
-	//to check and to know when I can destroy!
-	kl->counter = 0;
+	kl->counter = 0; //to check and to know when I can destroy!
 
+	// search for available lock
+	// returns -1 if there is no available lock
 	int index = locktable->Put((void * )kl);
+
 	//return when you can't put lock in the table.
 	if(index == -1) {
-		printf("You can't put lock in kernel lock table\n");
+		printf("ERROR: No more Locks available. Lock not created.\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
 
+	(void) interrupt->SetLevel(old);
 	return index;
 }
 
 int DestroyLock_Syscall(int index) {
+	IntStatus old = interrupt->SetLevel(IntOff);
+
 	// it returns -1 when lock can't be destroyed
 	// otherwise, it returns index.
 	//if it is ready to be destroyed, then set the boolean value true and make the lock pointer NULL
 	DEBUG('c', "DestroyLock starts\n");
-	//checking index. if index is -1 then user did not properly create LOCK!
-	if(index == -1) {
-		printf("ERROR: You could not create lock properly. Check your lock status.(Destroy)\n");
+
+	//**********************************************************************
+	//				ERROR CHECKING
+	//**********************************************************************
+
+	// checking index. if index is -1 then user did not properly create LOCK!
+	if (index == -1) {
+		printf("ERROR: Lock not created properly. Lock not destroyed.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+	// checking other indices to protect against garbage values
+	if (index < 0 || index > NumLocks) {
+		// index out of range
+		printf("ERROR: Invalid index passed in. Lock not destroyed.\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
 
-	//it has to be checked whether the lock is already used or not AND the boolean(destroyed) is false;
-	if(index < -1) {
-		//invalid index passed in. Return -1 since it can't be deleted
-		printf("ERROR: invalid index passed in. (DestoryLock)\n");
+	kernelLock* kl = (kernelLock*) locktable->Get(index);
+	if (kl == NULL || kl->lock == NULL) {
+		// lock does not exist. Return -1 since it can't be deleted
+		printf("ERROR: Target Lock does not exist. Lock not destroyed.\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
 
-	int temp = (int)locktable->Get(index);
-	if(temp == 0) {
-		//invalid index passed in. Return -1 since it can't be deleted
-		printf("ERROR: there is not lock that you can destroy in table(DestoryLock)\n");
+	// if current thread is not the thread that create lock, then it can't be destroyed.
+	if (kl->adds != currentThread->space) {
+		printf("ERROR: Permission denied! Target Lock belongs to a different process. Lock not destroyed.\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
 
-	//if current thread is not the thread that create CV, then it can't be destroyed.
-	if(((kernelLock * )locktable->Get(index))->adds != currentThread->space) {
-		printf("ERROR: Current thread does not hold the lock. you can't destory!(DestoryLock)\n");
-		return -1;
+	//**********************************************************************
+	//				DESTROYING LOCK
+	//**********************************************************************
+
+	// if Lock is currently available, destroy it now
+	if (kl->counter == 0) {
+		kl = (kernelLock*) locktable->Remove(index);
+		delete kl->lock;
+		delete kl;
+	}
+	// if Lock is currently not released yet, destroy it later
+	else {
+		kl->isToBeDeleted = true;
+		DEBUG('c',"Destory Lock call %d\n", ((kernelLock * )locktable->Get(index))->isToBeDeleted);
+		DEBUG('c',"Lock index in DestoryLock   : %d \n", index);
 	}
 
-	//to set isToBeDeleted value true so that at the last release, we can check the boolean and destory it if it is ready
-	((kernelLock * )locktable->Get(index))->isToBeDeleted = true;
-	DEBUG('c',"Destory Lock call 2 %d\n", ((kernelLock * )locktable->Get(index))->isToBeDeleted);
-	DEBUG('c',"Lock index in DestoryLock   : %d \n", index);
-
+	(void) interrupt->SetLevel(old);
 	return index;
 }
 
 int Acquire_Syscall(int index) {
+	IntStatus old = interrupt->SetLevel(IntOff);
+
 	DEBUG('c', "%d in Acquire\n", index);
 	//if there is error, return -1
 	//otherwise, it returns lock index that user tries to acquire
 
-	//checking index. if index is -1 then user did not properly create LOCK!
-	if(index == -1) {
-		printf("ERROR: You could not create lock properly. Check your lock status.(Acquire)\n");
+	//**********************************************************************
+	//				ERROR CHECKING
+	//**********************************************************************
+
+	// checking index. if index is -1 then user did not properly create LOCK!
+	if (index == -1) {
+		printf("ERROR: Lock not created properly. Acquire not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+	// checking other indices to protect against garbage values
+	if (index < 0 || index > NumLocks) {
+		// index out of range
+		printf("ERROR: Invalid index passed in. Acquire not called.\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
 
-	//first error checking, if index can't be larger than the maximum number of lock.
-	if(index < -1) {
-		printf("ERROR: Invalid index number was passed in.(Acquire)\n");
+	kernelLock* kl = (kernelLock*) locktable->Get(index);
+	if (kl == NULL || kl->lock == NULL) {
+		// lock does not exist. Return -1 since it can't be acquired
+		printf("ERROR: Target Lock does not exist. Acquire not called.\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
 
-	if(((int)locktable->Get(index)) == 0) {
-		printf("ERROR: the lock you are trying to acquire is not in table(Acqurie)\n");
+	// if current thread is not the thread that create lock, then it can't be acquired
+	if (kl->adds != currentThread->space) {
+		printf("ERROR: Permission denied! Target Lock belongs to a different process. Acquire not called.\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
 
-	//if lock user try to acquire is NULL, then you can't acquire
-	if(((kernelLock * )locktable->Get(index))->lock == NULL) {
-		printf("ERROR: the lock you are trying to Acquire is NULL.(Acqurie)\n");
-		return -1;
-	}
+	//**********************************************************************
+	//				ACQUIRING LOCK
+	//**********************************************************************
 
-	//if the lock is not own by current thread, then do nothing!
-	if(((kernelLock * )locktable->Get(index))->adds != currentThread->space) {
-		printf("ERROR: the lock is not held by currentThread.(Acqurie) \n");
-		return -1;
-	}
+	kl->counter++; // keeps track of how many threads attempt to acquire this lock
+					// so it doesn't get destroyed and put correct user programs into deadlock!
+	kl->lock->Acquire();
 
-	((kernelLock * )locktable->Get(index))->lock->Acquire();
-	//increment counter so that we know how many time the lock is acquired
-	((kernelLock * )locktable->Get(index))->counter++;
+	(void) interrupt->SetLevel(old);
 	return index;
 }
 
 int Release_Syscall(int index) {
+	IntStatus old = interrupt->SetLevel(IntOff);
+
 	//if there is error, return -1
 	//otherwise, it returns lock index that user tries to Release
 	DEBUG('c', "%d in Release\n", index);
 
-	//checking index. if index is -1 then user did not properly create LOCK!
-	if(index == -1) {
-		printf("ERROR: You could not create lock properly. Check your lock status.(Release)\n");
+	//**********************************************************************
+	//				ERROR CHECKING
+	//**********************************************************************
+
+	// checking index. if index is -1 then user did not properly create LOCK!
+	if (index == -1) {
+		printf("ERROR: Lock not created properly. Release not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+	// checking other indices to protect against garbage values
+	if (index < 0 || index > NumLocks) {
+		// index out of range
+		printf("ERROR: Invalid index passed in. Release not called.\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
 
-	//first error checking, if index can't be larger then the maximum number of lock.
-	if(index < -1) {
-		printf("ERROR: invalid index number was passed in.(Release)\n");
+	kernelLock* kl = (kernelLock*) locktable->Get(index);
+	if (kl == NULL || kl->lock == NULL) {
+		// lock does not exist. Return -1 since it can't be acquired
+		printf("ERROR: Target Lock does not exist. Release not called.\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
 
-	//if lock user try to acquire is NULL, then you can't acquire
-	if(((int)locktable->Get(index)) == 0) {
-		printf("ERROR: the lock you are trying to acquire is not in table(Release)\n");
+	// if current thread is not the thread that create lock, then it can't be acquired
+	if (kl->adds != currentThread->space) {
+		printf("ERROR: Permission denied! Target Lock belongs to a different process. Release not called.\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
 
-	if(((kernelLock * )locktable->Get(index))->lock == NULL) {
-		printf("ERROR: the lock you are trying to Release is NULL.(Release)\n");
-		return -1;
-	}
+	//**********************************************************************
+	//				RELEASING LOCK
+	//**********************************************************************
 
-	//if the lock is not own by current thread, then do nothing!
-	if(((kernelLock * )locktable->Get(index))->adds != currentThread->space) {
-		printf("ERROR: the lock is not held by currentThread.(Release) \n");
-		return -1;
-	}
+	kl->lock->Release();
+	kl->counter--;
 
-	((kernelLock * )locktable->Get(index))->lock->Release();
-	((kernelLock * )locktable->Get(index))->counter--;
-	if(((kernelLock * )locktable->Get(index))->counter == 0 && ((kernelLock * )locktable->Get(index))->isToBeDeleted == true) {
-		((kernelLock * )locktable->Get(index))->lock == NULL;
+	// if DestroyLock was supposed to destroy this lock but wasn't able to,
+	// check if nobody is trying to Acquire the lock, and destroy it if 
+	// that condition is met!
+	if (kl->isToBeDeleted == true && kl->counter == 0) {
 		DEBUG('c', "Lock index in release  : %d \n", index);
 		DEBUG('c', "Lock Counter : %d \n",((kernelLock * )locktable->Get(index))->counter);
 		DEBUG('c', "Lock Boolean : %d \n",((kernelLock * )locktable->Get(index))->isToBeDeleted);
-		((kernelLock * )locktable->Remove(index)); //Remove lock from lock table;
 		DEBUG('c', "Lock is deleted\n");
+		kl = (kernelLock*) locktable->Remove(index);
+		delete kl->lock;
+		delete kl;
 	}
 
+	(void) interrupt->SetLevel(old);
 	return index;
 }
 
 int CreateCV_Syscall(int vaddr, int size) {
-	//it returns -1 when user can't create CV for some reason.
-	//otherwise, it returns index of table where the lock that user creates is located. 
-	DEBUG('c', "createCV starts\n");
-	char *buf = new char[size+1]; // Kernel buffer to put the name in
+	IntStatus old = interrupt->SetLevel(IntOff);
 
+	//it returns -1 when user can't create CV for some reason.
+	//otherwise, it returns index of table where the cv that user creates is located. 
+	DEBUG('c', "createCV starts\n");
+	
+	//**********************************************************************
+	//				PARSING NAME
+	//**********************************************************************
+
+	char *buf = new char[size+1]; // Kernel buffer to put the name in
 	if (!buf) {
 		printf("%s","Can't allocate kernel buffer CreateCV.(CreateCV)\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
-
 	if(copyin(vaddr, size, buf) == -1) {
 		//check if the pointer is valid one. if pointer is not valid, then return.
 		printf("error: Pointer is invalid.(CreateCV)\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
+
+	//**********************************************************************
+	//				ERROR CHECKING
+	//**********************************************************************
+
 	//check if the kernel lock table is full, then you can't put lock in there.
 	if(cvtable->NumUsed() >= NumCVs) {
-		printf("kernel CV table is full, you can not put more lock!\n");
+		printf("ERROR: No more Conditions available. Condition not created.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
 	}
 
-	//creating lock
-	Condition * c = new Condition(buf);
+	//**********************************************************************
+	//				CREATING CONDITION
+	//**********************************************************************
+
+	Condition * cv = new Condition(buf);
 	kernelCV * kc = new kernelCV();
-	kc->condition = c;
+	kc->condition = cv;
 	kc->isToBeDeleted = false;
 	kc->adds = currentThread->space;
 	//to check and to know when I can destroy!
@@ -697,219 +785,330 @@ int CreateCV_Syscall(int vaddr, int size) {
 	int index = cvtable->Put((void * )kc);
 	//return when you can't put lock in the table.
 	if(index == -1) {
-		printf("you can't put more CV in the table\n");
+		printf("ERROR: No more Conditions available. Condition not created.\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
 	}
 
+	(void) interrupt->SetLevel(old);
 	return index;
 }
 
 int DestroyCV_Syscall(int index) {
+	IntStatus old = interrupt->SetLevel(IntOff);
+
     // it returns -1 when lock can't be destroyed
     // otherwise, it returns index.
     //if it is ready to be destroyed, then set the boolean value true and make the lock pointer NULL
     //it has to be checked whether the lock is already used or not AND the boolean(destroyed) is false
     DEBUG('c',"DestroyCV starts\n");
 
+	//**********************************************************************
+	//				ERROR CHECKING
+	//**********************************************************************
+
     //checking index. if index is -1 then user did not properly create CV!
     if(index == -1) {
-        printf("ERROR: You could not create CV properly. Check your lock status.(DestroyCV)\n");
+		printf("ERROR: Condition not created properly. Condition not destroyed.\n");
+		(void) interrupt->SetLevel(old);
         return -1;
     }
-    if(index < -1) {
-        //invalid index passed in. Return -1 since it can't be deleted
-        printf("ERROR: invalid index passed in.(DestroyCV)\n");
-        return -1;
-    }
+	// checking other indices to protect against garbage values
+	if (index < 0 || index > NumLocks) {
+		// index out of range
+		printf("ERROR: Invalid index passed in. Condition not destroyed.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
 
-    if(((int)cvtable->Get(index)) == 0) {
-        //invalid index passed in. Return -1 since it can't be deleted
-      printf("ERROR: There is no conditinon you can destroy in CV table.(DestroyCV)\n");
-        return -1;
-    }
-      //if current thread is not the thread that create CV, then it can't be destroyed.
-    if(((kernelCV * )cvtable->Get(index))->adds != currentThread->space) {
+	kernelCV* kc = (kernelCV*) cvtable->Get(index);
+	if (kc == NULL || kc->condition == NULL) {
+		// lock does not exist. Return -1 since it can't be deleted
+		printf("ERROR: Target Lock does not exist. Condition not destroyed.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
 
-        printf("ERROR: Current thread does not hold the lock. you can't destory!.(DestroyCV)\n");
-        return -1;
-    }
-      //if the lock is being used, it can't be destoryed
-      //To check if the lock is ready to be deleted!, if it is, then you can delete it at the last wait/signal/broadcast CV
-    ((kernelCV * )cvtable->Get(index))->isToBeDeleted = true;
+	// if current thread is not the thread that create cv, then it can't be destroyed.
+	if (kc->adds != currentThread->space) {
+		printf("ERROR: Permission denied! Target Condition belongs to a different process. Condition not destroyed.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+
+	//**********************************************************************
+	//				DESTROYING CONDITION
+	//**********************************************************************
+
+	// if Condition is currently available, destroy it now
+	if (kc->counter == 0) {
+		kc = (kernelCV*) cvtable->Remove(index);
+		delete kc->condition;
+		delete kc;
+	}
+	// if other threads are currently Waiting on this Condition, destroy it later
+	else {
+		kc->isToBeDeleted = true;
+
+	}
+
+	(void) interrupt->SetLevel(old);
     return index;
 }
 
 int Wait_Syscall(int lockIndex, int CVIndex) {
+	IntStatus old = interrupt->SetLevel(IntOff);
+
     //if you can't call wait properly, then it returns -1 so we know if there is something wrong.
     //Otherwise, it returns CV index number
     //first you need to check if the valid index is passed in
     DEBUG('c', "lock index %d and CVIndex %d in Wait\n", lockIndex, CVIndex);
-   
-    //checking index. if index is -1 then user did not properly create LOCK!
-    if(lockIndex == -1) {
-        printf("ERROR: You could not create CV properly. Check your lock status.(wait)\n");
-        return -1;
-    }
-    //checking index. if index is -1 then user did not properly create CV!
-    if(CVIndex == -1) {
-        printf("ERROR: You could not create CV properly. Check your lock status.(wait)\n");
-        return -1;
-    }
-    if(lockIndex < -1 || CVIndex < -1) {
-        printf("ERROR: invalid index number was passed in.(Wait)\n");
-        return -1;
-    }
-    //2rd, to check if lock that you want to find is in lock table.
-    //if you can not find it in the table, then return -1 and do nothing
-    if(((int)locktable->Get(lockIndex)) == 0) {
-        //invalid index passed in. Return -1 since it can't be deleted
-		printf("ERROR: there is not lock that you can wait in table.(Wait)\n");
-        return -1;
-    }
-    //if you can not find CV in the CV table, then return -1 and do nothing
-    if(((int)cvtable->Get(CVIndex)) == 0) {
-        //invalid index passed in. Return -1 since it can't be deleted
-		printf("ERROR: There is no conditinon you can wait in CV table.(Wait)\n");
-        return -1;
-    }
-    //3rd check the current thread is the one that create condition in the CV table. if not, return -1 and do nothing
-    if(((kernelCV * )cvtable->Get(CVIndex))->adds != currentThread -> space) {
 
-		printf("ERROR: Current Thread did not create CV you are trying to wait.(Wait)\n");
+	//**********************************************************************
+	//				ERROR CHECKING
+	//**********************************************************************
+
+	// validate lock index
+	if (lockIndex == -1) {
+		printf("ERROR: Lock not created properly. Wait not called.\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
-    }
-
-    //3rd check the current thread is the one that create LOCK in the LOCK table. if not, return -1 and do nothing
-    if(((kernelLock * )locktable->Get(lockIndex))->adds != currentThread -> space) {
-
-		printf("ERROR: Current Thread did not create LOCK you are trying to wait.(Wait)\n");
+	}
+	if (lockIndex < 0 || lockIndex > NumLocks) {
+		// index out of range
+		printf("ERROR: Invalid Lock index passed in. Wait not called.\n");
+		(void) interrupt->SetLevel(old);
 		return -1;
-    }
+	}
+
+	// validate lock
+	kernelLock* kl = (kernelLock*) locktable->Get(lockIndex);
+	if (kl == NULL || kl->lock == NULL) {
+		// lock does not exist. Return -1 since it can't be acquired
+		printf("ERROR: Target Lock does not exist. Wait not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+
+	// validate lock's process
+	if (kl->adds != currentThread->space) {
+		printf("ERROR: Permission denied! Target Lock belongs to a different process. Wait not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+
+	// validate cv index
+	if (CVIndex == -1) {
+		printf("ERROR: Condition not created properly. Wait not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+	if (CVIndex < 0 || CVIndex > NumCVs) {
+		// index out of range
+		printf("ERROR: Invalid Condition index passed in. Wait not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+	
+	// validate condition
+	kernelCV* kc = (kernelCV*) cvtable->Get(CVIndex);
+	if (kc == NULL || kc->condition == NULL) {
+		// cv does not exist. Return -1 since it can't be acquired
+		printf("ERROR: Target Condition does not exist. Wait not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+
+	// validate condition's process
+	if (kc->adds != currentThread->space) {
+		printf("ERROR: Permission denied! Target Condition belongs to a different process. Wait not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+
     DEBUG('c',"before being called wait!\n");
-    ((kernelCV * )cvtable->Get(CVIndex))->counter++;
+	
+	//**********************************************************************
+	//				WAIT
+	//**********************************************************************
 
-    ((kernelCV * )cvtable->Get(CVIndex))->condition->Wait(((kernelLock * )locktable->Get(lockIndex))->lock);
-       //increment counter so we know how many CV is being used.
-    ((kernelCV * )cvtable->Get(CVIndex))->counter--;
-    //to check when we can destory lock 
-    if(((kernelCV * )cvtable->Get(CVIndex))->counter == 0 && ((kernelCV * )cvtable->Get(CVIndex))->isToBeDeleted == true) {
-		((kernelCV * )cvtable->Get(CVIndex))->condition = NULL;
-		((kernelCV * )cvtable->Remove(CVIndex)); //Remove CV from CV table;
+	kc->counter++;
+	kc->condition->Wait(kl->lock);
+	kc->counter--;
+
+	// if DestroyCV was supposed to destroy this lock but wasn't able to,
+	// check if nobody is waiting on the Condition, and destroy it if
+	// that condition is met!
+	if (kc->isToBeDeleted == true && kc->counter == 0) {
+		kc = (kernelCV*) cvtable->Remove(CVIndex);
+		delete kc->condition;
+		delete kc;
 		DEBUG('c', "condition is deleted\n");
-    }
+	}
 
+	(void) interrupt->SetLevel(old);
     return CVIndex;
-
 }
 
 int Signal_Syscall(int lockIndex, int CVIndex) {
+	IntStatus old = interrupt->SetLevel(IntOff);
+
       //if you can't call signal properly, then it returns -1 so we know if there is something wrong.
     //Otherwise, it returns CV index number
     DEBUG('c', "lock index %d and CVIndex %d in signal\n", lockIndex, CVIndex);
-    //checking index. if index is -1 then user did not properly create LOCK!
-    if(lockIndex == -1) {
-        printf("ERROR: You could not create CV properly. Check your lock status.(Signal)\n");
-        return -1;
-    }
-    //checking index. if index is -1 then user did not properly create CV!
-    if(CVIndex == -1) {
-        printf("ERROR: You could not create CV properly. Check your lock status.(Signal)\n");
-        return -1;
-    }
-    //first you need to check if the valid index is passed in
-    if(lockIndex < -1 || CVIndex < -1) {
-        printf("ERROR: invalid index number was passed in.(Signal)\n");
-        return -1;
-    }
-    //2rd, to check if lock that you want to find is in lock table.
-    //if you can not find it in the table, then return -1 and do nothing
-    if(((int)locktable->Get(lockIndex)) == 0) {
-        //invalid index passed in. Return -1 since it can't be deleted
-      printf("ERROR: there is not lock that you can destroy in table.(Signal)\n");
-        return -1;
-    }
-    //if you can not find CV in the CV table, then return -1 and do nothing
-    if(((int)cvtable->Get(CVIndex)) == 0) {
-        //invalid index passed in. Return -1 since it can't be deleted
-      printf("ERROR: There is no conditinon you can destroy in CV table.(Signal)\n");
-        return -1;
-    }
-    //3rd check the current thread is the one that create condition in the CV table. if not, return -1 and do nothing
-    if(((kernelCV * )cvtable->Get(CVIndex))->adds != currentThread -> space) {
 
-      printf("ERROR: Current Thread did not create CV you are trying to wait.(Signal)\n");
-      return -1;
-    }
+	//**********************************************************************
+	//				ERROR CHECKING
+	//**********************************************************************
 
-    //3rd check the current thread is the one that create LOCK in the LOCK table. if not, return -1 and do nothing
-    if(((kernelLock * )locktable->Get(lockIndex))->adds != currentThread -> space) {
+	// validate lock index
+	if (lockIndex == -1) {
+		printf("ERROR: Lock not created properly. Signal not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+	if (lockIndex < 0 || lockIndex > NumLocks) {
+		// index out of range
+		printf("ERROR: Invalid Lock index passed in. Signal not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
 
-      printf("ERROR: Current Thread did not create LOCK you are trying to wait.(Signal)\n");
-      return -1;
-    }
-    //increment counter so we know how many CV is being used.
-    ((kernelCV * )cvtable->Get(CVIndex))->condition->Signal(((kernelLock * )locktable->Get(lockIndex))->lock);
-    //to check when we can destory lock 
-    if(((kernelCV * )cvtable->Get(CVIndex))->counter == 0 && ((kernelCV * )cvtable->Get(CVIndex))->isToBeDeleted == true) {
-      ((kernelCV * )cvtable->Get(CVIndex))->condition = NULL;
-      ((kernelCV * )cvtable->Remove(CVIndex)); //Remove CV from CV table;
-      DEBUG('c', "LOCK in CV is deleted");
-    }
+	// validate lock
+	kernelLock* kl = (kernelLock*) locktable->Get(lockIndex);
+	if (kl == NULL || kl->lock == NULL) {
+		// lock does not exist. Return -1 since it can't be acquired
+		printf("ERROR: Target Lock does not exist. Signal not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
 
+	// validate lock's process
+	if (kl->adds != currentThread->space) {
+		printf("ERROR: Permission denied! Target Lock belongs to a different process. Signal not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
 
-    return CVIndex;
+	// validate cv index
+	if (CVIndex == -1) {
+		printf("ERROR: Condition not created properly. Signal not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+	if (CVIndex < 0 || CVIndex > NumCVs) {
+		// index out of range
+		printf("ERROR: Invalid Condition index passed in. Signal not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+	
+	// validate condition
+	kernelCV* kc = (kernelCV*) cvtable->Get(CVIndex);
+	if (kc == NULL || kc->condition == NULL) {
+		// cv does not exist. Return -1 since it can't be acquired
+		printf("ERROR: Target Condition does not exist. Signal not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+
+	// validate condition's process
+	if (kc->adds != currentThread->space) {
+		printf("ERROR: Permission denied! Target Condition belongs to a different process. Signal not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+
+	//**********************************************************************
+	//				SIGNAL
+	//**********************************************************************
+
+	kc->condition->Signal(kl->lock);
+
+	(void) interrupt->SetLevel(old);
+	return CVIndex;
 }
 
 int Broadcast_Syscall(int lockIndex, int CVIndex) {
+	IntStatus old = interrupt->SetLevel(IntOff);
+
     //if you can't call Broadcast properly, then it returns -1 so we know if there is something wrong.
     //Otherwise, it returns CV index number
     DEBUG('c', "lock index %d and CVIndex %d in Broadcasts\n", lockIndex, CVIndex);
-    //checking index. if index is -1 then user did not properly create LOCK!
-    if(lockIndex == -1) {
-        printf("ERROR: You could not create CV properly. Check your lock status.(BroadCast)\n");
-        return -1;
-    }
-    //checking index. if index is -1 then user did not properly create CV!
-    if(CVIndex == -1) {
-        printf("ERROR: You could not create CV properly. Check your lock status.(BroadCast)\n");
-        return -1;
-    }
-    //first you need to check if the valid index is passed in
-    if(lockIndex < -1 || CVIndex < -1) {
-        printf("ERROR: invalid index number was passed in.(BroadCast)\n");
-        return -1;
-    }
-    //2rd, to check if lock that you want to find is in lock table.
-    //if you can not find it in the table, then return -1 and do nothing
-    if(((int)locktable->Get(lockIndex)) == 0) {
-        //invalid index passed in. Return -1 since it can't be deleted
-      printf("ERROR: there is not lock that you can destroy in table.(BroadCast)\n");
-        return -1;
-    }
-    //if you can not find CV in the CV table, then return -1 and do nothing
-    if(((int)cvtable->Get(CVIndex)) == 0) {
-        //invalid index passed in. Return -1 since it can't be deleted
-      printf("ERROR: There is no conditinon you can destroy in CV table.(BroadCast)\n");
-        return -1;
-    }
-    //3rd check the current thread is the one that create condition in the CV table. if not, return -1 and do nothing
-    if(((kernelCV * )cvtable->Get(CVIndex))->adds != currentThread -> space) {
 
-      printf("ERROR: Current Thread did not create CV you are trying to wait.(BroadCast)\n");
-      return -1;
-    }
+	//**********************************************************************
+	//				ERROR CHECKING
+	//**********************************************************************
 
-    //3rd check the current thread is the one that create LOCK in the LOCK table. if not, return -1 and do nothing
-    if(((kernelLock * )locktable->Get(lockIndex))->adds != currentThread -> space) {
+	// validate lock index
+	if (lockIndex == -1) {
+		printf("ERROR: Lock not created properly. Broadcast not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+	if (lockIndex < 0 || lockIndex > NumLocks) {
+		// index out of range
+		printf("ERROR: Invalid Lock index passed in. Broadcast not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
 
-      printf("ERROR: Current Thread did not create LOCK you are trying to wait.(BroadCast)\n");
-      return -1;
-    }
-    // it call signal syscall by the number of CV counter so that we can keep track of counter efficiently.
-    int temp = ((kernelCV * )cvtable->Get(CVIndex))->counter;
-    for(int i = 0; i < temp; i++) {
-          Signal_Syscall(lockIndex, CVIndex);
-    }
+	// validate lock
+	kernelLock* kl = (kernelLock*) locktable->Get(lockIndex);
+	if (kl == NULL || kl->lock == NULL) {
+		// lock does not exist. Return -1 since it can't be acquired
+		printf("ERROR: Target Lock does not exist. Broadcast not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+
+	// validate lock's process
+	if (kl->adds != currentThread->space) {
+		printf("ERROR: Permission denied! Target Lock belongs to a different process. Broadcast not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+
+	// validate cv index
+	if (CVIndex == -1) {
+		printf("ERROR: Condition not created properly. Broadcast not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+	if (CVIndex < 0 || CVIndex > NumCVs) {
+		// index out of range
+		printf("ERROR: Invalid Condition index passed in. Broadcast not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+	
+	// validate condition
+	kernelCV* kc = (kernelCV*) cvtable->Get(CVIndex);
+	if (kc == NULL || kc->condition == NULL) {
+		// cv does not exist. Return -1 since it can't be acquired
+		printf("ERROR: Target Condition does not exist. Broadcast not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+
+	// validate condition's process
+	if (kc->adds != currentThread->space) {
+		printf("ERROR: Permission denied! Target Condition belongs to a different process. Broadcast not called.\n");
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+
+	//**********************************************************************
+	//				BROADCAST
+	//**********************************************************************
+
+	// it call signal syscall by the number of CV counter so that we can keep track of counter efficiently.
+	int count = kc->counter;
+	for (int i=0; i < count; i++) {
+		Signal_Syscall(lockIndex, CVIndex);
+	}
+
+	(void) interrupt->SetLevel(old);
     return CVIndex;
 }
 
