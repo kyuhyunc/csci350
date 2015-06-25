@@ -10,24 +10,32 @@
 /*
 	Structs
 */
-/*typedef struct {
-	char* name;
 
-} Airline;*/
+/* Passenger Structures */
+struct Ticket {
+    bool _executive;
+    int _airline; // choices between 0, 1, and 2
+    int _seat; // uninitialized--done by cis
+};
 
-/*typedef struct {
-	char* name;
-	int id;
-} Passenger;*/
+struct Baggage {
+    int _airline; // uninitialized--done by cis
+    int _weight; // between 30 and 60
+};
 
 struct Passenger {
+	char *_name;
+ 	int _id;   
+ 	int _myInspector;
+ 	int _myOfficer;
+ 	int _myLine;
+ 	bool _furtherQuestioning;
+ 	struct Baggages _baggages[3];
+
     Passenger(char *name, int id) {    
         strcpy(_name, name);
         _id = id;
     }
-
-    char *_name;
- 	int _id;   
 };
 
 /*
