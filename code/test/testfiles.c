@@ -4,8 +4,8 @@
 
 #include "syscall.h"
 
- int LockIndex1, LockIndex2, LockIndex3, LockIndex4, LockIndex5, LockIndex6;
- int CVIndex1, CVIndex2, CVIndex3, CVIndex4, CVIndex5, CVIndex6;
+ int LockIndex1, LockIndex2, LockIndex3, LockIndex4, LockIndex5, LockIndex6, LockIndex7, LockIndex8;
+ int CVIndex1, CVIndex2, CVIndex3, CVIndex4, CVIndex5, CVIndex6, CVIndex7, CVIndex8;
  int invCheck1, invCheck2;
  int testing1 = 1;
  int testing2 = 0;
@@ -15,11 +15,12 @@ void testStart2();
 void testStart3();
 void testStart4();
 void testStart5();
+void testStart6();
+void testStart7();
 
 void function1() {
 	Acquire(LockIndex1);
 	Wait(LockIndex1, CVIndex1);
-	Write("2\n", 2, ConsoleOutput);
 	testing1 = testing1 + 5;
 	Release(LockIndex1);
 	DestroyLock(LockIndex1);
@@ -29,7 +30,6 @@ void function1() {
 void function2() {
 	Acquire(LockIndex1);
 	Wait(LockIndex1, CVIndex1);
-	Write("3\n", 2, ConsoleOutput);
 	testing1 = testing1 + 3;
 	Release(LockIndex1);
 	if(testing1 == 10) {
@@ -42,7 +42,6 @@ void function2() {
 }
 void function3() {
 	Acquire(LockIndex1);
-	Write("1\n", 2, ConsoleOutput);
 	testing1 = testing1 * 2;
 	Broadcast(LockIndex1, CVIndex1);
 	Release(LockIndex1);
@@ -133,8 +132,10 @@ void function12() {
 	invCheck2 = Release(LockIndex6);
 	if(testing5) {
 		Write("Destroy CV TEST passed\n", sizeof("Destroy CV TEST passed\n"), ConsoleOutput);
+		Fork(testStart6);
 	}else{
 		Write("Destroy CV TEST failed\n", sizeof("Destroy CV TEST failed\n"), ConsoleOutput);
+		Fork(testStart6);
 	}
 	Exit(0);
 }
@@ -185,7 +186,45 @@ void testStart5() {
 	Fork(function13);
 	Exit(0);
 }
+void testStart6() {
+	int i;
+	Write("Test6: 'Trying to create LOCK / CV over Maximum' TEST\n", sizeof("Test6: 'Trying to create LOCK / CV over Maximum' TEST\n"), ConsoleOutput);
+	LockIndex8 = CreateLock("SIXTHLOCK", 9);
+	CVIndex7 = CreateCV("SIXTHCV", 7);
+	CVIndex8 = CreateCV("SIXTHCH", 7);
+	for(i = 0; i < 994; i++) {
+		LockIndex8 = CreateLock("SIXTHLOCK", 9);
+		CVIndex8 = CreateCV("SIXTHCH", 7);
+	}
+	if(LockIndex8 == -1 && CVIndex8 == -1) {
+		Write("'Trying to create LOCK / CV over Maximum TEST' passed\n", sizeof("'Trying to create LOCK / CV over Maximum TEST' passed\n"), ConsoleOutput);
+	}else{
+		Write("'Trying to create LOCK / CV over Maximum TEST' failed\n", sizeof("'Trying to create LOCK / CV over Maximum TEST' failed\n"), ConsoleOutput);
+	}
 
+	Fork(testStart7);	
+	Exit(0);
+}
+void testStart7() {
+	int test7_1, test7_2, test7_3, test7_4, test7_5, test7_6, test7_7;
+	Write("Test7: 'Passing in invalid index' TEST\n", sizeof("Test7: 'Passing in invalid index' TEST\n"), ConsoleOutput);
+
+	test7_1 = Acquire(LockIndex8);
+	test7_2 = Release(CVIndex8);
+	test7_3 = Acquire(1001);
+	test7_4 = Release(-5);
+	test7_5 = Wait(LockIndex8, CVIndex8);
+	test7_6 = Signal(-1, 5000);
+	test7_7 = Broadcast(-50, 60);
+
+	if(test7_1 == -1 && test7_2 == -1 && test7_3 == -1 && test7_4 == -1 && test7_5 == -1 && test7_6 == -1 && test7_7 == -1) {
+		Write("'Passing in invalid index TEST' passed\n", sizeof("'Passing in invalid index TEST' passed\n"), ConsoleOutput);
+	}else{
+		Write("'Passing in invalid index TEST' failed\n", sizeof("'Passing in invalid index TEST' failed\n"), ConsoleOutput);
+	}
+
+	Exit(0);
+}
 int main() {
 
 	OpenFileId fd;
@@ -202,6 +241,7 @@ int main() {
 	bytesread = Read( buf, 100, fd );
 	Write( buf, bytesread, ConsoleOutput );
 	Close(fd);
+	Write("Test1: Broadcast/signal TEST\n", sizeof("Test1: Broadcast/signal TEST\n"), ConsoleOutput);
 
 	LockIndex1 = CreateLock("FirstLOCK", 9);
 	CVIndex1 = CreateCV("FirstCV", 7);
