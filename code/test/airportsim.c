@@ -26,7 +26,7 @@ struct Ticket {
     int _weight; 
 };*/
 
-struct Passenger {
+typedef struct {
 	char *_name;
  	int _id;   
  	int _myInspector;
@@ -36,7 +36,7 @@ struct Passenger {
  	/*Baggage _baggages;*/
  	int _numBaggages;
  	struct Ticket _myTicket;
-};
+} Passenger;
 
 /*
 	Global Data
@@ -50,7 +50,7 @@ int NUM_CARGO_HANDLERS;
 int NUM_SCREENING_OFFICERS;
 int NUM_SECURITY_INSPECTORS;
 */
-int	NUM_PASSENGERS = 2;
+static int NUM_PASSENGERS = 2;
 int	NUM_LIASONS = 2;
 int	NUM_AIRLINES = 2;
 int	NUM_CIS_PER_AIRLINE = 2;
@@ -65,7 +65,7 @@ int countLock;
 /*static struct Passenger passengers[NUM_PASSENGERS];*/
 
 /* Pointers to Entities */
-//struct Passenger** passengers;
+/* struct Passenger** passengers; */
 
 /* Number of currently active entities */
 int numInitPassengers; 
