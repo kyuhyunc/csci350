@@ -432,10 +432,10 @@ void startManager() {
 							Release(Airlines[i]._lock); /* TODO is this necessary? */
 							numDoneCIS++;
 							for (j = 0; j < NUM_CIS_PER_AIRLINE; ++j) {
-								Acquire(cis._lock);
+								/*Acquire(cis._lock);*/
 								cis._done = true;
-								Signal(cis._lock, cis._commCV);
-								Release(cis._lock);
+								Signal(Airlines[i]._lock, cis._commCV);
+								/*Release(cis._lock);*/
 							}
 							Airlines[i]._CISclosed = true;
 						} else {
@@ -460,7 +460,7 @@ void startManager() {
 			Make sure Manager doesn't hog CPU
 		*/
 		for (i = 0; i < 2000; ++i) {
-			Yield();
+			/*Yield();*/
 		}
 	}
 	Exit(0);
@@ -490,9 +490,11 @@ void initPassengers() {
  		Passengers[i]._numBaggages = i % 2 + 2;
  		for (j = 0; j < Passengers[i]._numBaggages; j++) {
 			Passengers[i]._baggages[j]._weight = (i * 13) % 31 + 30; 
+			Airlines[Passengers[i]._ticket._airline]._numExpectedBaggages++;
 		}
  		/* Ticket */
  		Passengers[i]._ticket._airline = (i*17) % NUM_AIRLINES;
+ 		Airlines[Passengers[i]._ticket._airline]._numExpectedPassengers++;
 		Passengers[i]._ticket._executive = false;
 		if ( (i % 4) == 1 ) {
 			Passengers[i]._ticket._executive = true;
@@ -604,7 +606,7 @@ void forkThreads() {
 	for (i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
 		Fork(startSecurityInspector);
 	}*/
-	/*Fork(startManager);*/
+	Fork(startManager);
 }
 
 /*
