@@ -17,6 +17,7 @@ void testStart4();
 void testStart5();
 void testStart6();
 void testStart7();
+void testStart8();
 
 void function1() {
 	Acquire(LockIndex1);
@@ -219,11 +220,20 @@ void testStart7() {
 
 	if(test7_1 == -1 && test7_2 == -1 && test7_3 == -1 && test7_4 == -1 && test7_5 == -1 && test7_6 == -1 && test7_7 == -1) {
 		Write("'Passing in invalid index TEST' passed\n", sizeof("'Passing in invalid index TEST' passed\n"), ConsoleOutput);
+		Fork(testStart8);
 	}else{
 		Write("'Passing in invalid index TEST' failed\n", sizeof("'Passing in invalid index TEST' failed\n"), ConsoleOutput);
+		Fork(testStart8);
 	}
 
 	Exit(0);
+}
+void testStart8() {
+	Write("Test8: '' TEST\n", sizeof("Test7: '' TEST\n"), ConsoleOutput);
+	Exec("../test/testexit", sizeof("../test/testexit"));
+
+
+	Exit(0);	
 }
 int main() {
 
