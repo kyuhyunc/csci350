@@ -40,7 +40,9 @@ Thread::Thread(char* threadName)
     status = JUST_CREATED;
 #ifdef USER_PROGRAM
     space = NULL;
-	pages = new List();
+//	pages = new List();
+//	threadtype = -1;
+	stackVP = -1;
 	pid = -1;
 	index = -1;
 	stackreg = -1;

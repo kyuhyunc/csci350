@@ -65,7 +65,10 @@ extern Lock* processLock;
 	struct kernelProcess {
 		kernelProcess() {
 			adds = currentThread->space;
-			threadCount = 1;
+			threadCount = 0;
+//			isToBeDeleted = false;
+//			lock = new Lock("pl");
+//			cv = new Condition("pcv");
 			locks = new bool[NumLocks];
 			for (int i=0; i < NumLocks; i++) {
 				locks[i] = false;
@@ -76,12 +79,18 @@ extern Lock* processLock;
 			}
 		}
 		~kernelProcess() {
+//			delete lock;
+//			delete cv;
 			delete [] locks;
 			delete [] cvs;
 		}
 
 		AddrSpace * adds;
 		int threadCount;
+
+//		bool isToBeDeleted;
+//		Lock * lock;
+//		Condition * cv;
 
 		bool* locks;
 		bool* cvs;

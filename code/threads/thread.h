@@ -44,6 +44,10 @@
 #include "machine.h"
 #include "addrspace.h"
 #include "list.h"
+enum ThreadType {
+	MAIN,
+	FORK
+};
 #endif
 
 // CPU register state to be saved on context switch.  
@@ -129,7 +133,9 @@ class Thread {
 
 	int pid;	// process id
 	int index;	// thread index
-	List* pages; // keep track of virtual pages used by the thread
+//	int threadtype; // tracks main or forked thread
+//	List* pages; // keep track of virtual pages used by the thread
+	int stackVP; // keep track of last virtual page allocated to this thread
 	int stackreg; // set as new pages are being allocated
 					// later to be used by kernel_fork to properly set stack
 					// to prevent race condition

@@ -50,6 +50,7 @@ int	NUM_CARGO_HANDLERS = 2;
 int	NUM_SCREENING_OFFICERS = 2;
 int	NUM_SECURITY_INSPECTORS = 2;
 
+int countLock;
 /*
     Statical values
 */
@@ -75,6 +76,11 @@ enum State {
 void startPassenger() {
 	Printf0("startPassenger ", sizeof("startPassenger "));
     Printf1("%d \n", sizeof("%d \n"), numInitPassengers);
+    
+    Acquire(countLock);
+    numInitPassengers++;
+    Release(countLock);
+
 /*	struct Passenger p;
 	p.id = 69;
 	Printf1("startPassenger %d\n", sizeof("startPassenger %d\n"), p.id);*/
@@ -98,6 +104,7 @@ void startCargoHandler() {
 
 void startScreeningOfficer() {
 	Printf0("startScreeningOfficer\n", sizeof("startScreeningOfficer\n"));
+	Printf1("Try1.a = %d\n", sizeof("Try1.a = %d\n"), Try1.a);
 	Exit(0);
 }
 
@@ -119,6 +126,7 @@ int main() {
 		Init Global Data
 	*/
     numInitPassengers = 0; 
+    countLock = CreateLock("countLock", sizeof("countLock"));
 /*
 	NUM_PASSENGERS = 2;
 	NUM_LIASONS = 2;

@@ -32,10 +32,15 @@ StartProcess(char *filename)
 	printf("Unable to open file %s\n", filename);
 	return;
     }
-   
-    space = new AddrSpace(executable);
+
+	memlock->Acquire();
+		space = new AddrSpace(executable);
+		currentThread->stackVP = space->numPages - 1;
+printf("Initialized stackVP = %d\n", space->numPages - 1);
+	memlock->Release();
 
     currentThread->space = space;
+//	currentThread->threadtype = MAIN;
 
     delete executable;			// close file
 
@@ -45,7 +50,8 @@ StartProcess(char *filename)
 	// add starting process to processtable
 	kernelProcess* kp = new kernelProcess();
 	processLock->Acquire();
-	kp->adds = space;
+		kp->adds = space;
+		kp->threadCount++;
 	processLock->Release();
 	int index = processTable->Put((void*)kp);
 	if (index == -1) { // if no space in processtable
