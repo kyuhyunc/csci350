@@ -20,15 +20,10 @@
 	int id;
 } Passenger;*/
 
-struct Passenger {
-    Passenger(char *name, int id) {    
-        strcpy(_name, name);
-        _id = id;
-    }
-
-    char *_name;
- 	int _id;   
-};
+typedef struct {
+    char* _name;
+    int _id;   
+}Passenger;
 
 /*
 	Global Data
@@ -42,7 +37,7 @@ int NUM_CARGO_HANDLERS;
 int NUM_SCREENING_OFFICERS;
 int NUM_SECURITY_INSPECTORS;
 */
-int	NUM_PASSENGERS = 2;
+static int NUM_PASSENGERS = 2;
 int	NUM_LIASONS = 2;
 int	NUM_AIRLINES = 2;
 int	NUM_CIS_PER_AIRLINE = 2;
@@ -57,7 +52,7 @@ int countLock;
 static struct Passenger passengers[NUM_PASSENGERS];
 
 /* Pointers to Entities */
-//struct Passenger** passengers;
+/* struct Passenger** passengers; */
 
 /* Number of currently active entities */
 int numInitPassengers; 
@@ -104,7 +99,6 @@ void startCargoHandler() {
 
 void startScreeningOfficer() {
 	Printf0("startScreeningOfficer\n", sizeof("startScreeningOfficer\n"));
-	Printf1("Try1.a = %d\n", sizeof("Try1.a = %d\n"), Try1.a);
 	Exit(0);
 }
 
