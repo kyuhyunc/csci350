@@ -242,11 +242,25 @@ void kernel_fork(int pc) {
 	machine->Run();
 }
 
-void Fork_Syscall(int pc) {
+void Fork_Syscall(int pc, unsigned int vaddr, int len) {
 //printf("In Fork\n");
 	// The Fork Syscall takes in a user program's function pointer,
 	// creates a new Thread, allocates 8 pages in physical memory
 	// for the Thread's stack.
+
+	// Read in Fork name
+	char* buf;
+	if (!(buf = new char[len])) {
+		printf("Error allocating kernel buffer for Printf0!\n");
+		return;
+	}
+	else {
+		if (copyin(vaddr, len, buf) == -1) {
+			printf("Bad pointer passed to write: data not written\n");
+			delete [] buf;
+			return;
+		}
+	}
 
 	// *** update process table for multiprogramming part
 	// increment current process's threadCount
@@ -277,7 +291,7 @@ void Fork_Syscall(int pc) {
 	}
 
 	// Creates new Thread
-	Thread* t = new Thread("kernel_forker");
+	Thread* t = new Thread(buf);
 	// Allocates 8 pages to Thread's stack in physical memory
 	int* stackdata = currentThread->space->AddStack();
 	t->stackreg = stackdata[0];
@@ -289,6 +303,7 @@ void Fork_Syscall(int pc) {
 	//  t->threadtype = FORK;
 	t->Fork((VoidFunctionPtr)kernel_fork, pc);
 
+	delete [] buf;
 }
 
 void kernel_exec(int pc) {
@@ -299,9 +314,9 @@ void kernel_exec(int pc) {
 
 void Exec_Syscall(unsigned int vaddr, int len) {
 //printf("In Exec\n");
+
 	// read in char*
 	char* filename;
-
 	if (!(filename = new char[len])) {
 		printf("Error allocating kernel buffer for Exec!\n");
 		return;
@@ -314,8 +329,6 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 		}
 	}
 
-	//printf("%s\n", filename);
-
 	// read in file
 	OpenFile* executable = fileSystem->Open(filename);
 	AddrSpace* space;
@@ -326,7 +339,7 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 	}
 
 	// make new addrspace and new thread and fork
-	Thread* t = new Thread("new_exec");
+	Thread* t = new Thread(filename);
 	memlock->Acquire();
 		space = new AddrSpace(executable);
 		t->stackVP = space->numPages - 1;
@@ -1083,7 +1096,7 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_Fork:
 				DEBUG('a', "Fork syscall.\n");
-				Fork_Syscall(machine->ReadRegister(4));
+				Fork_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
 				break;
 			case SC_Yield:
 				DEBUG('a', "Yield syscall.\n");

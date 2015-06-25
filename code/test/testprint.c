@@ -59,8 +59,8 @@ int main() {
 	Fork(e);*/
 
 /*	Printf0("About to call Exec...\n", sizeof("About to call Exec...\n"));*/
-	Fork(test_print);
-	Fork(newpf);
+	Fork(test_print, "changeme", sizeof("changeme"));
+	Fork(newpf, "changeme", sizeof("changeme"));
 /*	Exec("../test/halt", sizeof("../test/halt"));*/
 
 }
