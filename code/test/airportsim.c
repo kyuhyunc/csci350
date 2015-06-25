@@ -18,6 +18,9 @@ int main() {
 
 	Printf0("Write all airport code in this file!\n", sizeof("Write all airport code in this file!\n"));
 
+	Printf1("Try1.a = %d\n", sizeof("Try1.a = %d\n"), Try1.a);
+
+
 	Exit(0);
 
 }

@@ -243,6 +243,7 @@ void kernel_fork(int pc) {
 }
 
 void Fork_Syscall(int pc) {
+//printf("In Fork\n");
 	// The Fork Syscall takes in a user program's function pointer,
 	// creates a new Thread, allocates 8 pages in physical memory
 	// for the Thread's stack.
@@ -277,12 +278,15 @@ void Fork_Syscall(int pc) {
 
 	// Creates new Thread
 	Thread* t = new Thread("kernel_forker");
-	memlock->Acquire();
-		// Allocates 8 pages to Thread's stack in physical memory
-		t->stackreg = currentThread->space->AddStack(); // calls AddrSpace's private function as a friend
-	memlock->Release();
+	// Allocates 8 pages to Thread's stack in physical memory
+	int* stackdata = currentThread->space->AddStack();
+	t->stackreg = stackdata[0];
+	t->stackVP = stackdata[1];
+	delete [] stackdata;
+//	t->stackreg = currentThread->space->AddStack(); // calls AddrSpace's private function as a friend
 	// Thread of same process shares address space
 	t->space = currentThread->space; // all threads of same process has same AddrSpace
+//	t->threadtype = FORK;
 	t->Fork((VoidFunctionPtr)kernel_fork, pc);
 
 }
@@ -294,6 +298,7 @@ void kernel_exec(int pc) {
 }
 
 void Exec_Syscall(unsigned int vaddr, int len) {
+//printf("In Exec\n");
 	// read in char*
 	char* filename;
 
@@ -321,17 +326,20 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 	}
 
 	// make new addrspace and new thread and fork
-	space = new AddrSpace(executable);
 	Thread* t = new Thread("new_exec");
-	t->space = space;
 	memlock->Acquire();
-		t->stackreg = currentThread->space->AddStack();
+		space = new AddrSpace(executable);
+		t->stackVP = space->numPages - 1;
 	memlock->Release();
+	t->space = space;
+//	t->threadtype = MAIN;
+//	t->stackreg = currentThread->space->AddStack();
 
 	// add process to processTable
 	kernelProcess* kp = new kernelProcess();
 	processLock->Acquire();
 		kp->adds = space;
+		kp->threadCount++;
 	processLock->Release();
 	int index = processTable->Put((void*)kp);
 	if (index == -1) { // if no space in processtable
@@ -346,6 +354,7 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 }
 
 void Exit_Syscall(int status) {
+//printf("In Exit\n");
 	processLock->Acquire();
 
 		// check if this is the last process
@@ -373,13 +382,57 @@ void Exit_Syscall(int status) {
 			return;
 		}
 
+		// If Exit is called by a main thread,
+		// and there are still other forked threads from the main,
+		// wait until those are all done
+/*		if (currentThread->threadtype == MAIN && kp->threadCount > 1) {
+			kp->isToBeDeleted = true;
+			processLock->Release();
+			kp->lock->Acquire();
+			kp->cv->Wait(kp->lock);
+			kp->lock->Release();
+			processLock->Acquire();
+		}
+*/
+
 		/*  Case 1: last executing thread in last process
 		completely stop nachos
 		interrupt->Halt();
 		*/
 		if (lastProcess && kp->threadCount == 1) {
+printf("last process and last thread\n");
 			// reclaim all pages
-
+			memlock->Acquire();
+				currentThread->space->Dump();
+				DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
+				int pageIndex = currentThread->stackVP;
+				for (int i=0; i < 8; i++) {
+					memMap->Clear(currentThread->space->pageTable[pageIndex].physicalPage);
+					currentThread->space->pageTable[pageIndex].valid = FALSE;
+					pageIndex--;
+				}
+			memlock->Release();
+/*
+			memlock->Acquire();
+				DEBUG('b', "numPages = %d\n", currentThread->space->numPages);
+				for (unsigned int i=0; i < currentThread->space->numPages; i++) {
+					if (currentThread->space->pageTable[i].valid == TRUE) {
+						memMap->Clear(currentThread->space->pageTable[i].physicalPage);
+						currentThread->space->pageTable[i].valid = FALSE;
+					}
+				}
+			memlock->Release();
+*/
+/*			while (!currentThread->pages->IsEmpty()) {
+				int* index;
+				index = (int*) currentThread->pages->Remove();
+				memlock->Acquire();
+					memMap->Clear(currentThread->space->pageTable[*index].physicalPage);
+					currentThread->space->pageTable[*index].valid = FALSE;
+				memlock->Release();
+				delete index;
+			}
+*/
 			// reclaim all locks
 
 			// reclaim cvs
@@ -387,7 +440,6 @@ void Exit_Syscall(int status) {
 			// delete process
 			processTable->Remove(PID);
 			delete kp;
-
 			processLock->Release();
 
 			// delete all globally instantiated variables
@@ -407,7 +459,17 @@ void Exit_Syscall(int status) {
 		*/
 		else if (kp->threadCount > 1) {
 			// reclaim pages
-			while (!currentThread->pages->IsEmpty()) {
+			memlock->Acquire();
+				currentThread->space->Dump();
+				DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
+				int pageIndex = currentThread->stackVP;
+				for (int i=0; i < 8; i++) {
+					memMap->Clear(currentThread->space->pageTable[pageIndex].physicalPage);
+					currentThread->space->pageTable[pageIndex].valid = FALSE;
+					pageIndex--;
+				}
+			memlock->Release();
+/*			while (!currentThread->pages->IsEmpty()) {
 				int* index;
 				index = (int*) currentThread->pages->Remove();
 				memlock->Acquire();
@@ -416,9 +478,20 @@ void Exit_Syscall(int status) {
 				memlock->Release();
 				delete index;
 			}
-
+*/
 			// decrement
 			kp->threadCount--;
+
+			DEBUG('b', "Done Exiting one thread\n");
+
+			// If Exit is called by a forked thread,
+			// and the main thread is on hold until all forked threads finish,
+			// and this is the last forked thread for this main thread,
+			// signal the main thread to finish cleaning up
+/*			if (kp->threadCount == 1 && kp->isToBeDeleted && currentThread->threadtype == FORK) {
+				kp->cv->Signal(kp->lock);
+			}
+*/
 		}
 
 		/*  Case 3: last thread in process but not last process
@@ -427,7 +500,37 @@ void Exit_Syscall(int status) {
 		*/
 		else if (!lastProcess && kp->threadCount == 1) {
 			// reclaim pages
-
+printf("not last process and 1 thread left\n");
+			memlock->Acquire();
+				currentThread->space->Dump();
+				DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
+				int pageIndex = currentThread->stackVP;
+				for (int i=0; i < 8; i++) {
+					memMap->Clear(currentThread->space->pageTable[pageIndex].physicalPage);
+					currentThread->space->pageTable[pageIndex].valid = FALSE;
+					pageIndex--;
+				}
+			memlock->Release();
+/*			memlock->Acquire();
+				DEBUG('b', "numPages = %d\n", currentThread->space->numPages);
+				for (unsigned int i=0; i < currentThread->space->numPages; i++) {
+					if (currentThread->space->pageTable[i].valid == TRUE) {
+						memMap->Clear(currentThread->space->pageTable[i].physicalPage);
+						currentThread->space->pageTable[i].valid = FALSE;
+					}
+				}
+			memlock->Release();
+*/
+/*			while (!currentThread->pages->IsEmpty()) {
+				int* index;
+				index = (int*) currentThread->pages->Remove();
+				memlock->Acquire();
+					memMap->Clear(currentThread->space->pageTable[*index].physicalPage);
+					currentThread->space->pageTable[*index].valid = FALSE;
+				memlock->Release();
+				delete index;
+			}
+*/
 			// reclaim locks
 
 			// reclaim cvs
@@ -455,7 +558,7 @@ void Yield_Syscall() {
 int CreateLock_Syscall(int vaddr, int size) {
   //it returns -1 when user can't create lock for some reason.
   //otherwise, it returns index of table where the lock that user creates is located. 
-  printf("ChreaLock starts\n");
+  printf("CreateLock starts\n");
   char *buf = new char[size+1]; // Kernel buffer to put the name in
    
   if (!buf) {
@@ -943,6 +1046,10 @@ void ExceptionHandler(ExceptionType which) {
         DEBUG('a', "Yield syscall.\n");
         Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
         break;
+	  case SC_Exec:
+	    DEBUG('a', "Exec syscall.\n");
+		Exec_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+		break;
       case SC_CreateLock:
         DEBUG('a', "CreateLock syscall.\n");
         rv = CreateLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
