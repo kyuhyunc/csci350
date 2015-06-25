@@ -414,8 +414,22 @@ void Exit_Syscall(int status) {
 		memlock->Release();
 
 		// reclaim all locks
+		for (int i=0; i < NumLocks; i++) {
+			if (kp->locks[i] == true) {
+				kernelLock* kl = (kernelLock*) locktable->Remove(i);
+				delete kl->lock;
+				delete kl;
+			}
+		}
 
-		// reclaim cvs
+		// reclaim all cvs
+		for (int i=0; i < NumCVs; i++) {
+			if (kp->cvs[i] == true) {
+				kernelCV* kc = (kernelCV*) cvtable->Remove(i);
+				delete kc->condition;
+				delete kc;
+			}
+		}
 
 		// delete process
 		processTable->Remove(PID);
@@ -474,9 +488,23 @@ void Exit_Syscall(int status) {
 			}
 		memlock->Release();
 
-		// reclaim locks
+		// reclaim locks in process
+		for (int i=0; i < NumLocks; i++) {
+			if (kp->locks[i] == true) {
+				kernelLock* kl = (kernelLock*) locktable->Remove(i);
+				delete kl->lock;
+				delete kl;
+			}
+		}
 
-		// reclaim cvs
+		// reclaim cvs in process
+		for (int i=0; i < NumCVs; i++) {
+			if (kp->cvs[i] == true) {
+				kernelCV* kc = (kernelCV*) cvtable->Remove(i);
+				delete kc->condition;
+				delete kc;
+			}
+		}
 
 		// delete process
 		processTable->Remove(PID);
@@ -553,6 +581,31 @@ int CreateLock_Syscall(int vaddr, int size) {
 		return -1;
 	}
 
+	//**********************************************************************
+	//				UPDATE PROCESS TABLE
+	//**********************************************************************
+
+	// find the current process
+	int PID = -1;
+	kernelProcess* kp;
+	for (int i=0; i < NumProcesses; i++) {
+		kp = (kernelProcess*) processTable->Get(i);
+		if (kp == NULL) {
+			continue;
+		}
+		if (kp->adds == currentThread->space) {
+			PID = i;
+			break;
+		}
+	}
+	if (PID == -1) {
+		printf("Error: invalid process identifier (CreateLock_Syscall)\n");
+		processLock->Release();
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+	kp->locks[index] = true;
+
 	(void) interrupt->SetLevel(old);
 	return index;
 }
@@ -610,9 +663,35 @@ int DestroyLock_Syscall(int index) {
 	}
 	// if Lock is currently not released yet, destroy it later
 	else {
-		kl->isToBeDeleted = true;
 		DEBUG('c',"Destory Lock call %d\n", ((kernelLock * )locktable->Get(index))->isToBeDeleted);
 		DEBUG('c',"Lock index in DestoryLock   : %d \n", index);
+
+		kl->isToBeDeleted = true;
+
+		//**********************************************************************
+		//				UPDATE PROCESS TABLE
+		//**********************************************************************
+
+		// find the current process
+		int PID = -1;
+		kernelProcess* kp;
+		for (int i=0; i < NumProcesses; i++) {
+			kp = (kernelProcess*) processTable->Get(i);
+			if (kp == NULL) {
+				continue;
+			}
+			if (kp->adds == currentThread->space) {
+				PID = i;
+				break;
+			}
+		}
+		if (PID == -1) {
+			printf("Error: invalid process identifier (DestroyLock_Syscall)\n");
+			processLock->Release();
+			(void) interrupt->SetLevel(old);
+			return -1;
+		}
+		kp->locks[index] = false;
 	}
 
 	(void) interrupt->SetLevel(old);
@@ -729,6 +808,31 @@ int Release_Syscall(int index) {
 		kl = (kernelLock*) locktable->Remove(index);
 		delete kl->lock;
 		delete kl;
+
+		//**********************************************************************
+		//				UPDATE PROCESS TABLE
+		//**********************************************************************
+
+		// find the current process
+		int PID = -1;
+		kernelProcess* kp;
+		for (int i=0; i < NumProcesses; i++) {
+			kp = (kernelProcess*) processTable->Get(i);
+			if (kp == NULL) {
+				continue;
+			}
+			if (kp->adds == currentThread->space) {
+				PID = i;
+				break;
+			}
+		}
+		if (PID == -1) {
+			printf("Error: invalid process identifier (ReleaseLock_Syscall)\n");
+			processLock->Release();
+			(void) interrupt->SetLevel(old);
+			return -1;
+		}
+		kp->locks[index] = false;
 	}
 
 	(void) interrupt->SetLevel(old);
@@ -790,6 +894,33 @@ int CreateCV_Syscall(int vaddr, int size) {
 		return -1;
 	}
 
+	//**********************************************************************
+	//				UPDATE PROCESS TABLE
+	//**********************************************************************
+
+	// find the current process
+	int PID = -1;
+	kernelProcess* kp;
+	for (int i=0; i < NumProcesses; i++) {
+		kp = (kernelProcess*) processTable->Get(i);
+		if (kp == NULL) {
+			continue;
+		}
+		if (kp->adds == currentThread->space) {
+			PID = i;
+			break;
+		}
+	}
+	if (PID == -1) {
+		printf("Error: invalid process identifier (CreateCV_Syscall)\n");
+		processLock->Release();
+		(void) interrupt->SetLevel(old);
+		return -1;
+	}
+	kp->cvs[index] = true;
+
+
+
 	(void) interrupt->SetLevel(old);
 	return index;
 }
@@ -845,6 +976,33 @@ int DestroyCV_Syscall(int index) {
 		kc = (kernelCV*) cvtable->Remove(index);
 		delete kc->condition;
 		delete kc;
+
+
+		//**********************************************************************
+		//				UPDATE PROCESS TABLE
+		//**********************************************************************
+
+		// find the current process
+		int PID = -1;
+		kernelProcess* kp;
+		for (int i=0; i < NumProcesses; i++) {
+			kp = (kernelProcess*) processTable->Get(i);
+			if (kp == NULL) {
+				continue;
+			}
+			if (kp->adds == currentThread->space) {
+				PID = i;
+				break;
+			}
+		}
+		if (PID == -1) {
+			printf("Error: invalid process identifier (DestroyCV_Syscall)\n");
+			processLock->Release();
+			(void) interrupt->SetLevel(old);
+			return -1;
+		}
+		kp->cvs[index] = false;
+
 	}
 	// if other threads are currently Waiting on this Condition, destroy it later
 	else {
@@ -940,10 +1098,37 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
 	// check if nobody is waiting on the Condition, and destroy it if
 	// that condition is met!
 	if (kc->isToBeDeleted == true && kc->counter == 0) {
+		DEBUG('c', "condition is deleted\n");
+
 		kc = (kernelCV*) cvtable->Remove(CVIndex);
 		delete kc->condition;
 		delete kc;
-		DEBUG('c', "condition is deleted\n");
+
+		//**********************************************************************
+		//				UPDATE PROCESS TABLE
+		//**********************************************************************
+
+		// find the current process
+		int PID = -1;
+		kernelProcess* kp;
+		for (int i=0; i < NumProcesses; i++) {
+			kp = (kernelProcess*) processTable->Get(i);
+			if (kp == NULL) {
+				continue;
+			}
+			if (kp->adds == currentThread->space) {
+				PID = i;
+				break;
+			}
+		}
+		if (PID == -1) {
+			printf("Error: invalid process identifier (Wait_Syscall)\n");
+			processLock->Release();
+			(void) interrupt->SetLevel(old);
+			return -1;
+		}
+		kp->cvs[CVIndex] = false;
+
 	}
 
 	(void) interrupt->SetLevel(old);
