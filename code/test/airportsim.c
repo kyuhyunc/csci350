@@ -21,12 +21,19 @@
 } Passenger;*/
 
 struct Passenger {
-	int id;
+    Passenger(char *name, int id) {    
+        strcpy(_name, name);
+        _id = id;
+    }
+
+    char *_name;
+ 	int _id;   
 };
 
 /*
 	Global Data
 */
+/*
 int NUM_PASSENGERS;
 int NUM_LIASONS;
 int NUM_AIRLINES;
@@ -34,9 +41,22 @@ int NUM_CIS_PER_AIRLINE;
 int NUM_CARGO_HANDLERS;
 int NUM_SCREENING_OFFICERS;
 int NUM_SECURITY_INSPECTORS;
+*/
+int	NUM_PASSENGERS = 2;
+int	NUM_LIASONS = 2;
+int	NUM_AIRLINES = 2;
+int	NUM_CIS_PER_AIRLINE = 2;
+int	NUM_CARGO_HANDLERS = 2;
+int	NUM_SCREENING_OFFICERS = 2;
+int	NUM_SECURITY_INSPECTORS = 2;
+
+/*
+    Statical values
+*/
+static struct Passenger passengers[NUM_PASSENGERS];
 
 /* Pointers to Entities */
-struct Passenger** passengers;
+//struct Passenger** passengers;
 
 /* Number of currently active entities */
 int numInitPassengers; 
@@ -53,7 +73,8 @@ enum State {
 	One per Type of Thread
 */
 void startPassenger() {
-	Printf0("startPassenger\n", sizeof("startPassenger\n"));
+	Printf0("startPassenger ", sizeof("startPassenger "));
+    Printf1("%d \n", sizeof("%d \n"), numInitPassengers);
 /*	struct Passenger p;
 	p.id = 69;
 	Printf1("startPassenger %d\n", sizeof("startPassenger %d\n"), p.id);*/
@@ -92,13 +113,13 @@ int main() {
 	/*
 		Init Local Data
 	*/
-	int i = 0; /* for-loop iterator */
-	/*struct Passenger* p = (struct Passenger*)malloc(sizeof(struct Passenger));*/
-	char* j = (char*)malloc(1);
+    int i;  /* For loop iterator */
 
 	/*
-		Initialiaze Number of Entities
+		Init Global Data
 	*/
+    numInitPassengers = 0; 
+/*
 	NUM_PASSENGERS = 2;
 	NUM_LIASONS = 2;
 	NUM_AIRLINES = 2;
@@ -106,7 +127,7 @@ int main() {
 	NUM_CARGO_HANDLERS = 2;
 	NUM_SCREENING_OFFICERS = 2;
 	NUM_SECURITY_INSPECTORS = 2;
-
+*/
 
 	/*passengers = (struct Passenger**)malloc( 7 );*/
 /*	liaisons;
@@ -122,7 +143,7 @@ int main() {
 		/*passengers[i] = (struct Passenger*)malloc(sizeof(struct Passenger));*/
 		Fork(startPassenger);
 	}
-	for (i = 0; i < NUM_LIASONS; ++i) {
+	/*for (i = 0; i < NUM_LIASONS; ++i) {
 		Fork(startLiaison);
 	}
 	for (i = 0; i < NUM_CIS_PER_AIRLINE; ++i) {
@@ -136,5 +157,5 @@ int main() {
 	}
 	for (i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
 		Fork(startSecurityInspector);
-	}
+	}*/
 }
