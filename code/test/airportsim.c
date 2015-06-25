@@ -21,10 +21,10 @@ struct Ticket {
     int _seat; 
 };
 
-/*struct Baggage {
+typedef struct {
     int _airline; 
     int _weight; 
-};*/
+} Baggage;
 
 typedef struct {
 	char *_name;
@@ -33,7 +33,7 @@ typedef struct {
  	int _myOfficer;
  	int _myLine;
  	bool _furtherQuestioning;
- 	/*Baggage _baggages;*/
+ 	Baggage _baggages[3];
  	int _numBaggages;
  	struct Ticket _myTicket;
 } Passenger;
