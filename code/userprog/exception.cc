@@ -357,7 +357,7 @@ void Yield_Syscall() {
 int CreateLock_Syscall(int vaddr, int size) {
   //it returns -1 when user can't create lock for some reason.
   //otherwise, it returns index of table where the lock that user creates is located. 
-  printf("ChreaLock starts\n");
+  DEBUG('c',"ChreatLock starts\n");
   char *buf = new char[size+1]; // Kernel buffer to put the name in
    
   if (!buf) {
@@ -370,6 +370,11 @@ int CreateLock_Syscall(int vaddr, int size) {
     printf("error: Pointer is invalid(CreateLock)\n");
     return -1;
   }
+  //check if the kernel lock table is full, then you can't put lock in there.
+  if(locktable->NumUsed() >= NumLocks) {
+      printf("kernel lock table is full, you can not put more lock!\n");
+  }
+
   //creating lock
   Lock * l = new Lock(buf);
   kernelLock * kl = new kernelLock();
@@ -382,6 +387,7 @@ int CreateLock_Syscall(int vaddr, int size) {
   int index = locktable->Put((void * )kl);
   //return when you can't put lock in the table.
   if(index == -1) {
+      printf("You can't put lock in kernel lock table\n");
     return -1;
   }
 
@@ -391,8 +397,14 @@ int CreateLock_Syscall(int vaddr, int size) {
 int DestroyLock_Syscall(int index) {
     // it returns -1 when lock can't be destroyed
     // otherwise, it returns index.
-    printf("DestroyLock starts\n");
     //if it is ready to be destroyed, then set the boolean value true and make the lock pointer NULL
+    DEBUG('c', "DestroyLock starts\n");
+    //checking index. if index is -1 then user did not properly create LOCK!
+    if(index == -1) {
+          printf("ERROR: You could not create lock properly. Check your lock status.(Destroy)\n");
+          return -1;
+    }
+
     //it has to be checked whether the lock is already used or not AND the boolean(destroyed) is false;
     if(index > NumLocks || index < 0) {
       //invalid index passed in. Return -1 since it can't be deleted
@@ -424,9 +436,14 @@ int Acquire_Syscall(int index) {
       //if there is error, return -1
       //otherwise, it returns lock index that user tries to acquire
 
-      //first error checking, if index can't be larger then the maximum number of lock.
+      //checking index. if index is -1 then user did not properly create LOCK!
+      if(index == -1) {
+          printf("ERROR: You could not create lock properly. Check your lock status.(Acquire)\n");
+          return -1;
+      }
+      //first error checking, if index can't be larger than the maximum number of lock.
       if(index > NumLocks || index < 0) {
-          printf("ERROR: invalid index number was passed in.(Acquire)\n");
+          printf("ERROR: Invalid index number was passed in.(Acquire)\n");
           return -1;
       }
       if(((int)locktable->Get(index)) == 0) {
@@ -453,7 +470,12 @@ int Acquire_Syscall(int index) {
 int Release_Syscall(int index) {
       //if there is error, return -1
       //otherwise, it returns lock index that user tries to Release
-      printf("%d in Release\n", index);
+      DEBUG('c', "%d in Release\n", index);
+      //checking index. if index is -1 then user did not properly create LOCK!
+      if(index == -1) {
+          printf("ERROR: You could not create lock properly. Check your lock status.(Release)\n");
+          return -1;
+      }
       //first error checking, if index can't be larger then the maximum number of lock.
       if(index > NumLocks) {
           printf("ERROR: invalid index number was passed in.(Release)\n");
@@ -478,7 +500,7 @@ int Release_Syscall(int index) {
       ((kernelLock * )locktable->Get(index))->counter--;
       if(((kernelLock * )locktable->Get(index))->counter == 0 && ((kernelLock * )locktable->Get(index))->isToBeDeleted == true) {
           ((kernelLock * )locktable->Get(index))->lock == NULL;
-          printf("Lock is deleted\n");
+          DEBUG('c', "Lock is deleted\n");
       }
       DEBUG('c', "Lock index in release  : %d \n", index);
       DEBUG('c', "Lock Counter : %d \n",((kernelLock * )locktable->Get(index))->counter);
@@ -498,9 +520,13 @@ int CreateCV_Syscall(int vaddr, int size) {
         }
 
       if(copyin(vaddr, size, buf) == -1) {
-        //check if the pointer is valid one. if pointer is not valid, then return.
-        printf("error: Pointer is invalid.(CreateCV)\n");
+          //check if the pointer is valid one. if pointer is not valid, then return.
+          printf("error: Pointer is invalid.(CreateCV)\n");
         return -1;
+      }
+      //check if the kernel lock table is full, then you can't put lock in there.
+      if(cvtable->NumUsed() >= NumCVs) {
+          printf("kernel CV table is full, you can not put more lock!\n");
       }
 
       //creating lock
@@ -515,6 +541,7 @@ int CreateCV_Syscall(int vaddr, int size) {
       int index = cvtable->Put((void * )kc);
       //return when you can't put lock in the table.
       if(index == -1) {
+        printf("you can't put more CV in the table\n");
         return -1;
       }
 
@@ -522,14 +549,20 @@ int CreateCV_Syscall(int vaddr, int size) {
 }
 
 int DestroyCV_Syscall(int index) {
-      // it returns -1 when lock can't be destroyed
+    // it returns -1 when lock can't be destroyed
     // otherwise, it returns index.
-    DEBUG('c',"DestroyCV starts\n");
-      //if it is ready to be destroyed, then set the boolean value true and make the lock pointer NULL
+    //if it is ready to be destroyed, then set the boolean value true and make the lock pointer NULL
     //it has to be checked whether the lock is already used or not AND the boolean(destroyed) is false
+    DEBUG('c',"DestroyCV starts\n");
+
+    //checking index. if index is -1 then user did not properly create CV!
+    if(index == -1) {
+        printf("ERROR: You could not create CV properly. Check your lock status.(DestroyCV)\n");
+        return -1;
+    }
     if(index > NumCVs || index < 0) {
         //invalid index passed in. Return -1 since it can't be deleted
-      printf("ERROR: invalid index passed in.(DestroyCV)\n");
+        printf("ERROR: invalid index passed in.(DestroyCV)\n");
         return -1;
     }
 
@@ -553,8 +586,19 @@ int DestroyCV_Syscall(int index) {
 int Wait_Syscall(int lockIndex, int CVIndex) {
     //if you can't call wait properly, then it returns -1 so we know if there is something wrong.
     //Otherwise, it returns CV index number
-    DEBUG('c', "lock index %d and CVIndex %d in Wait\n", lockIndex, CVIndex);
     //first you need to check if the valid index is passed in
+    DEBUG('c', "lock index %d and CVIndex %d in Wait\n", lockIndex, CVIndex);
+   
+    //checking index. if index is -1 then user did not properly create LOCK!
+    if(lockIndex == -1) {
+        printf("ERROR: You could not create CV properly. Check your lock status.(wait)\n");
+        return -1;
+    }
+    //checking index. if index is -1 then user did not properly create CV!
+    if(CVIndex == -1) {
+        printf("ERROR: You could not create CV properly. Check your lock status.(wait)\n");
+        return -1;
+    }
     if(lockIndex > NumLocks || lockIndex < 0 || CVIndex > NumCVs || CVIndex < 0) {
         printf("ERROR: invalid index number was passed in.(Wait)\n");
         return -1;
@@ -604,6 +648,16 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
       //if you can't call signal properly, then it returns -1 so we know if there is something wrong.
     //Otherwise, it returns CV index number
     DEBUG('c', "lock index %d and CVIndex %d in signal\n", lockIndex, CVIndex);
+    //checking index. if index is -1 then user did not properly create LOCK!
+    if(lockIndex == -1) {
+        printf("ERROR: You could not create CV properly. Check your lock status.(Signal)\n");
+        return -1;
+    }
+    //checking index. if index is -1 then user did not properly create CV!
+    if(CVIndex == -1) {
+        printf("ERROR: You could not create CV properly. Check your lock status.(Signal)\n");
+        return -1;
+    }
     //first you need to check if the valid index is passed in
     if(lockIndex > NumLocks || lockIndex < 0 || CVIndex > NumCVs || CVIndex < 0) {
         printf("ERROR: invalid index number was passed in.(Signal)\n");
@@ -651,6 +705,16 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
     //if you can't call Broadcast properly, then it returns -1 so we know if there is something wrong.
     //Otherwise, it returns CV index number
     DEBUG('c', "lock index %d and CVIndex %d in Broadcasts\n", lockIndex, CVIndex);
+    //checking index. if index is -1 then user did not properly create LOCK!
+    if(lockIndex == -1) {
+        printf("ERROR: You could not create CV properly. Check your lock status.(BroadCast)\n");
+        return -1;
+    }
+    //checking index. if index is -1 then user did not properly create CV!
+    if(CVIndex == -1) {
+        printf("ERROR: You could not create CV properly. Check your lock status.(BroadCast)\n");
+        return -1;
+    }
     //first you need to check if the valid index is passed in
     if(lockIndex > NumLocks || lockIndex < 0 || CVIndex > NumCVs || CVIndex < 0) {
         printf("ERROR: invalid index number was passed in.(BroadCast)\n");
@@ -682,12 +746,11 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
       printf("ERROR: Current Thread did not create LOCK you are trying to wait.(BroadCast)\n");
       return -1;
     }
-
+    // it call signal syscall by the number of CV counter so that we can keep track of counter efficiently.
     int temp = ((kernelCV * )cvtable->Get(CVIndex))->counter;
     for(int i = 0; i < temp; i++) {
           Signal_Syscall(lockIndex, CVIndex);
     }
-    //((kernelCV * )cvtable->Get(CVIndex))->condition->Broadcast(((kernelLock * )locktable->Get(lockIndex))->lock);
     return CVIndex;
 }
 
