@@ -243,6 +243,7 @@ void kernel_fork(int pc) {
 }
 
 void Fork_Syscall(int pc) {
+//printf("In Fork\n");
   // The Fork Syscall takes in a user program's function pointer,
   // creates a new Thread, allocates 8 pages in physical memory
   // for the Thread's stack.
@@ -277,12 +278,15 @@ void Fork_Syscall(int pc) {
 
   // Creates new Thread
   Thread* t = new Thread("kernel_forker");
-  memlock->Acquire();
-    // Allocates 8 pages to Thread's stack in physical memory
-    t->stackreg = currentThread->space->AddStack(); // calls AddrSpace's private function as a friend
-  memlock->Release();
+  // Allocates 8 pages to Thread's stack in physical memory
+  int* stackdata = currentThread->space->AddStack();
+  t->stackreg = stackdata[0];
+  t->stackVP = stackdata[1];
+  delete [] stackdata;
+//  t->stackreg = currentThread->space->AddStack(); // calls AddrSpace's private function as a friend
   // Thread of same process shares address space
   t->space = currentThread->space; // all threads of same process has same AddrSpace
+//  t->threadtype = FORK;
   t->Fork((VoidFunctionPtr)kernel_fork, pc);
 
 }
@@ -294,6 +298,7 @@ void kernel_exec(int pc) {
 }
 
 void Exec_Syscall(unsigned int vaddr, int len) {
+//printf("In Exec\n");
   // read in char*
   char* filename;
 
@@ -321,17 +326,20 @@ void Exec_Syscall(unsigned int vaddr, int len) {
   }
 
   // make new addrspace and new thread and fork
-  space = new AddrSpace(executable);
   Thread* t = new Thread("new_exec");
-  t->space = space;
   memlock->Acquire();
-    t->stackreg = currentThread->space->AddStack();
+    space = new AddrSpace(executable);
+    t->stackVP = space->numPages - 1;
   memlock->Release();
+  t->space = space;
+//  t->threadtype = MAIN;
+//  t->stackreg = currentThread->space->AddStack();
 
   // add process to processTable
   kernelProcess* kp = new kernelProcess();
   processLock->Acquire();
     kp->adds = space;
+    kp->threadCount++;
   processLock->Release();
   int index = processTable->Put((void*)kp);
   if (index == -1) { // if no space in processtable
@@ -346,7 +354,200 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 }
 
 void Exit_Syscall(int status) {
-    currentThread->Finish();
+//printf("In Exit\n");
+  processLock->Acquire();
+
+    // check if this is the last process
+    bool lastProcess = false;
+    if (processTable->NumUsed() == 1) {
+      lastProcess = true;
+    }
+
+    // find the current process
+    int PID = -1;
+    kernelProcess* kp;
+    for (int i=0; i < NumProcesses; i++) {
+      kp = (kernelProcess*) processTable->Get(i);
+      if (kp == NULL) {
+        continue;
+      }
+      if (kp->adds == currentThread->space) {
+        PID = i;
+        break;
+      }
+    }
+    if (PID == -1) {
+      printf("Error: invalid process identifier (Fork_Syscall)\n");
+      processLock->Release();
+      return;
+    }
+
+    // If Exit is called by a main thread,
+    // and there are still other forked threads from the main,
+    // wait until those are all done
+/*    if (currentThread->threadtype == MAIN && kp->threadCount > 1) {
+      kp->isToBeDeleted = true;
+      processLock->Release();
+      kp->lock->Acquire();
+      kp->cv->Wait(kp->lock);
+      kp->lock->Release();
+      processLock->Acquire();
+    }
+*/
+
+    /*  Case 1: last executing thread in last process
+    completely stop nachos
+    interrupt->Halt();
+    */
+    if (lastProcess && kp->threadCount == 1) {
+printf("last process and last thread\n");
+      // reclaim all pages
+      memlock->Acquire();
+        currentThread->space->Dump();
+        DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
+        int pageIndex = currentThread->stackVP;
+        for (int i=0; i < 8; i++) {
+          memMap->Clear(currentThread->space->pageTable[pageIndex].physicalPage);
+          currentThread->space->pageTable[pageIndex].valid = FALSE;
+          pageIndex--;
+        }
+      memlock->Release();
+/*
+      memlock->Acquire();
+        DEBUG('b', "numPages = %d\n", currentThread->space->numPages);
+        for (unsigned int i=0; i < currentThread->space->numPages; i++) {
+          if (currentThread->space->pageTable[i].valid == TRUE) {
+            memMap->Clear(currentThread->space->pageTable[i].physicalPage);
+            currentThread->space->pageTable[i].valid = FALSE;
+          }
+        }
+      memlock->Release();
+*/
+/*      while (!currentThread->pages->IsEmpty()) {
+        int* index;
+        index = (int*) currentThread->pages->Remove();
+        memlock->Acquire();
+          memMap->Clear(currentThread->space->pageTable[*index].physicalPage);
+          currentThread->space->pageTable[*index].valid = FALSE;
+        memlock->Release();
+        delete index;
+      }
+*/
+      // reclaim all locks
+
+      // reclaim cvs
+
+      // delete process
+      processTable->Remove(PID);
+      delete kp;
+      processLock->Release();
+
+      // delete all globally instantiated variables
+      delete memlock;
+      delete memMap;
+      delete locktable;
+      delete cvtable;
+      delete processTable;
+      delete processLock;
+
+      // terminate program
+      interrupt->Halt();
+    }
+
+    /*  Case 2: thread in process but not last thread
+    reclaim 8 stack pages
+    */
+    else if (kp->threadCount > 1) {
+      // reclaim pages
+      memlock->Acquire();
+        currentThread->space->Dump();
+        DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
+        int pageIndex = currentThread->stackVP;
+        for (int i=0; i < 8; i++) {
+          memMap->Clear(currentThread->space->pageTable[pageIndex].physicalPage);
+          currentThread->space->pageTable[pageIndex].valid = FALSE;
+          pageIndex--;
+        }
+      memlock->Release();
+/*      while (!currentThread->pages->IsEmpty()) {
+        int* index;
+        index = (int*) currentThread->pages->Remove();
+        memlock->Acquire();
+          memMap->Clear(currentThread->space->pageTable[*index].physicalPage);
+          currentThread->space->pageTable[*index].valid = FALSE;
+        memlock->Release();
+        delete index;
+      }
+*/
+      // decrement
+      kp->threadCount--;
+
+      DEBUG('b', "Done Exiting one thread\n");
+
+      // If Exit is called by a forked thread,
+      // and the main thread is on hold until all forked threads finish,
+      // and this is the last forked thread for this main thread,
+      // signal the main thread to finish cleaning up
+/*      if (kp->threadCount == 1 && kp->isToBeDeleted && currentThread->threadtype == FORK) {
+        kp->cv->Signal(kp->lock);
+      }
+*/
+    }
+
+    /*  Case 3: last thread in process but not last process
+    reclaim all memory not reclaimed
+    reclaim all locks and cvs
+    */
+    else if (!lastProcess && kp->threadCount == 1) {
+      // reclaim pages
+printf("not last process and 1 thread left\n");
+      memlock->Acquire();
+        currentThread->space->Dump();
+        DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
+        int pageIndex = currentThread->stackVP;
+        for (int i=0; i < 8; i++) {
+          memMap->Clear(currentThread->space->pageTable[pageIndex].physicalPage);
+          currentThread->space->pageTable[pageIndex].valid = FALSE;
+          pageIndex--;
+        }
+      memlock->Release();
+/*      memlock->Acquire();
+        DEBUG('b', "numPages = %d\n", currentThread->space->numPages);
+        for (unsigned int i=0; i < currentThread->space->numPages; i++) {
+          if (currentThread->space->pageTable[i].valid == TRUE) {
+            memMap->Clear(currentThread->space->pageTable[i].physicalPage);
+            currentThread->space->pageTable[i].valid = FALSE;
+          }
+        }
+      memlock->Release();
+*/
+/*      while (!currentThread->pages->IsEmpty()) {
+        int* index;
+        index = (int*) currentThread->pages->Remove();
+        memlock->Acquire();
+          memMap->Clear(currentThread->space->pageTable[*index].physicalPage);
+          currentThread->space->pageTable[*index].valid = FALSE;
+        memlock->Release();
+        delete index;
+      }
+*/
+      // reclaim locks
+
+      // reclaim cvs
+
+      // delete process
+      processTable->Remove(PID);
+      delete kp;
+    }
+
+    else {
+      printf("Some other case not accounted for in Exit_Syscall.. go back and debug!\n");
+    }
+
+  processLock->Release();
+
+  currentThread->Finish();
+
 }
 
 void Yield_Syscall() {
@@ -357,7 +558,7 @@ void Yield_Syscall() {
 int CreateLock_Syscall(int vaddr, int size) {
   //it returns -1 when user can't create lock for some reason.
   //otherwise, it returns index of table where the lock that user creates is located. 
-  printf("ChreaLock starts\n");
+  DEBUG('c',"CreateLock starts\n");
   char *buf = new char[size+1]; // Kernel buffer to put the name in
    
   if (!buf) {
@@ -370,6 +571,11 @@ int CreateLock_Syscall(int vaddr, int size) {
     printf("error: Pointer is invalid(CreateLock)\n");
     return -1;
   }
+  //check if the kernel lock table is full, then you can't put lock in there.
+  if(locktable->NumUsed() >= NumLocks) {
+      printf("kernel lock table is full, you can not put more lock!\n");
+  }
+
   //creating lock
   Lock * l = new Lock(buf);
   kernelLock * kl = new kernelLock();
@@ -382,6 +588,7 @@ int CreateLock_Syscall(int vaddr, int size) {
   int index = locktable->Put((void * )kl);
   //return when you can't put lock in the table.
   if(index == -1) {
+      printf("You can't put lock in kernel lock table\n");
     return -1;
   }
 
@@ -391,8 +598,14 @@ int CreateLock_Syscall(int vaddr, int size) {
 int DestroyLock_Syscall(int index) {
     // it returns -1 when lock can't be destroyed
     // otherwise, it returns index.
-    printf("DestroyLock starts\n");
     //if it is ready to be destroyed, then set the boolean value true and make the lock pointer NULL
+    DEBUG('c', "DestroyLock starts\n");
+    //checking index. if index is -1 then user did not properly create LOCK!
+    if(index == -1) {
+          printf("ERROR: You could not create lock properly. Check your lock status.(Destroy)\n");
+          return -1;
+    }
+
     //it has to be checked whether the lock is already used or not AND the boolean(destroyed) is false;
     if(index > NumLocks || index < 0) {
       //invalid index passed in. Return -1 since it can't be deleted
@@ -424,9 +637,14 @@ int Acquire_Syscall(int index) {
       //if there is error, return -1
       //otherwise, it returns lock index that user tries to acquire
 
-      //first error checking, if index can't be larger then the maximum number of lock.
+      //checking index. if index is -1 then user did not properly create LOCK!
+      if(index == -1) {
+          printf("ERROR: You could not create lock properly. Check your lock status.(Acquire)\n");
+          return -1;
+      }
+      //first error checking, if index can't be larger than the maximum number of lock.
       if(index > NumLocks || index < 0) {
-          printf("ERROR: invalid index number was passed in.(Acquire)\n");
+          printf("ERROR: Invalid index number was passed in.(Acquire)\n");
           return -1;
       }
       if(((int)locktable->Get(index)) == 0) {
@@ -453,7 +671,12 @@ int Acquire_Syscall(int index) {
 int Release_Syscall(int index) {
       //if there is error, return -1
       //otherwise, it returns lock index that user tries to Release
-      printf("%d in Release\n", index);
+      DEBUG('c', "%d in Release\n", index);
+      //checking index. if index is -1 then user did not properly create LOCK!
+      if(index == -1) {
+          printf("ERROR: You could not create lock properly. Check your lock status.(Release)\n");
+          return -1;
+      }
       //first error checking, if index can't be larger then the maximum number of lock.
       if(index > NumLocks) {
           printf("ERROR: invalid index number was passed in.(Release)\n");
@@ -478,7 +701,7 @@ int Release_Syscall(int index) {
       ((kernelLock * )locktable->Get(index))->counter--;
       if(((kernelLock * )locktable->Get(index))->counter == 0 && ((kernelLock * )locktable->Get(index))->isToBeDeleted == true) {
           ((kernelLock * )locktable->Get(index))->lock == NULL;
-          printf("Lock is deleted\n");
+          DEBUG('c', "Lock is deleted\n");
       }
       DEBUG('c', "Lock index in release  : %d \n", index);
       DEBUG('c', "Lock Counter : %d \n",((kernelLock * )locktable->Get(index))->counter);
@@ -498,9 +721,13 @@ int CreateCV_Syscall(int vaddr, int size) {
         }
 
       if(copyin(vaddr, size, buf) == -1) {
-        //check if the pointer is valid one. if pointer is not valid, then return.
-        printf("error: Pointer is invalid.(CreateCV)\n");
+          //check if the pointer is valid one. if pointer is not valid, then return.
+          printf("error: Pointer is invalid.(CreateCV)\n");
         return -1;
+      }
+      //check if the kernel lock table is full, then you can't put lock in there.
+      if(cvtable->NumUsed() >= NumCVs) {
+          printf("kernel CV table is full, you can not put more lock!\n");
       }
 
       //creating lock
@@ -515,6 +742,7 @@ int CreateCV_Syscall(int vaddr, int size) {
       int index = cvtable->Put((void * )kc);
       //return when you can't put lock in the table.
       if(index == -1) {
+        printf("you can't put more CV in the table\n");
         return -1;
       }
 
@@ -522,14 +750,20 @@ int CreateCV_Syscall(int vaddr, int size) {
 }
 
 int DestroyCV_Syscall(int index) {
-      // it returns -1 when lock can't be destroyed
+    // it returns -1 when lock can't be destroyed
     // otherwise, it returns index.
-    DEBUG('c',"DestroyCV starts\n");
-      //if it is ready to be destroyed, then set the boolean value true and make the lock pointer NULL
+    //if it is ready to be destroyed, then set the boolean value true and make the lock pointer NULL
     //it has to be checked whether the lock is already used or not AND the boolean(destroyed) is false
+    DEBUG('c',"DestroyCV starts\n");
+
+    //checking index. if index is -1 then user did not properly create CV!
+    if(index == -1) {
+        printf("ERROR: You could not create CV properly. Check your lock status.(DestroyCV)\n");
+        return -1;
+    }
     if(index > NumCVs || index < 0) {
         //invalid index passed in. Return -1 since it can't be deleted
-      printf("ERROR: invalid index passed in.(DestroyCV)\n");
+        printf("ERROR: invalid index passed in.(DestroyCV)\n");
         return -1;
     }
 
@@ -553,8 +787,19 @@ int DestroyCV_Syscall(int index) {
 int Wait_Syscall(int lockIndex, int CVIndex) {
     //if you can't call wait properly, then it returns -1 so we know if there is something wrong.
     //Otherwise, it returns CV index number
-    DEBUG('c', "lock index %d and CVIndex %d in Wait\n", lockIndex, CVIndex);
     //first you need to check if the valid index is passed in
+    DEBUG('c', "lock index %d and CVIndex %d in Wait\n", lockIndex, CVIndex);
+   
+    //checking index. if index is -1 then user did not properly create LOCK!
+    if(lockIndex == -1) {
+        printf("ERROR: You could not create CV properly. Check your lock status.(wait)\n");
+        return -1;
+    }
+    //checking index. if index is -1 then user did not properly create CV!
+    if(CVIndex == -1) {
+        printf("ERROR: You could not create CV properly. Check your lock status.(wait)\n");
+        return -1;
+    }
     if(lockIndex > NumLocks || lockIndex < 0 || CVIndex > NumCVs || CVIndex < 0) {
         printf("ERROR: invalid index number was passed in.(Wait)\n");
         return -1;
@@ -604,6 +849,16 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
       //if you can't call signal properly, then it returns -1 so we know if there is something wrong.
     //Otherwise, it returns CV index number
     DEBUG('c', "lock index %d and CVIndex %d in signal\n", lockIndex, CVIndex);
+    //checking index. if index is -1 then user did not properly create LOCK!
+    if(lockIndex == -1) {
+        printf("ERROR: You could not create CV properly. Check your lock status.(Signal)\n");
+        return -1;
+    }
+    //checking index. if index is -1 then user did not properly create CV!
+    if(CVIndex == -1) {
+        printf("ERROR: You could not create CV properly. Check your lock status.(Signal)\n");
+        return -1;
+    }
     //first you need to check if the valid index is passed in
     if(lockIndex > NumLocks || lockIndex < 0 || CVIndex > NumCVs || CVIndex < 0) {
         printf("ERROR: invalid index number was passed in.(Signal)\n");
@@ -651,6 +906,16 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
     //if you can't call Broadcast properly, then it returns -1 so we know if there is something wrong.
     //Otherwise, it returns CV index number
     DEBUG('c', "lock index %d and CVIndex %d in Broadcasts\n", lockIndex, CVIndex);
+    //checking index. if index is -1 then user did not properly create LOCK!
+    if(lockIndex == -1) {
+        printf("ERROR: You could not create CV properly. Check your lock status.(BroadCast)\n");
+        return -1;
+    }
+    //checking index. if index is -1 then user did not properly create CV!
+    if(CVIndex == -1) {
+        printf("ERROR: You could not create CV properly. Check your lock status.(BroadCast)\n");
+        return -1;
+    }
     //first you need to check if the valid index is passed in
     if(lockIndex > NumLocks || lockIndex < 0 || CVIndex > NumCVs || CVIndex < 0) {
         printf("ERROR: invalid index number was passed in.(BroadCast)\n");
@@ -682,12 +947,11 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
       printf("ERROR: Current Thread did not create LOCK you are trying to wait.(BroadCast)\n");
       return -1;
     }
-
+    // it call signal syscall by the number of CV counter so that we can keep track of counter efficiently.
     int temp = ((kernelCV * )cvtable->Get(CVIndex))->counter;
     for(int i = 0; i < temp; i++) {
           Signal_Syscall(lockIndex, CVIndex);
     }
-    //((kernelCV * )cvtable->Get(CVIndex))->condition->Broadcast(((kernelLock * )locktable->Get(lockIndex))->lock);
     return CVIndex;
 }
 
@@ -841,6 +1105,10 @@ void ExceptionHandler(ExceptionType which) {
         DEBUG('a', "Yield syscall.\n");
         Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
         break;
+    case SC_Exec:
+      DEBUG('a', "Exec syscall.\n");
+    Exec_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+    break;
       case SC_CreateLock:
         DEBUG('a', "CreateLock syscall.\n");
         rv = CreateLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
