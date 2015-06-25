@@ -1212,7 +1212,7 @@ void CheckInStaff::Start()
             myairline->_airlineLock->Acquire();
             myairline->_numOnBreakCIS--;
             myairline->_airlineLock->Release();
-        }
+        } 
 
         _state = BUSY;
 
@@ -1299,9 +1299,6 @@ void CheckInStaff::Start()
 			_commCV->Signal(_lock); // Release passenger to board gate
 			_commCV->Wait(_lock);
         }
-        else {
-            printf("Manager woke %s up because there were executive passengers, by the time my sleepy ass woke up, other CIS helped all executive passengers.\n", getName());
-        }   
 
         _currentPassenger = NULL;
 		_lock->Release();

@@ -47,6 +47,7 @@ typedef struct {
  	int _myInspector;
  	int _myOfficer;
  	int _myLiaison;
+ 	int _myCIS;
  	bool _furtherQuestioning;
  	Baggage _baggages[3];
  	int _numBaggages;
@@ -121,6 +122,7 @@ int NumActiveCIS;
 /* Locks */
 int GlobalDataLock; /* Used for  */
 int LiaisonLineLock;
+int ConveyorLock;
 
 /* CVs */
 
@@ -134,7 +136,7 @@ char* concatNumToString(char* str, int num) { /* TODO - Not working Properly */
 	return str;
 }
 
-unsigned int concatNum(int i, int j, int k) {
+int concatNum(int i, int j, int k) {
 	return 1000000 * i + 1000 * j + k;
 } 
 
@@ -191,6 +193,11 @@ void startPassenger() {
 	Release(liaison._lock);
 	/* end Liaison Interaction */
 
+	/*
+		Check-in Staff Interaction
+	*/
+	
+	/* end Check-in Staff Interaction */		
 	Exit(0);
 #undef p
 #undef liaison
@@ -234,6 +241,9 @@ void startLiaison() {
 }
 
 void startCheckInStaff() {
+#define myAirline Airlines[_myAirline]
+#define my myAirline._cis[_myIndex]
+#define passenger Passengers[my._currentPassenger]
 	/* Claim my CIS */
 	int _myAirline;
 	int _myIndex; /* ID for currentThread */
@@ -244,18 +254,12 @@ void startCheckInStaff() {
     Release(GlobalDataLock);
 
     while (true) {
-#define myAirline Airlines[_myAirline]
-#define my myAirline._cis[_myIndex]
-	    /*
-			Passenger Interaction
-	    */
-		/*Acquire(my._lock);*/
 		/* Check lines */
+		Acquire(myAirline._lock);
 		if (my._lineSize == 0 && myAirline._execLineSize == 0) {
 			my._state = ONBREAK;
 			my._currentPassenger = NULL;
 			/* 'Clock Out' for Break */
-			Acquire(myAirline._lock);
 			myAirline._numOnBreakCIS++;
 			Wait(myAirline._lock, my._commCV); /* Wait on Manager */ /* TODO - make sure okay... maybe better? */
 			/* Time to go home! TGIF! */
@@ -263,23 +267,77 @@ void startCheckInStaff() {
 				Printf1("Airline check-in staff %d is closing the counter\n",
 					sizeof("Airline check-in staff %d is closing the counter\n"),
 					_myIndex);
-				Wait(); /* Wait forever, basically */
+				Acquire(my._lock);
+				Release(myAirline._lock);
+				Wait(my._lock, my._commCV); /* Wait forever, basically */
+				Release(my._lock); /* Never reaches here, but whatever... */
 			}
 			myAirline._numOnBreakCIS--;
-			Release(myAirline._lock);
 		}
 		/* Start helping a passenger */
 		my._state = BUSY;
 		Acquire(myAirline._cisLineLock);
-		Acquire(myAirline._cisLineLock);
-		#define passenger passengers[_currentPassenger]
+		Acquire(myAirline._execLineLock);
 		if (myAirline._execLineSize > 0) {
-			_currentPassenger = 
+			/*_currentPassenger = */ /* TODO - Grab executive passenger off execQueue */
+			passenger._myCIS = _myIndex;
+			myAirline._execLineSize--;
+			Printf1("Airline check-in staff %d of airline %d serves an executive class passenger and economy line length = %d\n",
+				sizeof("Airline check-in staff %d of airline %d serves an executive class passenger and economy line length = %d\n"),
+				concatNum(_myIndex, _myAirline, my._lineSize));
+			Signal(myAirline._execLineLock, myAirline._execLineCV); /* Signal Passenger */
+		} else if (my._lineSize > 0) {
+			Printf1("Airline check-in staff %d of airline %d serves an economy class passenger and executive class line length = %d\n",
+				sizeof("Airline check-in staff %d of airline %d serves an economy class passenger and executive class line length = %d\n"),
+				concatNum(_myIndex, _myAirline, myAirline._execLineSize));
+			Signal(myAirline._execLineLock, myAirline._execLineCV); /* Signal Passenger */
 		}
-		#undef passenger
-	}
-
+		/* Interact with Passenger */
+		Acquire(my._lock);
+		Release(myAirline._cisLineLock);
+		Release(myAirline._execLineLock);
+		Release(myAirline._lock);
+		if (my._lineSize > 0 || my._currentPassenger != -1) {
+			Wait(my._lock, my._commCV); 
+		} /* Otherwise, manager woke you up for no reason */
+		if (my._currentPassenger != -1) {
+			int i;
+			/* Assign seat number */
+			Acquire(myAirline._lock);
+			passenger._myTicket._seat = myAirline._numCheckedinPassengers;
+			myAirline._numCheckedinPassengers++;
+			Release(myAirline._lock);
+			/* Deal with baggage */
+			Acquire(ConveyorLock);
+			for (i = 0; i < passenger._numBaggages; ++i) {
+				#define bag passenger._baggages[i] 
+				bag._airline = _myAirline; /* Tag the bag */
+				/* TODO - figure out how to put bags on conveyor belt */
+				Printf1("Airline check-in staff %d of airline %d dropped bags to the conveyor system \n",
+					sizeof("Airline check-in staff %d of airline %d dropped bags to the conveyor system \n"),
+					concatNum(0, _myIndex, _myAirline));
+				myAirline._numExpectedBaggages++;
+				my._weightCount += bag._weight;
+				#undef bag
+			}
+			Release(ConveyorLock);
+			/* Direct Passenger to Airline */
+			if (passenger._myTicket._executive) {
+				Printf2("Airline check-in staff %d of airline %d informs executive class passenger %d to board at gate %d\n",
+					sizeof("Airline check-in staff %d of airline %d informs executive class passenger %d to board at gate %d\n"),
+					_myIndex, concatNum(_myAirline, my._currentPassenger, _myAirline));
+			} else {
+				Printf2("Airline check-in staff %d of airline %d informs economy class passenger %d to board at gate %d\n",
+					sizeof("Airline check-in staff %d of airline %d informs economy class passenger %d to board at gate %d\n"),
+					_myIndex, concatNum(_myAirline, my._currentPassenger, _myAirline));
+			}
+			Signal(my._lock, my._commCV); 
+			Wait(my._lock, my._commCV); 
+		}
+		Release(my._lock);
+	} /* end while */
 	Exit(0);
+#undef passenger
 #undef my
 #undef myAirline
 }
@@ -302,6 +360,12 @@ void startSecurityInspector() {
 /*
 	Init
 */
+void initGlobalData() {
+	GlobalDataLock = CreateLock("GlobalDataLock", sizeof("GlobalDataLock"));
+	LiaisonLineLock = CreateLock("LiaisonLineLock", sizeof("LiaisonLineLock"));
+	ConveyorLock = CreateLock("ConveyorLock", sizeof("ConveyorLock"));
+}
+
 void initPassengers() {
 	int i;
 	int j;
@@ -311,6 +375,7 @@ void initPassengers() {
 		Passengers[i]._myInspector = -1;
  		Passengers[i]._myOfficer = -1;
  		Passengers[i]._myLiaison = 0;
+ 		Passengers[i]._myCIS = 0;
  		Passengers[i]._furtherQuestioning = false;
  		/* Baggages */
  		Passengers[i]._numBaggages = i % 2 + 2;
@@ -393,10 +458,17 @@ void initAirlines() {
 #undef a
 }
 
+void init() {
+	initGlobalData();
+	initPassengers();
+	initLiaisons();
+	initAirlines();
+}
+
 void forkThreads() {
 	int i, j;
 	for (i = 0; i < NUM_PASSENGERS; ++i) {
-		Fork(startPassenger);
+		Fork(startPassenger); /* params: ftnptr, name, size */
 	}
 	for (i = 0; i < NUM_LIASONS; ++i) {
 		Fork(startLiaison);
@@ -417,25 +489,10 @@ void forkThreads() {
 	}*/
 }
 
-void init() {
-	GlobalDataLock = CreateLock("GlobalDataLock", sizeof("GlobalDataLock"));
-	LiaisonLineLock = CreateLock("LiaisonLineLock", sizeof("LiaisonLineLock"));
-	/* Inits */
-	initPassengers();
-	initLiaisons();
-	initAirlines();
-	/* Fork */
-	forkThreads();
-}
-
 /*
 	main - start the airport sim
 */
 int main() {
     init();
-    /*Airline a;*/
-/*    Passenger p;
-    p._id = 69;
-    a._execQueue[0] = &p;
-    Printf1("%d\n", sizeof("%d\n"), a._execQueue[0]->_id);*/
+	forkThreads();
 }
