@@ -1479,7 +1479,7 @@ void Manager::Start()
                         for (int j=0; j < NUM_CIS_PER_AIRLINE; j++) {
                             CisLock->Acquire(); // should be able to acquire, as CIS must be on break
                             Cis->_done = true;
-                            Cis->_commCV->Signal(CisLock);
+                            Cis->_commCV->Signal(CisLock); /* MAKE SURE TO USE AIRLINE LOCK INSTEAD!!!! */
                             CisLock->Release();
                         }
                         airlines[i]->_CISclosed = true;
@@ -1495,7 +1495,7 @@ void Manager::Start()
                         ExecLock->Acquire();
                         CisLock->Acquire();
                         if ((ExecLine > 0 || CisLine > 0) && Cis->_state == ONBREAK) {
-                            Cis->_commCV->Signal(CisLock);
+                            Cis->_commCV->Signal(CisLock); /* MAKE SURE TO USE AIRLINE LOCK INSTEAD!!!! */
                         }
                         CisLock->Release();
                         ExecLock->Release();

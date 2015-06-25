@@ -125,9 +125,9 @@ int LiaisonLineLock;
 /* CVs */
 
 /*
-	Utility Functions	
+	Utilities	
 */
-char* concatNumToString(char* str, int num) {
+char* concatNumToString(char* str, int num) { /* TODO - Not working Properly */
 	char cnum = (char)(((int)'0') + num);
 	int len = sizeof(str);
 	str[len] = cnum;
@@ -136,7 +136,7 @@ char* concatNumToString(char* str, int num) {
 
 unsigned int concatNum(int i, int j, int k) {
 	return 1000000 * i + 1000 * j + k;
-}
+} 
 
 /*
 	Start Functions - functions called by Fork() syscall.
@@ -149,8 +149,7 @@ void startPassenger() {
 	int _myIndex; /* ID for currentThread */
 	int _minLineSize;
 
-    int temp = Acquire(GlobalDataLock);
-    Printf1("GlobalDataLock: %d\n", sizeof("GlobalDataLock: %d\n"), temp);
+    Acquire(GlobalDataLock);
     _myIndex = NumActivePassengers++;
     Release(GlobalDataLock);
 
@@ -201,8 +200,7 @@ void startLiaison() {
 #define l Liaisons[_myIndex]
 	/* Claim my Liaison */
 	int _myIndex; /* ID for currentThread */
-    int temp = Acquire(GlobalDataLock);
-    Printf1("GlobalDataLock: %d\n", sizeof("GlobalDataLock: %d\n"), temp);
+    Acquire(GlobalDataLock);
     _myIndex = NumActiveLiaisons++;
     Release(GlobalDataLock);
 
@@ -251,7 +249,7 @@ void startCheckInStaff() {
 	    /*
 			Passenger Interaction
 	    */
-		Acquire(my._lock);
+		/*Acquire(my._lock);*/
 		/* Check lines */
 		if (my._lineSize == 0 && myAirline._execLineSize == 0) {
 			my._state = ONBREAK;
@@ -259,13 +257,26 @@ void startCheckInStaff() {
 			/* 'Clock Out' for Break */
 			Acquire(myAirline._lock);
 			myAirline._numOnBreakCIS++;
-			Release(myAirline._lock);
-			Wait(my._lock, my._commCV); /* Wait on Manager */
+			Wait(myAirline._lock, my._commCV); /* Wait on Manager */ /* TODO - make sure okay... maybe better? */
+			/* Time to go home! TGIF! */
 			if (my._done) {
-				/*Printf1();*/
+				Printf1("Airline check-in staff %d is closing the counter\n",
+					sizeof("Airline check-in staff %d is closing the counter\n"),
+					_myIndex);
+				Wait(); /* Wait forever, basically */
 			}
+			myAirline._numOnBreakCIS--;
+			Release(myAirline._lock);
 		}
-
+		/* Start helping a passenger */
+		my._state = BUSY;
+		Acquire(myAirline._cisLineLock);
+		Acquire(myAirline._cisLineLock);
+		#define passenger passengers[_currentPassenger]
+		if (myAirline._execLineSize > 0) {
+			_currentPassenger = 
+		}
+		#undef passenger
 	}
 
 	Exit(0);
@@ -408,12 +419,11 @@ void forkThreads() {
 
 void init() {
 	GlobalDataLock = CreateLock("GlobalDataLock", sizeof("GlobalDataLock"));
-	Printf1("GlobalDataLock: %d\n", sizeof("GlobalDataLock: %d\n"), GlobalDataLock);
 	LiaisonLineLock = CreateLock("LiaisonLineLock", sizeof("LiaisonLineLock"));
 	/* Inits */
 	initPassengers();
 	initLiaisons();
-	/*initAirlines();*/
+	initAirlines();
 	/* Fork */
 	forkThreads();
 }
