@@ -513,6 +513,7 @@ void startManager() {
 	int i, j; /* for-loop iterator */
 	while (true) {
 		bool allFlightsBoarded = false;
+		int numReadyAirlines = 0;
 		/*
 			Check-in Staff 
 		*/
@@ -592,6 +593,27 @@ void startManager() {
 			Release(ConveyorLock);
 		}
 		/* end Conveyor Belt / Cargo Handlers */
+
+		/*
+			Check Boarding Lounge
+		*/
+		for (i = 0; i < NUM_AIRLINES; ++i) {
+			if (Airlines[i]._boarded) {
+				numReadyAirlines++;
+			} else if(Airlines[i]._numExpectedBaggages == Airlines[i]._numLoadedBaggages
+				&& Airlines[i]._numExpectedPassengers == Airlines[i]._numCheckedinPassengers) {
+				Printf1("Airport manager gives a boarding call to airline %d\n",
+					sizeof("Airport manager gives a boarding call to airline %d\n"),
+					i);
+				for (j = 0; j < Airlines[i]._numReadyPassengers; ++j) {
+					Acquire(Airlines[j]._lock);
+					Signal(Airlines[j]._lock, Airlines[j]._boardLoungeCV);
+					Release(Airlines[j]._lock);
+				}
+				numReadyAirlines++;
+				Airlines[i]._boarded;
+			}
+		}
 
 		/*
 			Make sure Manager doesn't hog CPU
