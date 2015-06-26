@@ -86,6 +86,31 @@ typedef struct {
     bool _done;
 } CIS;
 
+/* ScreeningOfficer */
+typedef struct {
+    int _lock;
+    int _commCV;
+    int _state; 
+    int _passCount;
+    int _currentPassenger;
+    int _myNum;
+    bool _done;
+} ScreeningOfficer;
+
+/* Security Inspector */
+typedef struct {
+	int _id;
+    int _rtnPassSize;
+    int _state;
+    int _lock;
+    int _commCV;
+    int _rtnPassCV;
+    int _newPassCV;
+    int _rtnPassenger;
+    int _newPassenger;
+    int _passCount;
+} SecurityInspector;
+
 /* Manager */
 typedef struct {
 	bool _allCISDone;
@@ -136,21 +161,34 @@ Airline Airlines[NUM_AIRLINES];
 ManagerStruct Manager;
 Baggage Baggages[NUM_PASSENGERS * 3];
 CargoHandler CargoHandlers[NUM_CARGO_HANDLERS];
+ScreeningOfficer ScreeningOfficers[NUM_SCREENING_OFFICERS];
+SecurityInspector SecurityInspectors[NUM_SECURITY_INSPECTORS]; 
 
 /* Number of currently active entities */
+/* Used strictly for initialization */
 int NumActivePassengers; 
 int NumActiveLiaisons;
 int NumActiveCIS;
 int NumActiveCargoHandlers;
+int NumActiveScreeningOfficers;
+int NumActiveSecurityInspectors;
 
 /* Locks */
 int GlobalDataLock; /* Used for initializing */
 int LiaisonLineLock;
 int ConveyorLock;
+int OfficersLineLock;
+int InspectorLineLock;
+
+/* CV */
+int OfficersLineCV;
 
 /* Queue */
 Queue OfficersLine;
 Queue ConveyorBelt;
+
+/* Data for Security Personel */
+bool SecurityFailResults[NUM_PASSENGERS];
 
 /*
 	Utilities	
@@ -509,7 +547,75 @@ void startCargoHandler() {
 }
 
 void startScreeningOfficer() {
-	Printf0("startScreeningOfficer\n", sizeof("startScreeningOfficer\n"));
+	#define mySO ScreeningOfficers[_myIndex]
+	int _myIndex;
+	/* Claim my screening officer */
+	Acquire(GlobalDataLock);
+    _myIndex = NumActiveScreeningOfficers++;
+    Release(GlobalDataLock);
+
+    /* Get to work! */
+	while (true) {
+		int suspicionLevel = false;
+		int shortestLineIndex = -1; /* impossible value */
+		int i; /* iterator */
+		Acquire(OfficersLineLock);
+		if (queue_empty(&OfficersLine)) {
+			mySO._state = ONBREAK;
+			Wait(OfficersLineLock, mySO._commCV); /* Wait for a passenger */
+		}
+		if (!queue_empty(&OfficersLine)) {
+			Acquire(mySO._lock);
+			mySO._state = BUSY;
+			mySO._currentPassenger = queue_pop(&OfficersLine);
+			Passengers[mySO._currentPassenger]._officerID = _myIndex;
+			Signal(OfficersLineLock, OfficersLineCV); /* Wake up passenger */
+			Release(OfficersLineLock);
+			Wait(mySO._lock, mySO._commCV); /* Wait for passenger to approach */
+			/* Generate PASS/FAIL Results */
+			suspicionLevel = (17 * mySO._currentPassenger) % 10; /* PSUEDO rand() */
+			SecurityFailResults[mySO._currentPassenger] = suspicionLevel > 8;
+			if (SecurityFailResults[mySO._currentPassenger]) { /* FAIL */
+				Printf1("Screening officer %d is suspicious of the hand luggage of passenger %d\n",
+					sizeof("Screening officer %d is suspicious of the hand luggage of passenger %d\n"),
+					concat2Num(_myIndex, mySO._currentPassenger));
+			} else { /* PASS */
+				Printf1("Screening officer %d is not suspicious of the hand luggage of passenger %d\n",
+					sizeof("Screening officer %d is not suspicious of the hand luggage of passenger %d\n"),
+					concat2Num(_myIndex, mySO._currentPassenger));
+			}
+			/* Find an Available Security Inspector */
+			while (shortestLineIndex == -1) {
+				#define inspector SecurityInspectors[i]
+				Acquire(InspectorLineLock);	
+				for (i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
+					Acquire(inspector._lock);
+					if (inspector._state == AVAIL && inspector._newPassenger == -1) {
+						/* Found an inspector! */
+						shortestLineIndex = inspector._id;
+						inspector._newPassenger = mySO._currentPassenger;
+						Release(inspector._lock);
+						break;
+					}
+					Release(inspector._lock);
+				}
+				if (shortestLineIndex == -1) {
+					Yield();
+				}
+				Release(InspectorLineLock);	
+				#undef inspector
+				Passengers[mySO._currentPassenger]._inspectorID = shortestLineIndex;
+				Printf1("Screening officer %d directs passenger %d to security inspector %d\n",
+					sizeof("Screening officer %d directs passenger %d to security inspector %d\n"),
+					concat3Num(_myIndex, mySO._currentPassenger, shortestLineIndex));
+				Signal(mySO._lock, mySO._commCV);
+				Wait(mySO._lock, mySO._commCV);
+			}
+			/* Found an inspetor for the passenger */
+		} else {
+			Release(OfficersLineLock);
+		}
+	}
 	Exit(0);
 }
 
@@ -644,6 +750,9 @@ void initGlobalData() {
 	GlobalDataLock = CreateLock("GlobalDataLock", sizeof("GlobalDataLock"));
 	LiaisonLineLock = CreateLock("LiaisonLineLock", sizeof("LiaisonLineLock"));
 	ConveyorLock = CreateLock("ConveyorLock", sizeof("ConveyorLock"));
+	OfficersLineLock = CreateLock("OfficersLineLock", sizeof("OfficersLineLock"));
+	OfficersLineCV = CreateCV("OfficersLineCV", sizeof("OfficersLineCV"));
+	InspectorLineLock = CreateLock("InspectorLineLock", sizeof("InspectorLineLock"));
     for (i = 0; i < NUM_PASSENGERS; i++) {
         OfficersLine._array[i] = -1;
         ConveyorBelt._array[i] = -1;
@@ -738,6 +847,7 @@ void initManager() {
 void initCargoHandlers() {
 #define ch CargoHandlers[i]	
 	int i, j;
+	NumActiveCargoHandlers = 0;
 	for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
     	ch._commCV = CreateCV(concatNumToString("cargo_CV_", sizeof("cargo_CV_"), i), 10);
     	ch._state = BUSY;
@@ -747,6 +857,41 @@ void initCargoHandlers() {
     	}
 	}
 #undef ch
+}
+
+void initScreeningOfficers() {
+	int i;
+	NumActiveScreeningOfficers = 0;
+	#define officer ScreeningOfficers[i]
+	for (i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
+		officer._lock = CreateLock(concatNumToString("officer_lock_", sizeof("officer_lock_"), i), 14);
+    	officer._commCV = CreateCV(concatNumToString("officer_commCV_", sizeof("officer_commCV_"), i), 20);
+    	officer._state = BUSY; 
+    	officer._passCount = 0;
+    	officer._currentPassenger = -1;
+    	officer._myNum = i;
+    	officer._done = false;
+	}
+	#undef officer
+}
+
+void initSecurityInspectors() {
+	int i;
+	NumActiveSecurityInspectors = 0;
+	#define inspector SecurityInspectors[i]
+	for (i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
+		inspector._id = i;
+	    inspector._rtnPassSize = 0;
+	    inspector._state = BUSY;
+	    inspector._lock = CreateLock(concatNumToString("inspector_lock_", sizeof("inspector_lock_"), i), 14);
+	    inspector._commCV = CreateCV(concatNumToString("_commCV", sizeof("_commCV"), i), 20);
+	    inspector._rtnPassCV = CreateCV(concatNumToString("_rtnPassCV", sizeof("_rtnPassCV"), i), 20);
+	    inspector._newPassCV = CreateCV(concatNumToString("_newPassCV", sizeof("_newPassCV"), i), 20);
+	    inspector._rtnPassenger = -1;
+	    inspector._newPassenger = -1;
+	    inspector._passCount = 0;
+	}
+	#undef inspector
 }
 
 void initAirlines() {
@@ -791,6 +936,8 @@ void init() {
 	initLiaisons();
 	initManager();
 	initCargoHandlers();
+	initScreeningOfficers();
+	initSecurityInspectors();
 	initAirlines();
 
 }
