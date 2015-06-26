@@ -12,7 +12,7 @@
 #define	NUM_LIASONS 5
 #define	NUM_AIRLINES 5
 #define	NUM_CIS_PER_AIRLINE 3
-#define	NUM_CARGO_HANDLERS 10
+#define	NUM_CARGO_HANDLERS 9
 #define	NUM_SCREENING_OFFICERS 8
 #define	NUM_SECURITY_INSPECTORS 8
 
@@ -94,6 +94,14 @@ typedef struct {
     bool _allSIDone;
 } ManagerStruct;
 
+/* Cargo Handler */
+typedef struct {
+    int _commCV;
+    int _state;
+    int _bagCount[NUM_AIRLINES];
+    int _weightCount[NUM_AIRLINES];
+} CargoHandler;
+
 /* Airline */
 typedef struct {
     int _lock; 
@@ -127,19 +135,18 @@ Liaison Liaisons[NUM_LIASONS];
 Airline Airlines[NUM_AIRLINES];
 ManagerStruct Manager;
 Baggage Baggages[NUM_PASSENGERS * 3];
+CargoHandler CargoHandlers[NUM_CARGO_HANDLERS];
 
 /* Number of currently active entities */
 int NumActivePassengers; 
 int NumActiveLiaisons;
 int NumActiveCIS;
+int NumActiveCargoHandlers;
 
 /* Locks */
-int GlobalDataLock; /* Used for  */
+int GlobalDataLock; /* Used for initializing */
 int LiaisonLineLock;
 int ConveyorLock;
-
-/* CVs */
-
 
 /* Queue */
 Queue OfficersLine;
@@ -618,6 +625,20 @@ void initManager() {
     Manager._allSIDone = false;
 }
 
+void initCargoHandlers() {
+#define ch CargoHandlers[i]	
+	int i;
+	for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
+    	ch._commCV = CreateCV(concatNumToString("cargo_CV_", i), 10);
+    	ch._state = BUSY;
+    	for (i = 0; i < NUM_AIRLINES; ++i) {	
+    		ch._bagCount[NUM_AIRLINES] = 0;
+    		ch._weightCount[NUM_AIRLINES] = 0;
+    	}
+	}
+#undef ch
+}
+
 void initAirlines() {
 #define a Airlines[i]
 	int i, j;
@@ -658,6 +679,7 @@ void init() {
 	initPassengers();
 	initLiaisons();
 	/*initManager();*/
+	initCargoHandlers();
 	initAirlines();
 }
 
