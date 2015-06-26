@@ -468,13 +468,13 @@ void startCargoHandler() {
 #define my CargoHandlers[_myIndex]
 	/* Claim my Liaison */
 	int _myIndex; /* ID for currentThread */
-	/*int bagIndex;*/
+	int bIndex;
     Acquire(GlobalDataLock);
     _myIndex = NumActiveLiaisons++;
     Release(GlobalDataLock);
 	
 	while (true) {
-		#define bag Baggages[bagIndex]
+		#define bag Baggages[bIndex]
 		Acquire(ConveyorLock);
 		if (queue_empty(&ConveyorBelt)) {
 			my._state = ONBREAK;
@@ -484,9 +484,9 @@ void startCargoHandler() {
 				_myIndex);
 		} else {
 			_myIndex = queue_pop(&ConveyorBelt);
-/*			Printf1("Cargo Handler %d picked bag of airline %d with weighing %d lbs\n",
+			Printf1("Cargo Handler %d picked bag of airline %d with weighing %d lbs\n",
 				sizeof("Cargo Handler %d picked bag of airline %d with weighing %d lbs\n"),
-				concatNum(_myIndex, bag._airline, bag._weight));*/
+				concatNum(_myIndex, bag._airline, bag._weight));
 			Airlines[bag._airline]._numLoadedBaggages++;
 			my._bagCount[bag._airline]++;
 			my._weightCount[bag._airline]++;
@@ -495,6 +495,7 @@ void startCargoHandler() {
 		#undef bag	
 	}
 	Exit(0);
+#undef my
 }
 
 void startScreeningOfficer() {
