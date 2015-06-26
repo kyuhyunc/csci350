@@ -299,6 +299,9 @@ void AddrSpace::Dump()
 		if (pageTable[i].valid == true) {
 			DEBUG('b', "%d,", i);
 		}
+		else {
+			DEBUG('b', "x,");
+		}
 		if (i % 8 == 0) {
 			DEBUG('b', "\n");
 		}

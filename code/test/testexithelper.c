@@ -31,10 +31,10 @@ void g5() {
 int main() {
 	Printf0("m2\n", sizeof("m2\n"));
 
-	Fork(g1);
-	Fork(g2);
-	Fork(g3);
-	Fork(g4);
-	Fork(g5);
+	Fork(g1, "nameme", sizeof("nameme"));
+	Fork(g2, "nameme", sizeof("nameme"));
+	Fork(g3, "nameme", sizeof("nameme"));
+	Fork(g4, "nameme", sizeof("nameme"));
+	Fork(g5, "nameme", sizeof("nameme"));
 
 }

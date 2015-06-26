@@ -33,7 +33,10 @@ Lock* memlock;
 BitMap* memMap;
 
 Table* locktable;
+Lock* locktablelock;
+
 Table* cvtable;
+Lock* cvtablelock;
 
 Table* processTable;
 Lock* processLock;
@@ -161,7 +164,10 @@ Initialize(int argc, char **argv)
 	memMap = new BitMap(NumPhysPages);
 
 	locktable = new Table(NumLocks);
+	locktablelock = new Lock("LockTableLock");
+
 	cvtable = new Table(NumCVs);
+	cvtablelock = new Lock("CVTableLock");
 
 	processTable = new Table(NumProcesses);
 	processLock = new Lock("ProcessLock");

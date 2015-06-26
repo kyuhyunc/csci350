@@ -30,13 +30,18 @@ void f5() {
 
 int main() {
 	Exec("../test/testexithelper", sizeof("../test/testexithelper"));
+	Exec("../test/testexithelper", sizeof("../test/testexithelper"));
+	Exec("../test/testexithelper", sizeof("../test/testexithelper"));
+	Exec("../test/testexithelper", sizeof("../test/testexithelper"));
+	Exec("../test/testexithelper", sizeof("../test/testexithelper"));
+	Exec("../test/testexithelper", sizeof("../test/testexithelper"));
 
 	Printf0("m1\n", sizeof("m1\n"));
 
-	Fork(f1);
-	Fork(f2);
-	Fork(f3);
-	Fork(f4);
-	Fork(f5);
+	Fork(f1, "nameme", sizeof("nameme"));
+	Fork(f2, "nameme", sizeof("nameme"));
+	Fork(f3, "nameme", sizeof("nameme"));
+	Fork(f4, "nameme", sizeof("nameme"));
+	Fork(f5, "nameme", sizeof("nameme"));
 
 }
