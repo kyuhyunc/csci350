@@ -1516,7 +1516,7 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_Yield:
 				DEBUG('a', "Yield syscall.\n");
-				Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				Yield_Syscall();
 				break;
 			case SC_Exec:
 				DEBUG('a', "Exec syscall.\n");

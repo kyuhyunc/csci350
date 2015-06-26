@@ -8,9 +8,9 @@
 
 #define NULL 0
 
-#define NUM_PASSENGERS 5
+#define NUM_PASSENGERS 10
 #define	NUM_LIASONS 5
-#define	NUM_AIRLINES 5
+#define	NUM_AIRLINES 1
 #define	NUM_CIS_PER_AIRLINE 3
 #define	NUM_CARGO_HANDLERS 9
 #define	NUM_SCREENING_OFFICERS 8
@@ -158,10 +158,10 @@ Queue ConveyorBelt;
 char concatString[100];
 char* concatNumToString(char* str, int length, int num) { /* TODO - Not working Properly */
 	int i;
-/*	for (i=0; i < length; i++) {
+	for (i=0; i < length; i++) {
 		concatString[i] = str[i];
 	}
-	concatString[length] = (char)num;*/
+	concatString[length] = (char)num;
 	return concatString;
 }
 
@@ -220,10 +220,10 @@ void startPassenger() {
     /*
 		Liaison Interaction
     */
-	Acquire(LiaisonLineLock);
-	_minLineSize = Liaisons[0]._lineSize;
+/*	Acquire(LiaisonLineLock);
+	_minLineSize = Liaisons[0]._lineSize;*/
 	/* Find shortest line */
-	for (i = 1; i < NUM_LIASONS; i++) {
+/*	for (i = 1; i < NUM_LIASONS; i++) {
 		if (Liaisons[i]._lineSize < _minLineSize) {
 			_minLineSize = Liaisons[i]._lineSize;
 			my._liaisonID = i;
@@ -232,32 +232,33 @@ void startPassenger() {
 
 	Printf1("Passenger %d chose Liaison %d with a line length %d\n", 
 		sizeof("Passenger %d chose Liaison %d with a line length %d\n"), 
-		concatNum(_myIndex, my._liaisonID, liaison._lineSize));
+		concatNum(_myIndex, my._liaisonID, liaison._lineSize));*/
 	/* Get in line? */
-	if (liaison._state == BUSY) {
+/*	if (liaison._state == BUSY) {
 		Printf0("Passenger says liaison is BUSY\n", 
 			sizeof("Passenger says liaison is BUSY\n"));
 		Printf1("Passenger's liaison id: %d\n", 
 			sizeof("Passenger's liaison id: %d\n"),
-			LiaisonLineLock);
+			_myIndex);
 		liaison._lineSize++;
 		Wait(LiaisonLineLock, liaison._lineCV);
 		liaison._lineSize--;
 	}
+	Printf0("Passenger is moving along...\n", sizeof("Passenger is moving along...\n"));*/
 	/* Go to Liaison */
-	Acquire(liaison._lock);
-	Release(LiaisonLineLock);
+/*	Acquire(liaison._lock);
+	Release(LiaisonLineLock);*/
 	/* Give Liaison my Passenger info */
-	liaison._passCount[my._ticket._airline]++;
+/*	liaison._passCount[my._ticket._airline]++;
 	liaison._bagCount[my._ticket._airline] += my._numBaggages;
 	liaison._currentPassenger = _myIndex;
-	Signal(liaison._lock, liaison._commCV); /* Signal Liaison */
-	Wait(liaison._lock, liaison._commCV); /* Wait for Liaison */
-	Printf1("Passenger %d of Airline %d is directed to the check-in counter\n", 
+	Signal(liaison._lock, liaison._commCV); *//* Signal Liaison */
+/*	Wait(liaison._lock, liaison._commCV); *//* Wait for Liaison */
+/*	Printf1("Passenger %d of Airline %d is directed to the check-in counter\n", 
 		sizeof("Passenger %d of Airline %d is directed to the check-in counter\n"),
 		concatNum(0, _myIndex, my._liaisonID));
 	Signal(liaison._lock, liaison._commCV);
-	Release(liaison._lock);
+	Release(liaison._lock);*/
 #undef liaison
 	/* end Liaison Interaction */
 
@@ -286,10 +287,11 @@ void startPassenger() {
 		}
 		Printf2("Passenger %d of Airline %d chose Airline Check-In staff %d with a line length %d\n", 
 			sizeof("Passenger %d of Airline %d chose Airline Check-In staff %d with a line length %d\n"),
-			concatNum(my._ticket._airline, my._cisID, _minLineSize),
-			_myIndex);
-		myCIS._lineSize++;
+			concatNum(_myIndex, my._ticket._airline, my._cisID), _minLineSize);
+			myCIS._lineSize++;
+/*Printf1("Passenger %d of Airline %d is going to sleep and should be woken up by cis %d\n", sizeof("Passenger %d of Airline %d is going to sleep and should be woken up by cis %d\n"), concatNum(_myIndex, my._ticket._airline, my._cisID));*/
 		Wait(myAirline._cisLineLock, myCIS._lineCV);
+/*Printf1("Passenger %d of Airline %d is woken up by cis %d\n", sizeof("Passenger %d of Airline %d is woken up by cis %d\n"), concatNum(_myIndex, my._ticket._airline, my._cisID));*/
 	}
 	Acquire(myCIS._lock);
 	if (my._ticket._executive) {
@@ -302,7 +304,6 @@ void startPassenger() {
 	myCIS._passCount++;
 	myCIS._bagCount += my._numBaggages;
 	myCIS._currentPassenger = _myIndex;
-	Printf0("Signal\n", sizeof("Signal\n"));
 	Signal(myCIS._lock, myCIS._commCV); /* Signal CIS */
 	Wait(myCIS._lock, myCIS._commCV); /* Wait on CIS */
 	Printf1("Passenger %d of Airline %d was informed to board at gate %d\n",
@@ -363,8 +364,8 @@ void startCheckInStaff() {
 	int _myAirline;
 	int _myIndex; /* ID for currentThread */
     Acquire(GlobalDataLock);
-    _myIndex = (NumActiveCIS % NUM_AIRLINES);
-    _myAirline = (int)(NumActiveCIS / NUM_AIRLINES); 
+	_myIndex = NumActiveCIS % NUM_CIS_PER_AIRLINE;
+	_myAirline = NumActiveCIS / NUM_CIS_PER_AIRLINE;
     NumActiveCIS++;
     Release(GlobalDataLock);
 
@@ -372,10 +373,13 @@ void startCheckInStaff() {
 		/* Check lines */
 		Acquire(myAirline._lock);
 		if (my._lineSize == 0 && queue_empty(&myAirline._execQueue)) {
+			/*Printf0("1\n", sizeof("1\n"));*/
 			my._state = ONBREAK;
 			/* 'Clock Out' for Break */
 			myAirline._numOnBreakCIS++;
+/*Printf1("Cis %d going to sleep\n", sizeof("Cis %d going to sleep\n"), _myIndex);*/
 			Wait(myAirline._lock, my._commCV); /* Wait on Manager */ /* TODO - make sure okay to wait on aiport lock... maybe better? */
+/*Printf1("Cis %d woke up by manager\n", sizeof("Cis %d woke up by manager\n"), _myIndex);*/
 			/* Time to go home! TGIF! */
 			if (my._done) {
 				Printf1("Airline check-in staff %d is closing the counter\n",
@@ -403,7 +407,8 @@ void startCheckInStaff() {
 			Printf1("Airline check-in staff %d of airline %d serves an economy class passenger and executive class line length = %d\n",
 				sizeof("Airline check-in staff %d of airline %d serves an economy class passenger and executive class line length = %d\n"),
 				concatNum(_myIndex, _myAirline, queue_size(&myAirline._execQueue)));
-			Signal(myAirline._cisLineLock, my._lineCV); /* Signal Passenger */
+			Signal(myAirline._cisLineLock, my._lineCV);
+/*Printf1("Cis %d of airline %d wakes up passenger\n", sizeof("Cis %d of airline %d wakes up passenger\n"), _myIndex*1000+_myAirline);*/
 		}
 		/* Interact with Passenger */
 		Acquire(my._lock);
@@ -411,6 +416,7 @@ void startCheckInStaff() {
 		Release(myAirline._execLineLock);
 		Release(myAirline._lock);
 		if (my._lineSize > 0 || my._currentPassenger != -1) {
+/*Printf1("Cis %d of airline %d goes to sleep\n", sizeof("Cis %d of airline %d goes to sleep\n"), _myIndex*1000+_myAirline);*/
 			Wait(my._lock, my._commCV); 
 		} /* Otherwise, Manager woke you up for no reason */
 		if (my._currentPassenger != -1) {
@@ -590,7 +596,7 @@ void startManager() {
 			Make sure Manager doesn't hog CPU
 		*/
 		for (i = 0; i < 2000; ++i) {
-			/*Yield();*/
+			Yield();
 		}
 	}
 	Exit(0);
@@ -635,9 +641,9 @@ void initPassengers() {
  		Passengers[i]._ticket._airline = (i*17) % NUM_AIRLINES;
  		Airlines[Passengers[i]._ticket._airline]._numExpectedPassengers++;
 		Passengers[i]._ticket._executive = false;
-		if ( (i % 4) == 1 ) {
+/*		if ( (i % 4) == 1 ) {
 			Passengers[i]._ticket._executive = true;
-		}
+		}*/
 	}
 }
 
@@ -740,7 +746,7 @@ void init() {
 	initGlobalData();
 	initPassengers();
 	initLiaisons();
-	initManager(); 
+	initManager();
 	initCargoHandlers();
 	initAirlines();
 }
@@ -748,27 +754,26 @@ void init() {
 void forkThreads() {
 	int i, j;
 	for (i = 0; i < NUM_PASSENGERS; ++i) {
-		Fork(startPassenger, concatNumToString("passenger_thread_", sizeof("passenger_thread_"), i), 18); /* params: ftnptr, name, size */
+		Fork(startPassenger, "passenger", sizeof("passenger")); /* params: ftnptr, name, size */
 	}
 	for (i = 0; i < NUM_LIASONS; ++i) {
-		Fork(startLiaison, concatNumToString("liaison_thread_", sizeof("liaison_thread_"), i), 16);
+/*		Fork(startLiaison, "liaison", sizeof("liaison"));*/
 	}
 	for (i = 0; i < NUM_AIRLINES; ++i) {
 		for (j = 0; j < NUM_CIS_PER_AIRLINE; ++j) {
-			/*Fork(startCheckInStaff, concatNumToString("cis_thread_", sizeof("cis_thread_"), i), 12); */
+			Fork(startCheckInStaff, "cis", sizeof("cis"));
 		}
 	}
-	for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
-		/*Fork(startCargoHandler, concatNumToString("passenger_thread_", sizeof("passenger_thread_"), i), 18);*/
+	/*for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
+		Fork(startCargoHandler);
 	}
-	/*
 	for (i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
-		Fork(startScreeningOfficer, concatNumToString("passenger_thread_", i), 18);
+		Fork(startScreeningOfficer);
 	}
 	for (i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
-		Fork(startSecurityInspector, concatNumToString("passenger_thread_", i), 18);
+		Fork(startSecurityInspector);
 	}*/
-	Fork(startManager, concatNumToString("manager_thread", sizeof("manager_thread"), i), 14);
+	Fork(startManager, "manager", sizeof("manager"));
 }
 
 /*

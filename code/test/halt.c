@@ -17,8 +17,8 @@ int b, c;*/
 int
 main()
 {
+	Yield();
 	Printf0("Entering halt\n", sizeof("Entering halt\n"));
 /*    Halt();*/
-	Exit(0);
     /* not reached */
 }
