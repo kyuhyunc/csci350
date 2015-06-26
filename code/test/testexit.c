@@ -30,16 +30,18 @@ void f5() {
 
 int main() {
 	Exec("../test/testexithelper", sizeof("../test/testexithelper"));
+	Exec("../test/testexithelper", sizeof("../test/testexithelper"));
+	Exec("../test/testexithelper", sizeof("../test/testexithelper"));
+	Exec("../test/testexithelper", sizeof("../test/testexithelper"));
+	Exec("../test/testexithelper", sizeof("../test/testexithelper"));
+	Exec("../test/testexithelper", sizeof("../test/testexithelper"));
 
 	Printf0("m1\n", sizeof("m1\n"));
 
-	CreateLock("abc", sizeof("abc"));
-	CreateCV("def", sizeof("def"));
-
-	Fork(f1, "changeme", sizeof("changeme"));
-	Fork(f2, "changeme", sizeof("changeme"));
-	Fork(f3, "changeme", sizeof("changeme"));
-	Fork(f4, "changeme", sizeof("changeme"));
-	Fork(f5, "changeme", sizeof("changeme"));
+	Fork(f1, "nameme", sizeof("nameme"));
+	Fork(f2, "nameme", sizeof("nameme"));
+	Fork(f3, "nameme", sizeof("nameme"));
+	Fork(f4, "nameme", sizeof("nameme"));
+	Fork(f5, "nameme", sizeof("nameme"));
 
 }

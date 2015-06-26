@@ -240,7 +240,6 @@ void testStart7() {
 void testStart8() {
 	/*text if exec is correctly working!*/
 	Write("Test8: '' TEST\n", sizeof("Test7: '' TEST\n"), ConsoleOutput);
-	Exec("../test/testexit", sizeof("../test/testexit"));
 
 
 	Exit(0);	

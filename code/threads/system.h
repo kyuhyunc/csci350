@@ -40,9 +40,8 @@ extern BitMap* memMap;		// keeps track of pages in pageTable
 #define NumLocks	1000
 #define NumCVs		1000
 #define NumProcesses	10
-#define lockCounter 0
-#define CVCounter	0
 extern Table* locktable;
+extern Lock* locktablelock;
     
     struct kernelLock {
     	Lock * lock;
@@ -52,6 +51,7 @@ extern Table* locktable;
     };
 
 extern Table* cvtable;
+extern Lock* cvtablelock;
 	
 	struct kernelCV {
     	Condition * condition;
@@ -66,9 +66,6 @@ extern Lock* processLock;
 		kernelProcess() {
 			adds = currentThread->space;
 			threadCount = 0;
-//			isToBeDeleted = false;
-//			lock = new Lock("pl");
-//			cv = new Condition("pcv");
 			locks = new bool[NumLocks];
 			for (int i=0; i < NumLocks; i++) {
 				locks[i] = false;
@@ -79,18 +76,12 @@ extern Lock* processLock;
 			}
 		}
 		~kernelProcess() {
-//			delete lock;
-//			delete cv;
 			delete [] locks;
 			delete [] cvs;
 		}
 
 		AddrSpace * adds;
 		int threadCount;
-
-//		bool isToBeDeleted;
-//		Lock * lock;
-//		Condition * cv;
 
 		bool* locks;
 		bool* cvs;

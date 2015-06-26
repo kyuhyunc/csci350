@@ -544,7 +544,7 @@ void Yield_Syscall() {
 }
 
 int CreateLock_Syscall(int vaddr, int size) {
-	IntStatus old = interrupt->SetLevel(IntOff);
+	locktablelock->Acquire();
 
 	//it returns -1 when user can't create lock for some reason.
 	//otherwise, it returns index of table where the lock that user creates is located. 
@@ -558,13 +558,13 @@ int CreateLock_Syscall(int vaddr, int size) {
 	char *buf = new char[size+1]; // Kernel buffer to put the name in
 	if (!buf) {
 		printf("%s","Can't allocate kernel buffer CreateLock(CreateLock)\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 	if(copyin(vaddr, size, buf) == -1) {
 		//check if the pointer is valid one. if pointer is not valid, then return.
 		printf("error: Pointer is invalid(CreateLock)\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 
@@ -595,7 +595,7 @@ int CreateLock_Syscall(int vaddr, int size) {
 	//return when you can't put lock in the table.
 	if(index == -1) {
 		printf("ERROR: No more Locks available. Lock not created.\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 
@@ -604,32 +604,34 @@ int CreateLock_Syscall(int vaddr, int size) {
 	//**********************************************************************
 
 	// find the current process
-	int PID = -1;
-	kernelProcess* kp;
-	for (int i=0; i < NumProcesses; i++) {
-		kp = (kernelProcess*) processTable->Get(i);
-		if (kp == NULL) {
-			continue;
+	processLock->Acquire();
+		int PID = -1;
+		kernelProcess* kp;
+		for (int i=0; i < NumProcesses; i++) {
+			kp = (kernelProcess*) processTable->Get(i);
+			if (kp == NULL) {
+				continue;
+			}
+			if (kp->adds == currentThread->space) {
+				PID = i;
+				break;
+			}
 		}
-		if (kp->adds == currentThread->space) {
-			PID = i;
-			break;
+		if (PID == -1) {
+			printf("Error: invalid process identifier (CreateLock_Syscall)\n");
+			processLock->Release();
+			locktablelock->Release();
+			return -1;
 		}
-	}
-	if (PID == -1) {
-		printf("Error: invalid process identifier (CreateLock_Syscall)\n");
-		processLock->Release();
-		(void) interrupt->SetLevel(old);
-		return -1;
-	}
-	kp->locks[index] = true;
+		kp->locks[index] = true;
+	processLock->Release();
 
-	(void) interrupt->SetLevel(old);
+	locktablelock->Release();
 	return index;
 }
 
 int DestroyLock_Syscall(int index) {
-	IntStatus old = interrupt->SetLevel(IntOff);
+	locktablelock->Acquire();
 
 	// it returns -1 when lock can't be destroyed
 	// otherwise, it returns index.
@@ -643,14 +645,14 @@ int DestroyLock_Syscall(int index) {
 	// checking index. if index is -1 then user did not properly create LOCK!
 	if (index == -1) {
 		printf("ERROR: Lock not created properly. Lock not destroyed.\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 	// checking other indices to protect against garbage values
 	if (index < 0 || index > NumLocks) {
 		// index out of range
 		printf("ERROR: Invalid index passed in. Lock not destroyed.\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 
@@ -658,14 +660,14 @@ int DestroyLock_Syscall(int index) {
 	if (kl == NULL || kl->lock == NULL) {
 		// lock does not exist. Return -1 since it can't be deleted
 		printf("ERROR: Target Lock does not exist. Lock not destroyed.\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 
 	// if current thread is not the thread that create lock, then it can't be destroyed.
 	if (kl->adds != currentThread->space) {
 		printf("ERROR: Permission denied! Target Lock belongs to a different process. Lock not destroyed.\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 
@@ -691,33 +693,35 @@ int DestroyLock_Syscall(int index) {
 		//**********************************************************************
 
 		// find the current process
-		int PID = -1;
-		kernelProcess* kp;
-		for (int i=0; i < NumProcesses; i++) {
-			kp = (kernelProcess*) processTable->Get(i);
-			if (kp == NULL) {
-				continue;
+		processLock->Acquire();
+			int PID = -1;
+			kernelProcess* kp;
+			for (int i=0; i < NumProcesses; i++) {
+				kp = (kernelProcess*) processTable->Get(i);
+				if (kp == NULL) {
+					continue;
+				}
+				if (kp->adds == currentThread->space) {
+					PID = i;
+					break;
+				}
 			}
-			if (kp->adds == currentThread->space) {
-				PID = i;
-				break;
+			if (PID == -1) {
+				printf("Error: invalid process identifier (DestroyLock_Syscall)\n");
+				processLock->Release();
+				locktablelock->Release();
+				return -1;
 			}
-		}
-		if (PID == -1) {
-			printf("Error: invalid process identifier (DestroyLock_Syscall)\n");
-			processLock->Release();
-			(void) interrupt->SetLevel(old);
-			return -1;
-		}
-		kp->locks[index] = false;
+			kp->locks[index] = false;
+		processLock->Release();
 	}
 
-	(void) interrupt->SetLevel(old);
+	locktablelock->Release();
 	return index;
 }
 
 int Acquire_Syscall(int index) {
-	IntStatus old = interrupt->SetLevel(IntOff);
+	locktablelock->Acquire();
 
 	DEBUG('c', "%d in Acquire\n", index);
 	//if there is error, return -1
@@ -730,14 +734,14 @@ int Acquire_Syscall(int index) {
 	// checking index. if index is -1 then user did not properly create LOCK!
 	if (index == -1) {
 		printf("ERROR: Lock not created properly. Acquire not called.\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 	// checking other indices to protect against garbage values
 	if (index < 0 || index > NumLocks) {
 		// index out of range
 		printf("ERROR: Invalid index passed in. Acquire not called.\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 
@@ -745,14 +749,14 @@ int Acquire_Syscall(int index) {
 	if (kl == NULL || kl->lock == NULL) {
 		// lock does not exist. Return -1 since it can't be acquired
 		printf("ERROR: Target Lock does not exist. Acquire not called.\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 
 	// if current thread is not the thread that create lock, then it can't be acquired
 	if (kl->adds != currentThread->space) {
 		printf("ERROR: Permission denied! Target Lock belongs to a different process. Acquire not called.\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 
@@ -764,12 +768,12 @@ int Acquire_Syscall(int index) {
 					// so it doesn't get destroyed and put correct user programs into deadlock!
 	kl->lock->Acquire();
 
-	(void) interrupt->SetLevel(old);
+	locktablelock->Release();
 	return index;
 }
 
 int Release_Syscall(int index) {
-	IntStatus old = interrupt->SetLevel(IntOff);
+	locktablelock->Acquire();
 
 	//if there is error, return -1
 	//otherwise, it returns lock index that user tries to Release
@@ -782,14 +786,14 @@ int Release_Syscall(int index) {
 	// checking index. if index is -1 then user did not properly create LOCK!
 	if (index == -1) {
 		printf("ERROR: Lock not created properly. Release not called.\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 	// checking other indices to protect against garbage values
 	if (index < 0 || index > NumLocks) {
 		// index out of range
 		printf("ERROR: Invalid index passed in. Release not called.\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 
@@ -797,14 +801,14 @@ int Release_Syscall(int index) {
 	if (kl == NULL || kl->lock == NULL) {
 		// lock does not exist. Return -1 since it can't be acquired
 		printf("ERROR: Target Lock does not exist. Release not called.\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 
 	// if current thread is not the thread that create lock, then it can't be acquired
 	if (kl->adds != currentThread->space) {
 		printf("ERROR: Permission denied! Target Lock belongs to a different process. Release not called.\n");
-		(void) interrupt->SetLevel(old);
+		locktablelock->Release();
 		return -1;
 	}
 
@@ -832,33 +836,35 @@ int Release_Syscall(int index) {
 		//**********************************************************************
 
 		// find the current process
-		int PID = -1;
-		kernelProcess* kp;
-		for (int i=0; i < NumProcesses; i++) {
-			kp = (kernelProcess*) processTable->Get(i);
-			if (kp == NULL) {
-				continue;
+		processLock->Acquire();
+			int PID = -1;
+			kernelProcess* kp;
+			for (int i=0; i < NumProcesses; i++) {
+				kp = (kernelProcess*) processTable->Get(i);
+				if (kp == NULL) {
+					continue;
+				}
+				if (kp->adds == currentThread->space) {
+					PID = i;
+					break;
+				}
 			}
-			if (kp->adds == currentThread->space) {
-				PID = i;
-				break;
+			if (PID == -1) {
+				printf("Error: invalid process identifier (ReleaseLock_Syscall)\n");
+				processLock->Release();
+				locktablelock->Release();
+				return -1;
 			}
-		}
-		if (PID == -1) {
-			printf("Error: invalid process identifier (ReleaseLock_Syscall)\n");
-			processLock->Release();
-			(void) interrupt->SetLevel(old);
-			return -1;
-		}
-		kp->locks[index] = false;
+			kp->locks[index] = false;
+		processLock->Release();
 	}
 
-	(void) interrupt->SetLevel(old);
+	locktablelock->Release();
 	return index;
 }
 
 int CreateCV_Syscall(int vaddr, int size) {
-	IntStatus old = interrupt->SetLevel(IntOff);
+	cvtablelock->Acquire();
 
 	//it returns -1 when user can't create CV for some reason.
 	//otherwise, it returns index of table where the cv that user creates is located. 
@@ -871,13 +877,13 @@ int CreateCV_Syscall(int vaddr, int size) {
 	char *buf = new char[size+1]; // Kernel buffer to put the name in
 	if (!buf) {
 		printf("%s","Can't allocate kernel buffer CreateCV.(CreateCV)\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 	if(copyin(vaddr, size, buf) == -1) {
 		//check if the pointer is valid one. if pointer is not valid, then return.
 		printf("error: Pointer is invalid.(CreateCV)\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
@@ -888,7 +894,7 @@ int CreateCV_Syscall(int vaddr, int size) {
 	//check if the kernel lock table is full, then you can't put lock in there.
 	if(cvtable->NumUsed() >= NumCVs) {
 		printf("ERROR: No more Conditions available. Condition not created.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
@@ -908,7 +914,7 @@ int CreateCV_Syscall(int vaddr, int size) {
 	//return when you can't put lock in the table.
 	if(index == -1) {
 		printf("ERROR: No more Conditions available. Condition not created.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
@@ -917,34 +923,36 @@ int CreateCV_Syscall(int vaddr, int size) {
 	//**********************************************************************
 
 	// find the current process
-	int PID = -1;
-	kernelProcess* kp;
-	for (int i=0; i < NumProcesses; i++) {
-		kp = (kernelProcess*) processTable->Get(i);
-		if (kp == NULL) {
-			continue;
+	processLock->Acquire();
+		int PID = -1;
+		kernelProcess* kp;
+		for (int i=0; i < NumProcesses; i++) {
+			kp = (kernelProcess*) processTable->Get(i);
+			if (kp == NULL) {
+				continue;
+			}
+			if (kp->adds == currentThread->space) {
+				PID = i;
+				break;
+			}
 		}
-		if (kp->adds == currentThread->space) {
-			PID = i;
-			break;
+		if (PID == -1) {
+			printf("Error: invalid process identifier (CreateCV_Syscall)\n");
+			processLock->Release();
+			cvtablelock->Release();
+			return -1;
 		}
-	}
-	if (PID == -1) {
-		printf("Error: invalid process identifier (CreateCV_Syscall)\n");
-		processLock->Release();
-		(void) interrupt->SetLevel(old);
-		return -1;
-	}
-	kp->cvs[index] = true;
+		kp->cvs[index] = true;
+	processLock->Release();
 
 
 
-	(void) interrupt->SetLevel(old);
+	cvtablelock->Release();
 	return index;
 }
 
 int DestroyCV_Syscall(int index) {
-	IntStatus old = interrupt->SetLevel(IntOff);
+	cvtablelock->Acquire();
 
     // it returns -1 when lock can't be destroyed
     // otherwise, it returns index.
@@ -959,14 +967,14 @@ int DestroyCV_Syscall(int index) {
     //checking index. if index is -1 then user did not properly create CV!
     if(index == -1) {
 		printf("ERROR: Condition not created properly. Condition not destroyed.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
         return -1;
     }
 	// checking other indices to protect against garbage values
 	if (index < 0 || index > NumLocks) {
 		// index out of range
 		printf("ERROR: Invalid index passed in. Condition not destroyed.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
@@ -974,14 +982,14 @@ int DestroyCV_Syscall(int index) {
 	if (kc == NULL || kc->condition == NULL) {
 		// lock does not exist. Return -1 since it can't be deleted
 		printf("ERROR: Target Lock does not exist. Condition not destroyed.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
 	// if current thread is not the thread that create cv, then it can't be destroyed.
 	if (kc->adds != currentThread->space) {
 		printf("ERROR: Permission denied! Target Condition belongs to a different process. Condition not destroyed.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
@@ -1001,25 +1009,27 @@ int DestroyCV_Syscall(int index) {
 		//**********************************************************************
 
 		// find the current process
-		int PID = -1;
-		kernelProcess* kp;
-		for (int i=0; i < NumProcesses; i++) {
-			kp = (kernelProcess*) processTable->Get(i);
-			if (kp == NULL) {
-				continue;
+		processLock->Acquire();
+			int PID = -1;
+			kernelProcess* kp;
+			for (int i=0; i < NumProcesses; i++) {
+				kp = (kernelProcess*) processTable->Get(i);
+				if (kp == NULL) {
+					continue;
+				}
+				if (kp->adds == currentThread->space) {
+					PID = i;
+					break;
+				}
 			}
-			if (kp->adds == currentThread->space) {
-				PID = i;
-				break;
+			if (PID == -1) {
+				printf("Error: invalid process identifier (DestroyCV_Syscall)\n");
+				processLock->Release();
+				cvtablelock->Release();
+				return -1;
 			}
-		}
-		if (PID == -1) {
-			printf("Error: invalid process identifier (DestroyCV_Syscall)\n");
-			processLock->Release();
-			(void) interrupt->SetLevel(old);
-			return -1;
-		}
-		kp->cvs[index] = false;
+			kp->cvs[index] = false;
+		processLock->Release();
 
 	}
 	// if other threads are currently Waiting on this Condition, destroy it later
@@ -1028,12 +1038,12 @@ int DestroyCV_Syscall(int index) {
 
 	}
 
-	(void) interrupt->SetLevel(old);
+	cvtablelock->Release();
     return index;
 }
 
 int Wait_Syscall(int lockIndex, int CVIndex) {
-	IntStatus old = interrupt->SetLevel(IntOff);
+	cvtablelock->Acquire();
 
     //if you can't call wait properly, then it returns -1 so we know if there is something wrong.
     //Otherwise, it returns CV index number
@@ -1047,13 +1057,13 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
 	// validate lock index
 	if (lockIndex == -1) {
 		printf("ERROR: Lock not created properly. Wait not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 	if (lockIndex < 0 || lockIndex > NumLocks) {
 		// index out of range
 		printf("ERROR: Invalid Lock index passed in. Wait not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
@@ -1062,27 +1072,27 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
 	if (kl == NULL || kl->lock == NULL) {
 		// lock does not exist. Return -1 since it can't be acquired
 		printf("ERROR: Target Lock does not exist. Wait not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
 	// validate lock's process
 	if (kl->adds != currentThread->space) {
 		printf("ERROR: Permission denied! Target Lock belongs to a different process. Wait not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
 	// validate cv index
 	if (CVIndex == -1) {
 		printf("ERROR: Condition not created properly. Wait not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 	if (CVIndex < 0 || CVIndex > NumCVs) {
 		// index out of range
 		printf("ERROR: Invalid Condition index passed in. Wait not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 	
@@ -1091,14 +1101,14 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
 	if (kc == NULL || kc->condition == NULL) {
 		// cv does not exist. Return -1 since it can't be acquired
 		printf("ERROR: Target Condition does not exist. Wait not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
 	// validate condition's process
 	if (kc->adds != currentThread->space) {
 		printf("ERROR: Permission denied! Target Condition belongs to a different process. Wait not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
@@ -1109,7 +1119,9 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
 	//**********************************************************************
 
 	kc->counter++;
+	cvtablelock->Release();
 	kc->condition->Wait(kl->lock);
+	cvtablelock->Acquire();
 	kc->counter--;
 
 	// if DestroyCV was supposed to destroy this lock but wasn't able to,
@@ -1127,34 +1139,36 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
 		//**********************************************************************
 
 		// find the current process
-		int PID = -1;
-		kernelProcess* kp;
-		for (int i=0; i < NumProcesses; i++) {
-			kp = (kernelProcess*) processTable->Get(i);
-			if (kp == NULL) {
-				continue;
+		processLock->Acquire();
+			int PID = -1;
+			kernelProcess* kp;
+			for (int i=0; i < NumProcesses; i++) {
+				kp = (kernelProcess*) processTable->Get(i);
+				if (kp == NULL) {
+					continue;
+				}
+				if (kp->adds == currentThread->space) {
+					PID = i;
+					break;
+				}
 			}
-			if (kp->adds == currentThread->space) {
-				PID = i;
-				break;
+			if (PID == -1) {
+				printf("Error: invalid process identifier (Wait_Syscall)\n");
+				processLock->Release();
+				cvtablelock->Release();
+				return -1;
 			}
-		}
-		if (PID == -1) {
-			printf("Error: invalid process identifier (Wait_Syscall)\n");
-			processLock->Release();
-			(void) interrupt->SetLevel(old);
-			return -1;
-		}
-		kp->cvs[CVIndex] = false;
+			kp->cvs[CVIndex] = false;
+		processLock->Release();
 
 	}
 
-	(void) interrupt->SetLevel(old);
+	cvtablelock->Release();
     return CVIndex;
 }
 
 int Signal_Syscall(int lockIndex, int CVIndex) {
-	IntStatus old = interrupt->SetLevel(IntOff);
+	cvtablelock->Acquire();
 
       //if you can't call signal properly, then it returns -1 so we know if there is something wrong.
     //Otherwise, it returns CV index number
@@ -1167,13 +1181,13 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
 	// validate lock index
 	if (lockIndex == -1) {
 		printf("ERROR: Lock not created properly. Signal not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 	if (lockIndex < 0 || lockIndex > NumLocks) {
 		// index out of range
 		printf("ERROR: Invalid Lock index passed in. Signal not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
@@ -1182,27 +1196,27 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
 	if (kl == NULL || kl->lock == NULL) {
 		// lock does not exist. Return -1 since it can't be acquired
 		printf("ERROR: Target Lock does not exist. Signal not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
 	// validate lock's process
 	if (kl->adds != currentThread->space) {
 		printf("ERROR: Permission denied! Target Lock belongs to a different process. Signal not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
 	// validate cv index
 	if (CVIndex == -1) {
 		printf("ERROR: Condition not created properly. Signal not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 	if (CVIndex < 0 || CVIndex > NumCVs) {
 		// index out of range
 		printf("ERROR: Invalid Condition index passed in. Signal not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 	
@@ -1211,14 +1225,14 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
 	if (kc == NULL || kc->condition == NULL) {
 		// cv does not exist. Return -1 since it can't be acquired
 		printf("ERROR: Target Condition does not exist. Signal not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
 	// validate condition's process
 	if (kc->adds != currentThread->space) {
 		printf("ERROR: Permission denied! Target Condition belongs to a different process. Signal not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
@@ -1228,12 +1242,12 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
 
 	kc->condition->Signal(kl->lock);
 
-	(void) interrupt->SetLevel(old);
+	cvtablelock->Release();
 	return CVIndex;
 }
 
 int Broadcast_Syscall(int lockIndex, int CVIndex) {
-	IntStatus old = interrupt->SetLevel(IntOff);
+	cvtablelock->Acquire();
 
     //if you can't call Broadcast properly, then it returns -1 so we know if there is something wrong.
     //Otherwise, it returns CV index number
@@ -1246,13 +1260,13 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 	// validate lock index
 	if (lockIndex == -1) {
 		printf("ERROR: Lock not created properly. Broadcast not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 	if (lockIndex < 0 || lockIndex > NumLocks) {
 		// index out of range
 		printf("ERROR: Invalid Lock index passed in. Broadcast not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
@@ -1261,27 +1275,27 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 	if (kl == NULL || kl->lock == NULL) {
 		// lock does not exist. Return -1 since it can't be acquired
 		printf("ERROR: Target Lock does not exist. Broadcast not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
 	// validate lock's process
 	if (kl->adds != currentThread->space) {
 		printf("ERROR: Permission denied! Target Lock belongs to a different process. Broadcast not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
 	// validate cv index
 	if (CVIndex == -1) {
 		printf("ERROR: Condition not created properly. Broadcast not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 	if (CVIndex < 0 || CVIndex > NumCVs) {
 		// index out of range
 		printf("ERROR: Invalid Condition index passed in. Broadcast not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 	
@@ -1290,14 +1304,14 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 	if (kc == NULL || kc->condition == NULL) {
 		// cv does not exist. Return -1 since it can't be acquired
 		printf("ERROR: Target Condition does not exist. Broadcast not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
 	// validate condition's process
 	if (kc->adds != currentThread->space) {
 		printf("ERROR: Permission denied! Target Condition belongs to a different process. Broadcast not called.\n");
-		(void) interrupt->SetLevel(old);
+		cvtablelock->Release();
 		return -1;
 	}
 
@@ -1311,7 +1325,7 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 		Signal_Syscall(lockIndex, CVIndex);
 	}
 
-	(void) interrupt->SetLevel(old);
+	cvtablelock->Release();
     return CVIndex;
 }
 
