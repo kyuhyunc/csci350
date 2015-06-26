@@ -548,7 +548,7 @@ int CreateLock_Syscall(int vaddr, int size) {
 
 	//it returns -1 when user can't create lock for some reason.
 	//otherwise, it returns index of table where the lock that user creates is located. 
-	//DEBUG('c',"CreateLock starts\n");
+	DEBUG('c',"CreateLock starts\n");
 
 	//**********************************************************************
 	//				PARSING NAME
