@@ -37,8 +37,8 @@ extern Lock* memlock;		// prevent race condition b/c memory is shared among proc
 #include "bitmap.h"
 extern BitMap* memMap;		// keeps track of pages in pageTable
 #include "table.h"
-#define NumLocks	1000
-#define NumCVs		1000
+#define NumLocks	10000
+#define NumCVs		10000
 #define NumProcesses	10
 extern Table* locktable;
 extern Lock* locktablelock;

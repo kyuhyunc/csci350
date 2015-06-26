@@ -29,6 +29,7 @@ void test_print() {
 	Write("Testing Printf2 with 6 numbers: 321, 465, 738, 924, 172, and 54\n", sizeof("Testing Printf2 with 6 numbers: 321, 465, 738, 924, 172, and 54\n"), ConsoleOutput);
 	Printf2("Printf2 is printing out the numbers %d, %d, %d, %d, %d, and %d\n", sizeof("Printf2 is printing out the numbers %d, %d, %d, %d, %d, and %d\n"),
 				321*1000000+465*1000+738, 924*1000000+172*1000+54);
+	Yield();
 	Write("Testing Printf1 with 0's...\n", sizeof("Testing Printf1 with 0's...\n"), ConsoleOutput);
 	Write("Testing Printf1 with 1 number: 0...\n", sizeof("Testing Printf1 with 1 number: 0...\n"), ConsoleOutput);
 	Printf1("Printf1 is printing out the number %d\n", sizeof("Printf1 is printing out the number %d\n"), 0);
@@ -60,6 +61,7 @@ int main() {
 
 /*	Printf0("About to call Exec...\n", sizeof("About to call Exec...\n"));*/
 	Fork(test_print, "changeme", sizeof("changeme"));
+	Yield();
 	Fork(newpf, "changeme", sizeof("changeme"));
 /*	Exec("../test/halt", sizeof("../test/halt"));*/
 
