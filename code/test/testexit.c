@@ -33,6 +33,9 @@ int main() {
 
 	Printf0("m1\n", sizeof("m1\n"));
 
+	CreateLock("abc", sizeof("abc"));
+	CreateCV("def", sizeof("def"));
+
 	Fork(f1, "changeme", sizeof("changeme"));
 	Fork(f2, "changeme", sizeof("changeme"));
 	Fork(f3, "changeme", sizeof("changeme"));

@@ -403,33 +403,45 @@ void Exit_Syscall(int status) {
 		printf("last process and last thread\n");
 		// reclaim all pages
 		memlock->Acquire();
-			currentThread->space->Dump();
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
-			int pageIndex = currentThread->stackVP;
-			for (int i=0; i < 8; i++) {
+			for (unsigned int i=0; i < currentThread->space->numPages; i++) {
+				if (currentThread->space->pageTable[i].valid) {
+					memMap->Clear(currentThread->space->pageTable[i].physicalPage);
+					currentThread->space->pageTable[i].valid = FALSE;
+				}
+			}
+			currentThread->space->Dump();
+			/*int pageIndex = currentThread->stackVP;
+			for (unsigned int i=0; i < currentThread->space->numPages; i++) {
 				memMap->Clear(currentThread->space->pageTable[pageIndex].physicalPage);
 				currentThread->space->pageTable[pageIndex].valid = FALSE;
 				pageIndex--;
-			}
+			}*/
 		memlock->Release();
 
 		// reclaim all locks
+		DEBUG('b', "Deleted the following locks:\n");
 		for (int i=0; i < NumLocks; i++) {
 			if (kp->locks[i] == true) {
 				kernelLock* kl = (kernelLock*) locktable->Remove(i);
 				delete kl->lock;
 				delete kl;
+				DEBUG('b', "%d,", i);
 			}
 		}
+		DEBUG('b', "\n");
 
+		DEBUG('b', "Deleted the following cvs:\n");
 		// reclaim all cvs
 		for (int i=0; i < NumCVs; i++) {
 			if (kp->cvs[i] == true) {
 				kernelCV* kc = (kernelCV*) cvtable->Remove(i);
 				delete kc->condition;
 				delete kc;
+				DEBUG('b', "%d,", i);
 			}
 		}
+		DEBUG('b', "\n");
 
 		// delete process
 		processTable->Remove(PID);
@@ -454,7 +466,6 @@ void Exit_Syscall(int status) {
 	else if (kp->threadCount > 1) {
 		// reclaim pages
 		memlock->Acquire();
-			currentThread->space->Dump();
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
 			int pageIndex = currentThread->stackVP;
 			for (int i=0; i < 8; i++) {
@@ -462,6 +473,7 @@ void Exit_Syscall(int status) {
 				currentThread->space->pageTable[pageIndex].valid = FALSE;
 				pageIndex--;
 			}
+			currentThread->space->Dump();
 		memlock->Release();
 
 		// decrement
@@ -478,33 +490,39 @@ void Exit_Syscall(int status) {
 		// reclaim pages
 		printf("not last process and 1 thread left\n");
 		memlock->Acquire();
-			currentThread->space->Dump();
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
-			int pageIndex = currentThread->stackVP;
-			for (int i=0; i < 8; i++) {
-				memMap->Clear(currentThread->space->pageTable[pageIndex].physicalPage);
-				currentThread->space->pageTable[pageIndex].valid = FALSE;
-				pageIndex--;
+			for (unsigned int i=0; i < currentThread->space->numPages; i++) {
+				if (currentThread->space->pageTable[i].valid) {
+					memMap->Clear(currentThread->space->pageTable[i].physicalPage);
+					currentThread->space->pageTable[i].valid = FALSE;
+				}
 			}
+			currentThread->space->Dump();
 		memlock->Release();
 
-		// reclaim locks in process
+		// reclaim all locks
+		DEBUG('b', "Deleted the following locks:\n");
 		for (int i=0; i < NumLocks; i++) {
 			if (kp->locks[i] == true) {
 				kernelLock* kl = (kernelLock*) locktable->Remove(i);
 				delete kl->lock;
 				delete kl;
+				DEBUG('b', "%d,", i);
 			}
 		}
+		DEBUG('b', "\n");
 
-		// reclaim cvs in process
+		DEBUG('b', "Deleted the following cvs:\n");
+		// reclaim all cvs
 		for (int i=0; i < NumCVs; i++) {
 			if (kp->cvs[i] == true) {
 				kernelCV* kc = (kernelCV*) cvtable->Remove(i);
 				delete kc->condition;
 				delete kc;
+				DEBUG('b', "%d,", i);
 			}
 		}
+		DEBUG('b', "\n");
 
 		// delete process
 		processTable->Remove(PID);
