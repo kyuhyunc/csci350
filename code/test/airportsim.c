@@ -166,8 +166,8 @@ int concatNum(int i, int j, int k) {
 	return 1000000 * i + 1000 * j + k;
 } 
 
-#define front queue->_front
-#define rear queue->_rear
+/*#define front queue->_front
+#define rear queue->_rear*/
 void queue_insert (Queue* queue, int index) {
     if (queue->_rear == NUM_PASSENGERS-1)
         Printf0("ERROR: QUEUE OVERFLOW\n", sizeof("ERROR: QUEUE OVERFLOW\n"));
@@ -175,7 +175,8 @@ void queue_insert (Queue* queue, int index) {
         /* If queue is initially empty */
         if (queue->_front == -1)
             queue->_front = 0;
-        queue->_array[++rear] = index;
+/*        queue->_array[++rear] = index;*/
+        queue->_array[++queue->_rear] = index;
     }
 }
 
@@ -184,20 +185,22 @@ int queue_pop (Queue* queue) {
         Printf0("ERROR: QUEUE IS EMPTY\n", sizeof("ERROR: QUEUE IS EMPTY\n"));
         return -1;
     }
-    return queue->_array[front++];    
+/*    return queue->_array[front++];*/
+    return queue->_array[queue->_front++];
 }
 
 int queue_size (Queue* queue) {
     if (queue->_front == -1 || queue->_front > queue->_rear) return 0;
-    return rear - front + 1;
+/*    return rear - front + 1;*/
+    return queue->_rear - queue->_front + 1;
 }
 
 bool queue_empty (Queue* queue) {
     if (queue_size (queue) == 0) return true;
     else return false;
 }
-#undef front
-#undef reqr
+/*#undef front
+#undef reqr*/
 
 /*
 	Start Functions - functions called by Fork() syscall.
