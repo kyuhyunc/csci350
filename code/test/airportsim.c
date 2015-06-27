@@ -422,7 +422,20 @@ void startPassenger() {
 	/*
 		Reached the Boarding Lounge
 	*/
+	#define myAirline Airlines[my._ticket._airline]
 
+	Acquire(myAirline._lock);
+	myAirline._numReadyPassengers++;
+	Printf1("Passenger %d of Airline %d reached the gate %d\n",
+		sizeof("Passenger %d of Airline %d reached the gate %d\n"),
+		concat3Num(_myIndex, my._ticket._airline, my._ticket._airline));
+	Wait(myAirline._lock, myAirline._boardLoungeCV); /* Wait for boarding call by manager */
+	Printf1("Passenger %d of Airline %d boarded airline %d\n",
+		sizeof("Passenger %d of Airline %d boarded airline %d\n"),
+		concat3Num(_myIndex, my._ticket._airline, my._ticket._airline));
+	Release(myAirline._lock);
+
+	#undef myAirline
 	/* End Boarding Lounge */
 
 	Exit(0);
