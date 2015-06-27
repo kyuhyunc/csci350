@@ -858,6 +858,94 @@ Printf0("All Cargo Handlers done!\n", sizeof("All Cargo Handlers done!\n"));
 		/* end Conveyor Belt / Cargo Handlers */
 
 		if (Manager._allCISDone && Manager._allCargoDone) {
+			int pass_cnt_liaisons = 0;
+			int pass_cnt_SI = 0;
+			int pass_cnt_CIS = 0;
+			int bag_cnt_liaison = 0;
+			int bag_cnt_cargo = 0;
+			int weight_cnt_CIS = 0;
+			int weight_cnt_cargo = 0;
+
+			Printf0("=====================STATS======================\n", sizeof("=====================STATS======================\n"));
+
+			for (i = 0; i < NUM_LIASONS; ++i) {
+				for (j = 0; j < NUM_AIRLINES; ++j) {
+					pass_cnt_liaisons += Liaisons[i]._passCount[j];
+				}
+			}
+			Printf1("Passenger count reported by airport liaison = %d\n",
+				sizeof("Passenger count reported by airport liaison = %d\n"),
+				pass_cnt_liaisons);
+
+			for (i = 0; i < NUM_AIRLINES; ++i) {	
+				for (j = 0; j < NUM_CIS_PER_AIRLINE; ++j) {
+					pass_cnt_CIS += Airlines[i]._cis[j]._passCount;
+				}
+			}
+			Printf1("Passenger count reported by airline check-in staff = %d\n",
+				sizeof("Passenger count reported by airline check-in staff = %d\n"),
+				pass_cnt_CIS);
+
+			for (i = 0; i < NUM_AIRLINES; ++i) {	
+				pass_cnt_SI += SecurityInspectors[i]._passCount;
+			}
+			Printf1("Passenger count reported by security inspector = %d\n",
+				sizeof("Passenger count reported by security inspector = %d\n"),
+				pass_cnt_SI);
+
+			for (i = 0; i < NUM_AIRLINES; ++i) {	
+				Printf1("From setup: Baggage count of airline %d = %d\n",
+					sizeof("From setup: Baggage count of airline %d = %d\n"),
+					concat2Num(i, Airlines[i]._bagCount));
+			}
+
+			for (i = 0; i < NUM_AIRLINES; ++i) {	
+				bag_cnt_liaison = 0;
+				for (j = 0; j < NUM_LIASONS; ++j) {	
+					bag_cnt_liaison += Liaisons[j]._bagCount[i];
+				}
+				Printf1("From airport liaison: Baggage count of airline %d = %d\n",
+					sizeof("From airport liaison: Baggage count of airline %d = %d\n"),
+					concat2Num(i, bag_cnt_liaison));
+			}	
+
+			for (i = 0; i < NUM_AIRLINES; ++i) {
+				bag_cnt_cargo = 0;
+				for (j = 0; j < NUM_CARGO_HANDLERS; ++j) {	
+					bag_cnt_cargo += CargoHandlers[j]._bagCount[i];
+				}
+				Printf1("From cargo handlers: Baggage count of airline %d = %d\n",
+					sizeof("From cargo handlers: Baggage count of airline %d = %d\n"),
+				 	concat2Num(i, bag_cnt_cargo));
+			}
+
+			for (i = 0; i < NUM_AIRLINES; ++i) {
+				Printf1("From setup: Baggage weight of airline %d = %d\n",
+					sizeof("From setup: Baggage weight of airline %d = %d\n"),
+					concat2Num(i, Airlines[i]._weightCount));
+			}
+
+			for (i = 0; i < NUM_AIRLINES; ++i) {
+				weight_cnt_CIS = 0;
+				for (j = 0; j < NUM_CIS_PER_AIRLINE; ++j) {
+					weight_cnt_CIS += Airlines[i]._cis[j]._weightCount;
+				}
+				Printf1("From airline check-in staff: Baggage weight of airline %d = %d\n",
+					sizeof("From airline check-in staff: Baggage weight of airline %d = %d\n"),
+					concat2Num(i, weight_cnt_CIS));
+			}
+
+			for (i = 0; i < NUM_AIRLINES; ++i) {
+				weight_cnt_cargo = 0;
+				for (j = 0; j < NUM_CARGO_HANDLERS; ++j) {
+					weight_cnt_cargo += CargoHandlers[j]._weightCount[i];
+				}
+				Printf1("From cargo handlers: Baggage weight of airline %d = %d\n", 
+				sizeof("From cargo handlers: Baggage weight of airline %d = %d\n"),
+					concat2Num(i, weight_cnt_cargo));
+			}
+
+			Printf0("================================================\n", sizeof("================================================\n"));
 			break;
 		}
 
