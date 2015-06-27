@@ -692,7 +692,63 @@ void startScreeningOfficer() {
 }
 
 void startSecurityInspector() {
-	Printf0("startSecurityInspector\n", sizeof("startSecurityInspector\n"));
+	#define mySI SecurityInspectors[_myIndex]
+	int _myIndex;
+	/* Claim my security insepctor */
+	Acquire(GlobalDataLock);
+    _myIndex = NumActiveScreeningOfficers++;
+    Release(GlobalDataLock);
+
+    /* Start work */
+    while (true) {
+    	bool suspicious, guilty;
+    	Acquire(mySI._lock);
+    	if (mySI._rtnPassSize == 0 && mySI._newPassenger == -1) {
+    		mySI._state = AVAIL;
+    		Wait(mySI._lock, mySI._commCV); /* Wait for Passenger to come */
+    		mySI._state = BUSY;
+    	}
+    	if (mySI._rtnPassSize > 0) { /* priority to returning passengers */
+    		while (mySI._rtnPassSize > 0) {
+    			Signal(mySI._lock, mySI._rtnPassCV); /* Wake up passener */
+    			Wait(mySI._lock, mySI._rtnPassCV); /* Wait on passenger */
+    			Printf1("Security inspector %d permits returning passenger %d to board\n",
+    				sizeof("Security inspector %d permits returning passenger %d to board\n"),
+    				concat2Num(_myIndex, mySI._rtnPassenger));
+    			mySI._passCount++;
+    			mySI._rtnPassenger--;
+    			Signal(mySI._lock, mySI._rtnPassCV);
+    		}
+    		mySI._rtnPassenger = -1;
+    	}
+    	if (mySI._newPassenger != -1) { /* I have a new passenger to help */ 
+    		suspicious = (mySI._newPassenger * 23) % 10 > 7; /* Psuedo Random */
+    		guilty = suspicious || SecurityFailResults[mySI._newPassenger];
+    		if (suspicious) {
+    			Printf1("Security Inspector %d is suspicious of the hand luggage of passenger %d\n",
+    				sizeof("Security Inspector %d is suspicious of the hand luggage of passenger %d\n"),
+    				concat2Num(_myIndex, mySI._newPassenger));
+    		} else {
+    			Printf1("Security Inspector %d is not suspicious of the hand luggage of passenger %d\n",
+    				sizeof("Security Inspector %d is not suspicious of the hand luggage of passenger %d\n"),
+    				concat2Num(_myIndex, mySI._newPassenger));
+    		}
+    		if (guilty) {
+    			Printf1("Security inspector %d asks passenger %d to go for further examination\n", 
+    				sizeof("Security inspector %d asks passenger %d to go for further examination\n"),
+    				concat2Num(_myIndex, mySI._newPassenger));
+    		} else {
+    			Printf1("Security inspector %d allows passenger %d to board \n",
+    				sizeof("Security inspector %d allows passenger %d to board \n"),
+    				concat2Num(_myIndex, mySI._newPassenger));
+    			mySI._passCount++;
+    		}
+    		mySI._newPassenger = -1;
+    		Signal(mySI._lock, mySI._newPassCV);
+    	}
+    	Release(mySI._lock);
+    }
+    #undef mySI
 	Exit(0);
 }
 
