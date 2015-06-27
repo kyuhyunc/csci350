@@ -361,7 +361,84 @@ void startPassenger() {
 
 #undef myCIS
 #undef myAirline
-	/* end Check-in Staff Interaction */		
+	/* end Check-in Staff Interaction */
+
+
+	/*
+		Screening Officer Interaction
+	*/
+	Acquire(OfficersLineLock);
+	queue_insert(&OfficersLine, _myIndex);
+	Wait(OfficersLineLock, OfficersLineCV);
+	Printf1("Passenger %d gives the hand-luggage to screening officer %d\n",
+		sizeof("Passenger %d gives the hand-luggage to screening officer %d\n"),
+		concat2Num(_myIndex, my._officerID));
+	Acquire(ScreeningOfficers[my._officerID]._lock);
+	Release(OfficersLineLock);
+	Signal(ScreeningOfficers[my._officerID]._lock, ScreeningOfficers[my._officerID]._commCV);
+	Wait(ScreeningOfficers[my._officerID]._lock, ScreeningOfficers[my._officerID]._commCV);
+	/* officer lock is released below! */
+	/* end Screening Officer Interaction */
+
+	/*
+		Security Inspector Interaction
+	*/
+	#define inspector SecurityInspectors[my._inspectorID]
+	Printf1("Passenger %d moves to security inspector %d\n",
+		sizeof("Passenger %d moves to security inspector %d\n"),
+		concat2Num(_myIndex, my._inspectorID));
+	Acquire(inspector._lock);
+	Release(ScreeningOfficers[my._officerID]._lock);
+	inspector._newPassenger = _myIndex;
+	if (inspector._state == AVAIL) { /* Wake up inspector */
+		Signal(inspector._lock, inspector._commCV);
+	}
+	Wait(inspector._lock, inspector._newPassCV); /* Wait for security results */
+	if (my._furtherQuestioning) {
+		Printf1("Passenger %d goes for futher questioning\n", 
+			sizeof("Passenger %d goes for futher questioning\n"),
+			_myIndex);
+		Release(inspector._lock);
+		for (i = 0; i < 10; ++i) {
+			Yield(); /* Simulate Further questioning */
+		}
+		Printf1("Passenger %d comes back to security inspector %d after further examination\n",
+			sizeof("Passenger %d comes back to security inspector %d after further examination\n"),
+			concat2Num(_myIndex, my._inspectorID));
+		Acquire(inspector._lock);
+		inspector._rtnPassenger++;
+		if (inspector._state == AVAIL) {
+			Signal(inspector._lock, inspector._commCV);
+		}
+		Wait(inspector._lock, inspector._rtnPassCV);
+		inspector._rtnPassenger = _myIndex;
+		Signal(inspector._lock, inspector._rtnPassCV);
+		Wait(inspector._lock, inspector._rtnPassCV);
+	}	
+	Release(inspector._lock);
+
+	#undef inspector
+	/* end Security Inspector Interaction */
+
+	/*
+		Reached the Boarding Lounge
+	*/
+	#define myAirline Airlines[my._ticket._airline]
+
+	Acquire(myAirline._lock);
+	myAirline._numReadyPassengers++;
+	Printf1("Passenger %d of Airline %d reached the gate %d\n",
+		sizeof("Passenger %d of Airline %d reached the gate %d\n"),
+		concat3Num(_myIndex, my._ticket._airline, my._ticket._airline));
+	Wait(myAirline._lock, myAirline._boardLoungeCV); /* Wait for boarding call by manager */
+	Printf1("Passenger %d of Airline %d boarded airline %d\n",
+		sizeof("Passenger %d of Airline %d boarded airline %d\n"),
+		concat3Num(_myIndex, my._ticket._airline, my._ticket._airline));
+	Release(myAirline._lock);
+
+	#undef myAirline
+	/* End Boarding Lounge */
+
 	Exit(0);
 #undef my
 }
@@ -642,7 +719,63 @@ void startScreeningOfficer() {
 }
 
 void startSecurityInspector() {
-	Printf0("startSecurityInspector\n", sizeof("startSecurityInspector\n"));
+	#define mySI SecurityInspectors[_myIndex]
+	int _myIndex;
+	/* Claim my security insepctor */
+	Acquire(GlobalDataLock);
+    _myIndex = NumActiveScreeningOfficers++;
+    Release(GlobalDataLock);
+
+    /* Start work */
+    while (true) {
+    	bool suspicious, guilty;
+    	Acquire(mySI._lock);
+    	if (mySI._rtnPassSize == 0 && mySI._newPassenger == -1) {
+    		mySI._state = AVAIL;
+    		Wait(mySI._lock, mySI._commCV); /* Wait for Passenger to come */
+    		mySI._state = BUSY;
+    	}
+    	if (mySI._rtnPassSize > 0) { /* priority to returning passengers */
+    		while (mySI._rtnPassSize > 0) {
+    			Signal(mySI._lock, mySI._rtnPassCV); /* Wake up passener */
+    			Wait(mySI._lock, mySI._rtnPassCV); /* Wait on passenger */
+    			Printf1("Security inspector %d permits returning passenger %d to board\n",
+    				sizeof("Security inspector %d permits returning passenger %d to board\n"),
+    				concat2Num(_myIndex, mySI._rtnPassenger));
+    			mySI._passCount++;
+    			mySI._rtnPassenger--;
+    			Signal(mySI._lock, mySI._rtnPassCV);
+    		}
+    		mySI._rtnPassenger = -1;
+    	}
+    	if (mySI._newPassenger != -1) { /* I have a new passenger to help */ 
+    		suspicious = (mySI._newPassenger * 23) % 10 > 7; /* Psuedo Random */
+    		guilty = suspicious || SecurityFailResults[mySI._newPassenger];
+    		if (suspicious) {
+    			Printf1("Security Inspector %d is suspicious of the hand luggage of passenger %d\n",
+    				sizeof("Security Inspector %d is suspicious of the hand luggage of passenger %d\n"),
+    				concat2Num(_myIndex, mySI._newPassenger));
+    		} else {
+    			Printf1("Security Inspector %d is not suspicious of the hand luggage of passenger %d\n",
+    				sizeof("Security Inspector %d is not suspicious of the hand luggage of passenger %d\n"),
+    				concat2Num(_myIndex, mySI._newPassenger));
+    		}
+    		if (guilty) {
+    			Printf1("Security inspector %d asks passenger %d to go for further examination\n", 
+    				sizeof("Security inspector %d asks passenger %d to go for further examination\n"),
+    				concat2Num(_myIndex, mySI._newPassenger));
+    		} else {
+    			Printf1("Security inspector %d allows passenger %d to board \n",
+    				sizeof("Security inspector %d allows passenger %d to board \n"),
+    				concat2Num(_myIndex, mySI._newPassenger));
+    			mySI._passCount++;
+    		}
+    		mySI._newPassenger = -1;
+    		Signal(mySI._lock, mySI._newPassCV);
+    	}
+    	Release(mySI._lock);
+    }
+    #undef mySI
 	Exit(0);
 }
 
@@ -750,6 +883,18 @@ Printf0("All Cargo Handlers done!\n", sizeof("All Cargo Handlers done!\n"));
 		if (Manager._allCISDone && Manager._allCargoDone) {
 			break;
 		}
+
+		/*
+			Security Officers
+		*/
+		Acquire(OfficersLineLock);
+		for (i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
+			if (!queue_empty(&OfficersLine) && ScreeningOfficers[i]._state == ONBREAK) {
+				Signal(OfficersLineLock, ScreeningOfficers[i]._commCV);
+			}
+		}
+		Release(OfficersLineLock);
+		/* end Security Officers */
 
 		/*
 			Check Boarding Lounge
