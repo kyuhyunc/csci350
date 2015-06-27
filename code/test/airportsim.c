@@ -360,7 +360,34 @@ void startPassenger() {
 
 #undef myCIS
 #undef myAirline
-	/* end Check-in Staff Interaction */		
+	/* end Check-in Staff Interaction */
+
+
+	/*
+		Screening Officer Interaction
+	*/
+	Acquire(OfficersLineLock);
+	queue_insert(&OfficersLine, _myIndex);
+	Wait(OfficersLineLock, OfficersLineCV);
+	Printf1("Passenger %d gives the hand-luggage to screening officer %d\n",
+		sizeof("Passenger %d gives the hand-luggage to screening officer %d\n"),
+		concat2Num(_myIndex, my._officerID));
+	Acquire(ScreeningOfficers[my._officerID]._lock);
+	Release(OfficersLineLock);
+	Signal(ScreeningOfficers[my._officerID]._lock, ScreeningOfficers[my._officerID]._commCV);
+	Wait(ScreeningOfficers[my._officerID]._lock, ScreeningOfficers[my._officerID]._commCV);
+	/* officer lock is released below! */
+	/* end Screening Officer Interaction */
+
+	/*
+		Security Inspector Interaction
+	*/
+	Printf1("Passenger %d moves to security inspector %d\n",
+		sizeof("Passenger %s moves to security inspector %s\n"),
+		concat2Num(_myIndex, my._inspectorID));
+
+	/* end Security Inspector Interaction */
+
 	Exit(0);
 #undef my
 }
