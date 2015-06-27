@@ -382,11 +382,48 @@ void startPassenger() {
 	/*
 		Security Inspector Interaction
 	*/
+	#define inspector SecurityInspectors[my._inspectorID]
 	Printf1("Passenger %d moves to security inspector %d\n",
-		sizeof("Passenger %s moves to security inspector %s\n"),
+		sizeof("Passenger %d moves to security inspector %d\n"),
 		concat2Num(_myIndex, my._inspectorID));
+	Acquire(inspector._lock);
+	Release(ScreeningOfficers[my._officerID]._lock);
+	inspector._newPassenger = _myIndex;
+	if (inspector._state == AVAIL) { /* Wake up inspector */
+		Signal(inspector._lock, inspector._commCV);
+	}
+	Wait(inspector._lock, inspector._newPassCV); /* Wait for security results */
+	if (my._furtherQuestioning) {
+		Printf1("Passenger %d goes for futher questioning\n", 
+			sizeof("Passenger %d goes for futher questioning\n"),
+			_myIndex);
+		Release(inspector._lock);
+		for (i = 0; i < 10; ++i) {
+			Yield(); /* Simulate Further questioning */
+		}
+		Printf1("Passenger %d comes back to security inspector %d after further examination\n",
+			sizeof("Passenger %d comes back to security inspector %d after further examination\n"),
+			concat2Num(_myIndex, my._inspectorID));
+		Acquire(inspector._lock);
+		inspector._rtnPassenger++;
+		if (inspector._state == AVAIL) {
+			Signal(inspector._lock, inspector._commCV);
+		}
+		Wait(inspector._lock, inspector._rtnPassCV);
+		inspector._rtnPassenger = _myIndex;
+		Signal(inspector._lock, inspector._rtnPassCV);
+		Wait(inspector._lock, inspector._rtnPassCV);
+	}	
+	Release(inspector._lock);
 
+	#undef inspector
 	/* end Security Inspector Interaction */
+
+	/*
+		Reached the Boarding Lounge
+	*/
+
+	/* End Boarding Lounge */
 
 	Exit(0);
 #undef my
