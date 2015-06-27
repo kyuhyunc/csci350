@@ -816,7 +816,6 @@ void startManager() {
 #define cis Airlines[i]._cis[j]
 	int i, j; /* for-loop iterator */
 	while (true) {
-		bool allFlightsBoarded = false;
 		int numReadyAirlines = 0;
 		/*
 			Check-in Staff 
@@ -944,7 +943,6 @@ void startManager() {
 				Airlines[i]._boarded = true;
 			}
 		}
-
 
 		if (numReadyAirlines == NUM_AIRLINES) {
 			int pass_cnt_liaisons = 0;
