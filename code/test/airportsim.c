@@ -862,6 +862,18 @@ Printf0("All Cargo Handlers done!\n", sizeof("All Cargo Handlers done!\n"));
 		}
 
 		/*
+			Security Officers
+		*/
+		Acquire(OfficersLineLock);
+		for (i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
+			if (!queue_empty(&OfficersLine) && ScreeningOfficers[i]._state == ONBREAK) {
+				Signal(OfficersLineLock, ScreeningOfficers[i]._commCV);
+			}
+		}
+		Release(OfficersLineLock);
+		/* end Security Officers */
+
+		/*
 			Check Boarding Lounge
 		*/
 		for (i = 0; i < NUM_AIRLINES; ++i) {
