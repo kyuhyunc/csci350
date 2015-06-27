@@ -783,7 +783,6 @@ void startManager() {
 #define cis Airlines[i]._cis[j]
 	int i, j; /* for-loop iterator */
 	while (true) {
-		bool allFlightsBoarded = false;
 		int numReadyAirlines = 0;
 		/*
 			Check-in Staff 
@@ -880,7 +879,40 @@ Printf0("All Cargo Handlers done!\n", sizeof("All Cargo Handlers done!\n"));
 		}
 		/* end Conveyor Belt / Cargo Handlers */
 
-		if (Manager._allCISDone && Manager._allCargoDone) {
+		/*
+			Security Officers
+		*/
+		Acquire(OfficersLineLock);
+		for (i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
+			if (!queue_empty(&OfficersLine) && ScreeningOfficers[i]._state == ONBREAK) {
+				Signal(OfficersLineLock, ScreeningOfficers[i]._commCV);
+			}
+		}
+		Release(OfficersLineLock);
+		/* end Security Officers */
+
+		/*
+			Check Boarding Lounge
+		*/
+		for (i = 0; i < NUM_AIRLINES; ++i) {
+			if (Airlines[i]._boarded) {
+				numReadyAirlines++;
+			} else if(Airlines[i]._numExpectedBaggages == Airlines[i]._numLoadedBaggages
+				&& Airlines[i]._numExpectedPassengers == Airlines[i]._numCheckedinPassengers) {
+				Printf1("Airport manager gives a boarding call to airline %d\n",
+					sizeof("Airport manager gives a boarding call to airline %d\n"),
+					i);
+				for (j = 0; j < Airlines[i]._numReadyPassengers; ++j) {
+					Acquire(Airlines[j]._lock);
+					Signal(Airlines[j]._lock, Airlines[j]._boardLoungeCV);
+					Release(Airlines[j]._lock);
+				}
+				numReadyAirlines++;
+				Airlines[i]._boarded;
+			}
+		}
+
+		if (numReadyAirlines == NUM_AIRLINES) {
 			int pass_cnt_liaisons = 0;
 			int pass_cnt_SI = 0;
 			int pass_cnt_CIS = 0;
@@ -970,39 +1002,6 @@ Printf0("All Cargo Handlers done!\n", sizeof("All Cargo Handlers done!\n"));
 
 			Printf0("================================================\n", sizeof("================================================\n"));
 			break;
-		}
-
-		/*
-			Security Officers
-		*/
-		Acquire(OfficersLineLock);
-		for (i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
-			if (!queue_empty(&OfficersLine) && ScreeningOfficers[i]._state == ONBREAK) {
-				Signal(OfficersLineLock, ScreeningOfficers[i]._commCV);
-			}
-		}
-		Release(OfficersLineLock);
-		/* end Security Officers */
-
-		/*
-			Check Boarding Lounge
-		*/
-		for (i = 0; i < NUM_AIRLINES; ++i) {
-			if (Airlines[i]._boarded) {
-				numReadyAirlines++;
-			} else if(Airlines[i]._numExpectedBaggages == Airlines[i]._numLoadedBaggages
-				&& Airlines[i]._numExpectedPassengers == Airlines[i]._numCheckedinPassengers) {
-				Printf1("Airport manager gives a boarding call to airline %d\n",
-					sizeof("Airport manager gives a boarding call to airline %d\n"),
-					i);
-				for (j = 0; j < Airlines[i]._numReadyPassengers; ++j) {
-					Acquire(Airlines[j]._lock);
-					Signal(Airlines[j]._lock, Airlines[j]._boardLoungeCV);
-					Release(Airlines[j]._lock);
-				}
-				numReadyAirlines++;
-				Airlines[i]._boarded;
-			}
 		}
 
 		/*
