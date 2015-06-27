@@ -36,7 +36,7 @@ StartProcess(char *filename)
 	memlock->Acquire();
 		space = new AddrSpace(executable);
 		currentThread->stackVP = space->numPages - 1;
-printf("Initialized stackVP = %d\n", space->numPages - 1);
+DEBUG('b', "Initialized stackVP = %d\n", space->numPages - 1);
 	memlock->Release();
 
     currentThread->space = space;

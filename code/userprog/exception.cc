@@ -400,7 +400,7 @@ void Exit_Syscall(int status) {
 	interrupt->Halt();
 	*/
 	if (lastProcess && kp->threadCount == 1) {
-		printf("last process and last thread\n");
+		DEBUG('b', "last process and last thread\n");
 		// reclaim all pages
 		memlock->Acquire();
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
@@ -488,7 +488,7 @@ void Exit_Syscall(int status) {
 	*/
 	else if (!lastProcess && kp->threadCount == 1) {
 		// reclaim pages
-		printf("not last process and 1 thread left\n");
+		DEBUG('b', "not last process and 1 thread left\n");
 		memlock->Acquire();
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
 			for (unsigned int i=0; i < currentThread->space->numPages; i++) {
