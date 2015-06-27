@@ -113,6 +113,7 @@ typedef struct {
 
 /* Manager */
 typedef struct {
+	bool _allLiaisonsDone;
 	bool _allCISDone;
     bool _allCargoDone;
     bool _allSODone;
@@ -360,34 +361,7 @@ void startPassenger() {
 
 #undef myCIS
 #undef myAirline
-	/* end Check-in Staff Interaction */
-
-
-	/*
-		Screening Officer Interaction
-	*/
-	Acquire(OfficersLineLock);
-	queue_insert(&OfficersLine, _myIndex);
-	Wait(OfficersLineLock, OfficersLineCV);
-	Printf1("Passenger %d gives the hand-luggage to screening officer %d\n",
-		sizeof("Passenger %d gives the hand-luggage to screening officer %d\n"),
-		concat2Num(_myIndex, my._officerID));
-	Acquire(ScreeningOfficers[my._officerID]._lock);
-	Release(OfficersLineLock);
-	Signal(ScreeningOfficers[my._officerID]._lock, ScreeningOfficers[my._officerID]._commCV);
-	Wait(ScreeningOfficers[my._officerID]._lock, ScreeningOfficers[my._officerID]._commCV);
-	/* officer lock is released below! */
-	/* end Screening Officer Interaction */
-
-	/*
-		Security Inspector Interaction
-	*/
-	Printf1("Passenger %d moves to security inspector %d\n",
-		sizeof("Passenger %s moves to security inspector %s\n"),
-		concat2Num(_myIndex, my._inspectorID));
-
-	/* end Security Inspector Interaction */
-
+	/* end Check-in Staff Interaction */		
 	Exit(0);
 #undef my
 }
@@ -410,7 +384,15 @@ void startLiaison() {
 	    if (l._lineSize == 0) {
 	    	Release(LiaisonLineLock);
 	    	l._state = AVAIL;
+			if (Manager._allLiaisonsDone) { /* Done? */
+				Release(l._lock);
+				break;
+			}
 	    	Wait(l._lock, l._commCV); /* Wait for new Passenger */
+			if (Manager._allLiaisonsDone) { /* Done? */
+				Release(l._lock);
+				break;
+			}
 	    } else {
 	    	Signal(LiaisonLineLock, l._lineCV); /* Signal Passenger */
 	    	Release(LiaisonLineLock); 
@@ -463,7 +445,7 @@ Printf1("Cis %d woke up by manager\n", sizeof("Cis %d woke up by manager\n"), _m
 				Release(myAirline._lock);
 /*				Wait(my._lock, my._commCV); *//* Wait forever, basically */
 /*				Release(my._lock); *//* Never reaches here, but whatever... */
-				Exit(0);
+				break;
 			}
 			myAirline._numOnBreakCIS--;
 		}
@@ -560,6 +542,11 @@ void startCargoHandler() {
 			my._state = ONBREAK;
 Printf1("CargoHandler %d going to sleep\n", sizeof("CargoHandler %d going to sleep\n"), _myIndex);
 			Wait(ConveyorLock, my._commCV);
+			/* Done? */
+			if (Manager._allCargoDone) {
+				Release(ConveyorLock);
+				break;
+			}
 Printf1("CargoHandler %d woke up by manager\n", sizeof("CargoHandler %d woke up by manager\n"), _myIndex);
 			Printf1("Cargo Handler %d returned from break\n",
 				sizeof("Cargo Handler %d returned from break\n"),
@@ -711,6 +698,12 @@ void startManager() {
 			if (numDoneAirline == NUM_AIRLINES) {
 				Manager._allCISDone = true;
 Printf0("All Cis is done!\n", sizeof("All Cis is done!\n"));
+				/* Exit all Liaisons too! */
+				/* If all CIS are done, so are all Liaisons */
+				Manager._allLiaisonsDone = true;
+				for(i = 0; i < NUM_LIASONS; ++i) {
+					Signal(Liaisons[i]._lock, Liaisons[i]._commCV);
+				}
 			} else {
 				Manager._allCISDone = false;
 			}
@@ -732,6 +725,13 @@ Printf1("Number loaded: %d, number expected: %d\n", sizeof("Number loaded: %d, n
 					numDone++;
 				}
 			}
+			if (numDone == NUM_AIRLINES) {
+Printf0("All Cargo Handlers done!\n", sizeof("All Cargo Handlers done!\n"));
+				Manager._allCargoDone = true;
+				for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
+					Signal(ConveyorLock, CargoHandlers[i]._commCV);
+				}
+			}
 			for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
 				if (!queue_empty(&ConveyorBelt) && CargoHandlers[i]._state == ONBREAK) {
 					Signal(ConveyorLock, CargoHandlers[i]._commCV);
@@ -742,10 +742,6 @@ Printf1("Number loaded: %d, number expected: %d\n", sizeof("Number loaded: %d, n
 						msgToCargo = false;
 					}
 				}
-			}
-			if (numDone == NUM_AIRLINES) {
-Printf0("All Cargo Handlers done!\n", sizeof("All Cargo Handlers done!\n"));
-				Manager._allCargoDone = true;
 			}
 			Release(ConveyorLock);
 		}
@@ -879,6 +875,7 @@ void initCIS(int airline) {
 }
 
 void initManager() {
+	Manager._allLiaisonsDone = false;
 	Manager._allCISDone = false;
     Manager._allCargoDone = false;
     Manager._allSODone = false;
