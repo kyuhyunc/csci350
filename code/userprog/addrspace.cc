@@ -275,7 +275,15 @@ AddrSpace::InitRegisters()
 //----------------------------------------------------------------------
 
 void AddrSpace::SaveState() 
-{}
+{
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+
+	for (int i=0; i < TLBSize; i++) {
+		machine->tlb[i].valid = false;
+	}
+
+	(void) interrupt->SetLevel(oldLevel);
+}
 
 //----------------------------------------------------------------------
 // AddrSpace::RestoreState
@@ -287,8 +295,15 @@ void AddrSpace::SaveState()
 
 void AddrSpace::RestoreState() 
 {
-    machine->pageTable = pageTable;
-    machine->pageTableSize = numPages;
+//    machine->pageTable = pageTable;
+//    machine->pageTableSize = numPages;
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+
+	for (int i=0; i < TLBSize; i++) {
+		machine->tlb[i].valid = false;
+	}
+
+	(void) interrupt->SetLevel(oldLevel);
 }
 
 void AddrSpace::Dump()
@@ -350,7 +365,7 @@ int* AddrSpace::AddStack()
 			pageTable[i].readOnly = FALSE;
 		}
 
-		machine->pageTable = pageTable;
+//		machine->pageTable = pageTable;
 
 		delete oldPT;
 

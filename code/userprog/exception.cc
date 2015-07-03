@@ -1474,6 +1474,29 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
   delete [] buf;
 }
 
+void PFEhandle(unsigned int badvaddr) {
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+
+	// calculate pageTable index
+	int pageIndex = badvaddr / PageSize;
+
+	// copy data from pageTable into TLB
+	machine->tlb[currentTLB].virtualPage = currentThread->space->pageTable[pageIndex].virtualPage;
+	machine->tlb[currentTLB].physicalPage = currentThread->space->pageTable[pageIndex].physicalPage;
+	machine->tlb[currentTLB].valid = currentThread->space->pageTable[pageIndex].valid;
+	machine->tlb[currentTLB].use = currentThread->space->pageTable[pageIndex].use;
+	machine->tlb[currentTLB].dirty = currentThread->space->pageTable[pageIndex].dirty;
+	machine->tlb[currentTLB].readOnly = currentThread->space->pageTable[pageIndex].readOnly;
+
+	// increment TLB pointer
+//printf("currentTLB before = %d\n", currentTLB);
+//	currentTLB = (currentTLB++) % TLBSize;
+	currentTLB = (++currentTLB) % TLBSize;
+//printf("currentTLB after = %d\n", currentTLB);
+
+	(void) interrupt->SetLevel(oldLevel);
+}
+
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
     int rv=0;   // the return value from a syscall
@@ -1578,7 +1601,14 @@ void ExceptionHandler(ExceptionType which) {
 		machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
 		machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
 		return;
-    } else {
+    }
+	else if ( which == PageFaultException ) {
+//printf("PageFaultException raised and handling\n");
+		PFEhandle(machine->ReadRegister(39));
+
+		return;
+	}
+	else {
 		cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
 		interrupt->Halt();
     }

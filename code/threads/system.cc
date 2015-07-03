@@ -29,17 +29,17 @@ SynchDisk   *synchDisk;
 
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
-Lock* memlock;
-BitMap* memMap;
 
+Lock* memlock;		// other kernel data structures
+BitMap* memMap;
 Table* locktable;
 Lock* locktablelock;
-
 Table* cvtable;
 Lock* cvtablelock;
-
 Table* processTable;
 Lock* processLock;
+
+int currentTLB;		// TLB tracker
 #endif
 
 #ifdef NETWORK
@@ -160,17 +160,17 @@ Initialize(int argc, char **argv)
     
 #ifdef USER_PROGRAM
     machine = new Machine(debugUserProg);	// this must come first
-	memlock = new Lock("MemoryLock");
-	memMap = new BitMap(NumPhysPages);
 
+	memlock = new Lock("MemoryLock");		// initialize kernel data trackers
+	memMap = new BitMap(NumPhysPages);
 	locktable = new Table(NumLocks);
 	locktablelock = new Lock("LockTableLock");
-
 	cvtable = new Table(NumCVs);
 	cvtablelock = new Lock("CVTableLock");
-
 	processTable = new Table(NumProcesses);
 	processLock = new Lock("ProcessLock");
+
+	currentTLB = 0;					// initialize TLB
 #endif
 
 #ifdef FILESYS

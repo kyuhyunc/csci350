@@ -47,6 +47,7 @@ class AddrSpace {
 	friend void Fork_Syscall(int pc, unsigned int vaddr, int size);
 	friend void Exec_Syscall(unsigned int vaddr, int size);
 	friend void Exit_Syscall(int status);
+	friend void PFEhandle(unsigned int badvaddr);
 
 	void Dump(); // debugging
 	int* AddStack(); // called by Fork_Syscall

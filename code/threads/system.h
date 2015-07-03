@@ -36,58 +36,55 @@ extern Machine* machine;	// user program memory and registers
 extern Lock* memlock;		// prevent race condition b/c memory is shared among processes
 #include "bitmap.h"
 extern BitMap* memMap;		// keeps track of pages in pageTable
-#include "table.h"
+
+#include "table.h"			// keep track of kernel data structures
 #define NumLocks	1000
 #define NumCVs		1000
 #define NumProcesses	10
 extern Table* locktable;
 extern Lock* locktablelock;
-    
-    struct kernelLock {
-    	Lock * lock;
-    	AddrSpace * adds;
-    	bool isToBeDeleted;
-    	int counter;
-    };
-
 extern Table* cvtable;
 extern Lock* cvtablelock;
-	
-	struct kernelCV {
-    	Condition * condition;
-    	AddrSpace * adds;
-    	bool isToBeDeleted;
-    	int counter;
-    };
-
 extern Lock* processLock;
-
-	struct kernelProcess {
-		kernelProcess() {
-			adds = currentThread->space;
-			threadCount = 0;
-			locks = new bool[NumLocks];
-			for (int i=0; i < NumLocks; i++) {
-				locks[i] = false;
-			}
-			cvs = new bool[NumCVs];
-			for (int i=0; i < NumCVs; i++) {
-				cvs[i] = false;
-			}
-		}
-		~kernelProcess() {
-			delete [] locks;
-			delete [] cvs;
-		}
-
-		AddrSpace * adds;
-		int threadCount;
-
-		bool* locks;
-		bool* cvs;
-	};
-
 extern Table* processTable;
+
+struct kernelLock {			// kernel data structures
+Lock * lock;
+	AddrSpace * adds;
+	bool isToBeDeleted;
+	int counter;
+};
+struct kernelCV {
+	Condition * condition;
+	AddrSpace * adds;
+	bool isToBeDeleted;
+	int counter;
+};
+struct kernelProcess {
+	kernelProcess() {
+		adds = currentThread->space;
+		threadCount = 0;
+		locks = new bool[NumLocks];
+		for (int i=0; i < NumLocks; i++) {
+			locks[i] = false;
+		}
+		cvs = new bool[NumCVs];
+		for (int i=0; i < NumCVs; i++) {
+			cvs[i] = false;
+		}
+	}
+	~kernelProcess() {
+		delete [] locks;
+		delete [] cvs;
+	}
+	AddrSpace * adds;
+	int threadCount;
+	bool* locks;
+	bool* cvs;
+};
+
+
+extern int currentTLB;				// TLB tracker
 
 #endif
 
