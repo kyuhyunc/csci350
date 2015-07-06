@@ -86,6 +86,19 @@ struct kernelProcess {
 
 extern int currentTLB;				// TLB tracker
 
+class IPTentry {			// for IPT
+  public:
+	int virtualPage;
+	int physicalPage;
+	bool valid;
+	bool readOnly;
+	bool use;
+	bool dirty;
+	AddrSpace * space;
+};
+
+extern IPTentry* ipt;
+
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 

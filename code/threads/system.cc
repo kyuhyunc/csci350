@@ -40,6 +40,7 @@ Table* processTable;
 Lock* processLock;
 
 int currentTLB;		// TLB tracker
+IPTentry* ipt;		// Inverted Page Table
 #endif
 
 #ifdef NETWORK
@@ -171,6 +172,7 @@ Initialize(int argc, char **argv)
 	processLock = new Lock("ProcessLock");
 
 	currentTLB = 0;					// initialize TLB
+	ipt = new IPTentry[NumPhysPages];	// initialize IPT
 #endif
 
 #ifdef FILESYS

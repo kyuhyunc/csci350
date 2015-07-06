@@ -407,6 +407,7 @@ void Exit_Syscall(int status) {
 			for (unsigned int i=0; i < currentThread->space->numPages; i++) {
 				if (currentThread->space->pageTable[i].valid) {
 					memMap->Clear(currentThread->space->pageTable[i].physicalPage);
+					ipt[currentThread->space->pageTable[i].physicalPage].valid = FALSE;
 					currentThread->space->pageTable[i].valid = FALSE;
 				}
 			}
@@ -494,6 +495,7 @@ void Exit_Syscall(int status) {
 			for (unsigned int i=0; i < currentThread->space->numPages; i++) {
 				if (currentThread->space->pageTable[i].valid) {
 					memMap->Clear(currentThread->space->pageTable[i].physicalPage);
+					ipt[currentThread->space->pageTable[i].physicalPage].valid = FALSE;
 					currentThread->space->pageTable[i].valid = FALSE;
 				}
 			}
@@ -1480,13 +1482,33 @@ void PFEhandle(unsigned int badvaddr) {
 	// calculate pageTable index
 	int pageIndex = badvaddr / PageSize;
 
+	// find IPT
+	for (int i=0; i < NumPhysPages; i++) {
+		// must meet these three conditions:
+		// 1) valid bit is true
+		// 2) matching virtual page number
+		// 3) matching AddrSpace *
+		if (ipt[i].valid
+					&& ipt[i].virtualPage == pageIndex
+					&& ipt[i].space == currentThread->space) {
+			machine->tlb[currentTLB].virtualPage = ipt[i].virtualPage;
+			machine->tlb[currentTLB].physicalPage = ipt[i].physicalPage;
+			machine->tlb[currentTLB].valid = ipt[i].valid;
+			machine->tlb[currentTLB].use = ipt[i].use;
+			machine->tlb[currentTLB].dirty = ipt[i].dirty;
+			machine->tlb[currentTLB].readOnly = ipt[i].readOnly;
+			break;
+		}
+	}
+
 	// copy data from pageTable into TLB
-	machine->tlb[currentTLB].virtualPage = currentThread->space->pageTable[pageIndex].virtualPage;
+/*	machine->tlb[currentTLB].virtualPage = currentThread->space->pageTable[pageIndex].virtualPage;
 	machine->tlb[currentTLB].physicalPage = currentThread->space->pageTable[pageIndex].physicalPage;
 	machine->tlb[currentTLB].valid = currentThread->space->pageTable[pageIndex].valid;
 	machine->tlb[currentTLB].use = currentThread->space->pageTable[pageIndex].use;
 	machine->tlb[currentTLB].dirty = currentThread->space->pageTable[pageIndex].dirty;
 	machine->tlb[currentTLB].readOnly = currentThread->space->pageTable[pageIndex].readOnly;
+*/
 
 	// increment TLB pointer
 //printf("currentTLB before = %d\n", currentTLB);

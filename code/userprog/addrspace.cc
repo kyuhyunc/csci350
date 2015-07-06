@@ -172,14 +172,17 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
 					numPages, size);
 // first, set up the translation 
+	int ppn;
 	pageTable = new TranslationEntry[numPages];
 	for (i = 0; i < numPages; i++) {
+		ppn = memMap->Find(); // get available physical page
+
 		pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
 /*				int* index = new int;
 			*index = i;
 			currentThread->pages->Append((void*)index);
 */
-		pageTable[i].physicalPage = memMap->Find();
+		pageTable[i].physicalPage = ppn;
 //printf("pageTable[%d]=%d\n", i, pageTable[i].physicalPage);
 		pageTable[i].valid = TRUE;
 		pageTable[i].use = FALSE;
@@ -187,6 +190,15 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 		pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
 						// a separate page, we could set its 
 						// pages to be read-only
+
+		// add ITP info
+		ipt[ppn].virtualPage = i;
+		ipt[ppn].physicalPage = ppn;
+		ipt[ppn].valid = TRUE;
+		ipt[ppn].use = FALSE;
+		ipt[ppn].dirty = FALSE;
+		ipt[ppn].readOnly = FALSE;
+		ipt[ppn].space = this;
 	}
 	
 // zero out the entire address space, to zero the unitialized data segment 
@@ -350,22 +362,34 @@ int* AddrSpace::AddStack()
 		// update page table size (increase it by 8)
 		numPages += 8;
 
+		int ppn;
 		for (i; i < numPages; i++) {
 	//printf("i=%d\n", i);
+			ppn = memMap->Find();
+
 			pageTable[i].virtualPage = i;
 	/*			int* index = new int;
 				*index = i;
 				currentThread->pages->Append((void*)index);
 	*/
-			pageTable[i].physicalPage = memMap->Find();
+			pageTable[i].physicalPage = ppn;
 	//printf("pageTable[%d]=%d\n", i, pageTable[i].physicalPage);
 			pageTable[i].valid = TRUE;
 			pageTable[i].use = FALSE;
 			pageTable[i].dirty = FALSE;
 			pageTable[i].readOnly = FALSE;
+
+			// add ITP info
+			ipt[ppn].virtualPage = i;
+			ipt[ppn].physicalPage = ppn;
+			ipt[ppn].valid = TRUE;
+			ipt[ppn].use = FALSE;
+			ipt[ppn].dirty = FALSE;
+			ipt[ppn].readOnly = FALSE;
+			ipt[ppn].space = this;
 		}
 
-//		machine->pageTable = pageTable;
+//		machine->pageTable = pageTable; // using TLB instead of pageTable from now on
 
 		delete oldPT;
 
