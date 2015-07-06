@@ -63,7 +63,7 @@ extern void MailTest(int networkID);
 
 extern void AirportSim();
 extern void AirTest();
-
+void Server();
 //----------------------------------------------------------------------
 // main
 // 	Bootstrap the operating system kernel.  
@@ -163,10 +163,16 @@ main(int argc, char **argv)
 						// start up another nachos
             MailTest(atoi(*(argv + 1)));
             argCount = 2;
+        } else if (!strcmp(*argv, "-s")) {
+        	if (!strcmp(*(argv + 1), "-n") && !strcmp(*(argv + 3), "-m")
+        		&& is_digit(*(argv + 2) && is_digit(*(argv + 4)) 
+        	) {
+        		// Server( (int *)*(argv + 2), (int *)*(argv + 4));
+        		std::cout << "*(argv + 1): " << *(argv + 1) << std::endl;
+        	}
         }
 #endif // NETWORK
     }
-
     currentThread->Finish();	// NOTE: if the procedure "main" 
 				// returns, then the program "nachos"
 				// will exit (as any other normal program
@@ -177,3 +183,48 @@ main(int argc, char **argv)
 				// it from returning.
     return(0);			// Not reached...
 }
+
+
+
+/*
+	Server implementation starts
+	
+*/
+
+/*
+	CreateLock
+*/
+int CreateLock() {
+
+}
+
+/*
+	Server - function gets called in int main in main.cc
+*/
+void Server() {
+	postOffice = new PostOffice();
+	while(true) {
+		// PostOffice->Receive(); 
+			// This will wait if there are no messages. 
+		// switch-case statement that determines which action to take
+		switch() {
+			case CREATE_LOCK :
+				return CreateLock();
+				break;
+		}
+	}
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
