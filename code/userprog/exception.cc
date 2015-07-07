@@ -362,7 +362,7 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 
 	t->Fork((VoidFunctionPtr)kernel_exec, 0);
 
-	delete executable;
+//	delete executable;
 	delete [] filename;
 }
 
@@ -404,11 +404,22 @@ void Exit_Syscall(int status) {
 		// reclaim all pages
 		memlock->Acquire();
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
-			for (unsigned int i=0; i < currentThread->space->numPages; i++) {
-				if (currentThread->space->pageTable[i].valid) {
-					memMap->Clear(currentThread->space->pageTable[i].physicalPage);
-					ipt[currentThread->space->pageTable[i].physicalPage].valid = FALSE;
-					currentThread->space->pageTable[i].valid = FALSE;
+			for (int vpn=0; vpn < currentThread->space->numPages; vpn++) {
+				if (currentThread->space->pageTable[vpn].valid) {
+					int ppn = -1;
+					for (int j=0; j < NumPhysPages; j++) {
+						if (ipt[j].valid
+								&& ipt[j].virtualPage == vpn
+									&& ipt[j].space == currentThread->space) {
+							ppn = j;
+							break;
+						}
+					}
+//					memMap->Clear(currentThread->space->pageTable[i].physicalPage);
+					memMap->Clear(ppn);
+//					ipt[currentThread->space->pageTable[i].physicalPage].valid = FALSE;
+					ipt[ppn].valid = FALSE;
+					currentThread->space->pageTable[vpn].valid = FALSE;
 				}
 			}
 			currentThread->space->Dump();
@@ -419,6 +430,9 @@ void Exit_Syscall(int status) {
 				pageIndex--;
 			}*/
 		memlock->Release();
+
+		// delete executable
+		delete currentThread->space->executable;
 
 		// reclaim all locks
 		DEBUG('b', "Deleted the following locks:\n");
@@ -468,11 +482,27 @@ void Exit_Syscall(int status) {
 		// reclaim pages
 		memlock->Acquire();
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
-			int pageIndex = currentThread->stackVP;
+//			int pageIndex = currentThread->stackVP;
+			int vpn = currentThread->stackVP;
 			for (int i=0; i < 8; i++) {
-				memMap->Clear(currentThread->space->pageTable[pageIndex].physicalPage);
-				currentThread->space->pageTable[pageIndex].valid = FALSE;
-				pageIndex--;
+//				memMap->Clear(currentThread->space->pageTable[pageIndex].physicalPage);
+//				currentThread->space->pageTable[pageIndex].valid = FALSE;
+//				pageIndex--;
+				if (currentThread->space->pageTable[vpn].valid) {
+					int ppn = -1;
+					for (int j=0; j < NumPhysPages; j++) {
+						if (ipt[j].valid
+								&& ipt[j].virtualPage == vpn
+									&& ipt[j].space == currentThread->space) {
+							ppn = j;
+							break;
+						}
+					}
+					memMap->Clear(ppn);
+					ipt[ppn].valid = FALSE;
+					currentThread->space->pageTable[vpn].valid = FALSE;
+					vpn--;
+				}
 			}
 			currentThread->space->Dump();
 		memlock->Release();
@@ -492,15 +522,30 @@ void Exit_Syscall(int status) {
 		DEBUG('b', "not last process and 1 thread left\n");
 		memlock->Acquire();
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
-			for (unsigned int i=0; i < currentThread->space->numPages; i++) {
-				if (currentThread->space->pageTable[i].valid) {
-					memMap->Clear(currentThread->space->pageTable[i].physicalPage);
-					ipt[currentThread->space->pageTable[i].physicalPage].valid = FALSE;
-					currentThread->space->pageTable[i].valid = FALSE;
+			for (int vpn=0; vpn < currentThread->space->numPages; vpn++) {
+				if (currentThread->space->pageTable[vpn].valid) {
+					int ppn = -1;
+					for (int j=0; j < NumPhysPages; j++) {
+						if (ipt[j].valid
+								&& ipt[j].virtualPage == vpn
+									&& ipt[j].space == currentThread->space) {
+							ppn = j;
+							break;
+						}
+					}
+//					memMap->Clear(currentThread->space->pageTable[vpn].physicalPage);
+					memMap->Clear(ppn);
+					ipt[ppn].valid = FALSE;
+					
+//					ipt[currentThread->space->pageTable[vpn].physicalPage].valid = FALSE;
+					currentThread->space->pageTable[vpn].valid = FALSE;
 				}
 			}
 			currentThread->space->Dump();
 		memlock->Release();
+
+		// delete executable
+		delete currentThread->space->executable;
 
 		// reclaim all locks
 		DEBUG('b', "Deleted the following locks:\n");
@@ -1477,10 +1522,13 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
 }
 
 void PFEhandle(unsigned int badvaddr) {
+	// disable interrupts
 	IntStatus oldLevel = interrupt->SetLevel(IntOff);
 
 	// calculate pageTable index
-	int pageIndex = badvaddr / PageSize;
+	int vpn = badvaddr / PageSize;
+
+	int ppn = -1;
 
 	// find IPT
 	for (int i=0; i < NumPhysPages; i++) {
@@ -1489,33 +1537,54 @@ void PFEhandle(unsigned int badvaddr) {
 		// 2) matching virtual page number
 		// 3) matching AddrSpace *
 		if (ipt[i].valid
-					&& ipt[i].virtualPage == pageIndex
+				&& ipt[i].virtualPage == vpn
 					&& ipt[i].space == currentThread->space) {
-			machine->tlb[currentTLB].virtualPage = ipt[i].virtualPage;
-			machine->tlb[currentTLB].physicalPage = ipt[i].physicalPage;
-			machine->tlb[currentTLB].valid = ipt[i].valid;
-			machine->tlb[currentTLB].use = ipt[i].use;
-			machine->tlb[currentTLB].dirty = ipt[i].dirty;
-			machine->tlb[currentTLB].readOnly = ipt[i].readOnly;
+			ppn = i;
 			break;
 		}
 	}
 
+	// if IPT-miss, handle it
+	if (ppn == -1) {
+		// find available physical page number
+		// (in step 3, we assume there is always space)
+		ppn = memMap->Find();
+
+		// populate IPT
+		ipt[ppn].virtualPage = vpn;
+		ipt[ppn].physicalPage = ppn;
+		ipt[ppn].valid = TRUE;
+		ipt[ppn].use = FALSE;
+		ipt[ppn].dirty = FALSE;
+		ipt[ppn].readOnly = FALSE;
+		ipt[ppn].space = currentThread->space;
+
+		// load physical memory from executable or swap if necessary
+		if (currentThread->space->pageTable[vpn].byteoffset != -1) {
+			currentThread->space->pageTable[vpn].location->ReadAt(
+				&(machine->mainMemory[ppn*PageSize]),
+				PageSize,
+				currentThread->space->pageTable[vpn].byteoffset);
+		}
+		
+		// update pageTable's valid bit
+		// (to synchronize with IPT)
+		currentThread->space->pageTable[vpn].valid = TRUE;
+	}
+
 	// copy data from pageTable into TLB
-/*	machine->tlb[currentTLB].virtualPage = currentThread->space->pageTable[pageIndex].virtualPage;
-	machine->tlb[currentTLB].physicalPage = currentThread->space->pageTable[pageIndex].physicalPage;
-	machine->tlb[currentTLB].valid = currentThread->space->pageTable[pageIndex].valid;
-	machine->tlb[currentTLB].use = currentThread->space->pageTable[pageIndex].use;
-	machine->tlb[currentTLB].dirty = currentThread->space->pageTable[pageIndex].dirty;
-	machine->tlb[currentTLB].readOnly = currentThread->space->pageTable[pageIndex].readOnly;
-*/
+	machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage;
+	machine->tlb[currentTLB].physicalPage = ipt[ppn].physicalPage;
+	machine->tlb[currentTLB].valid = ipt[ppn].valid;
+	machine->tlb[currentTLB].use = ipt[ppn].use;
+	machine->tlb[currentTLB].dirty = ipt[ppn].dirty;
+	machine->tlb[currentTLB].readOnly = ipt[ppn].readOnly;
+
 
 	// increment TLB pointer
-//printf("currentTLB before = %d\n", currentTLB);
-//	currentTLB = (currentTLB++) % TLBSize;
 	currentTLB = (++currentTLB) % TLBSize;
-//printf("currentTLB after = %d\n", currentTLB);
 
+	// restore interrupts
 	(void) interrupt->SetLevel(oldLevel);
 }
 

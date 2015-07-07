@@ -145,6 +145,8 @@ SwapHeader (NoffHeader *noffH)
 
 AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 //printf("In address constructor...\n");
+	this->executable = executable;
+
     NoffHeader noffH;
     unsigned int i, size;
 
@@ -173,32 +175,46 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 					numPages, size);
 // first, set up the translation 
 	int ppn;
-	pageTable = new TranslationEntry[numPages];
-	for (i = 0; i < numPages; i++) {
-		ppn = memMap->Find(); // get available physical page
+//	pageTable = new TranslationEntry[numPages];
+	pageTable = new PTentry[numPages];
+	for (i = 0; i < (numPages - 8); i++) {
+//		ppn = memMap->Find(); // get available physical page
 
 		pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
 /*				int* index = new int;
 			*index = i;
 			currentThread->pages->Append((void*)index);
 */
-		pageTable[i].physicalPage = ppn;
+//		pageTable[i].physicalPage = ppn;
 //printf("pageTable[%d]=%d\n", i, pageTable[i].physicalPage);
-		pageTable[i].valid = TRUE;
+//		pageTable[i].valid = TRUE;
+		pageTable[i].valid = FALSE;
 		pageTable[i].use = FALSE;
 		pageTable[i].dirty = FALSE;
 		pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
 						// a separate page, we could set its 
 						// pages to be read-only
+		pageTable[i].byteoffset = noffH.code.inFileAddr + i*PageSize;
+		pageTable[i].location = executable;
 
 		// add ITP info
-		ipt[ppn].virtualPage = i;
+/*		ipt[ppn].virtualPage = i;
 		ipt[ppn].physicalPage = ppn;
 		ipt[ppn].valid = TRUE;
 		ipt[ppn].use = FALSE;
 		ipt[ppn].dirty = FALSE;
 		ipt[ppn].readOnly = FALSE;
-		ipt[ppn].space = this;
+		ipt[ppn].space = this;*/
+	}
+
+	for (i; i < numPages; i++) {
+		pageTable[i].virtualPage = i;
+		pageTable[i].valid = FALSE;
+		pageTable[i].use = FALSE;
+		pageTable[i].dirty = FALSE;
+		pageTable[i].readOnly = FALSE;
+		pageTable[i].byteoffset = -1;
+		pageTable[i].location = NULL;
 	}
 	
 // zero out the entire address space, to zero the unitialized data segment 
@@ -208,14 +224,14 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 // then, copy in the code and data segments into memory
 
 
-	for (i=0; i < numPages; i++) {
+/*	for (i=0; i < numPages; i++) {
 		DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			pageTable[i].physicalPage*PageSize, PageSize);
 		executable->ReadAt(
 			&(machine->mainMemory[pageTable[i].physicalPage * PageSize]),
 			PageSize, noffH.code.inFileAddr + i*PageSize);
 	}
-
+*/
 
 /*
     if (noffH.code.size > 0) {
@@ -347,16 +363,20 @@ int* AddrSpace::AddStack()
 		// copy all old pages to new pages
 		// allocate 8 new pages
 		// deallocate old one
-		TranslationEntry* oldPT = pageTable;
-		pageTable = new TranslationEntry[numPages + 8];
+//		TranslationEntry* oldPT = pageTable;
+		PTentry* oldPT = pageTable;
+//		pageTable = new TranslationEntry[numPages + 8];
+		pageTable = new PTentry[numPages + 8];
 		unsigned int i;
 		for (i=0; i < numPages; i++) {
 			pageTable[i].virtualPage = oldPT[i].virtualPage;
-			pageTable[i].physicalPage = oldPT[i].physicalPage;
+//			pageTable[i].physicalPage = oldPT[i].physicalPage;
 			pageTable[i].valid = oldPT[i].valid;
 			pageTable[i].use = oldPT[i].use;
 			pageTable[i].dirty = oldPT[i].dirty;
 			pageTable[i].readOnly = oldPT[i].readOnly;
+			pageTable[i].byteoffset = oldPT[i].byteoffset;
+			pageTable[i].location = oldPT[i].location;
 		}
 
 		// update page table size (increase it by 8)
@@ -372,21 +392,24 @@ int* AddrSpace::AddStack()
 				*index = i;
 				currentThread->pages->Append((void*)index);
 	*/
-			pageTable[i].physicalPage = ppn;
+//			pageTable[i].physicalPage = ppn;
 	//printf("pageTable[%d]=%d\n", i, pageTable[i].physicalPage);
-			pageTable[i].valid = TRUE;
+//			pageTable[i].valid = TRUE;
+			pageTable[i].valid = FALSE;
 			pageTable[i].use = FALSE;
 			pageTable[i].dirty = FALSE;
 			pageTable[i].readOnly = FALSE;
+			pageTable[i].byteoffset = -1;
+			pageTable[i].location = NULL;
 
 			// add ITP info
-			ipt[ppn].virtualPage = i;
+/*			ipt[ppn].virtualPage = i;
 			ipt[ppn].physicalPage = ppn;
 			ipt[ppn].valid = TRUE;
 			ipt[ppn].use = FALSE;
 			ipt[ppn].dirty = FALSE;
 			ipt[ppn].readOnly = FALSE;
-			ipt[ppn].space = this;
+			ipt[ppn].space = this;*/
 		}
 
 //		machine->pageTable = pageTable; // using TLB instead of pageTable from now on
