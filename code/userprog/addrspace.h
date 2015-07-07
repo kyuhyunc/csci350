@@ -58,8 +58,6 @@ class AddrSpace {
 
 
  private:
-//    TranslationEntry *pageTable;	// Assume linear page table translation
-					// for now!
 	PTentry* pageTable;
 
     unsigned int numPages;		// Number of pages in the virtual 
@@ -72,6 +70,8 @@ class AddrSpace {
 	friend void Exec_Syscall(unsigned int vaddr, int size);
 	friend void Exit_Syscall(int status);
 	friend void PFEhandle(unsigned int badvaddr);
+	friend int IPTMissHandle(int vpn);
+	friend int MemFullHandle(int vpn);
 
 	void Dump(); // debugging
 	int* AddStack(); // called by Fork_Syscall

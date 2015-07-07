@@ -415,20 +415,12 @@ void Exit_Syscall(int status) {
 							break;
 						}
 					}
-//					memMap->Clear(currentThread->space->pageTable[i].physicalPage);
 					memMap->Clear(ppn);
-//					ipt[currentThread->space->pageTable[i].physicalPage].valid = FALSE;
 					ipt[ppn].valid = FALSE;
 					currentThread->space->pageTable[vpn].valid = FALSE;
 				}
 			}
 			currentThread->space->Dump();
-			/*int pageIndex = currentThread->stackVP;
-			for (unsigned int i=0; i < currentThread->space->numPages; i++) {
-				memMap->Clear(currentThread->space->pageTable[pageIndex].physicalPage);
-				currentThread->space->pageTable[pageIndex].valid = FALSE;
-				pageIndex--;
-			}*/
 		memlock->Release();
 
 		// delete executable
@@ -482,12 +474,8 @@ void Exit_Syscall(int status) {
 		// reclaim pages
 		memlock->Acquire();
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
-//			int pageIndex = currentThread->stackVP;
 			int vpn = currentThread->stackVP;
 			for (int i=0; i < 8; i++) {
-//				memMap->Clear(currentThread->space->pageTable[pageIndex].physicalPage);
-//				currentThread->space->pageTable[pageIndex].valid = FALSE;
-//				pageIndex--;
 				if (currentThread->space->pageTable[vpn].valid) {
 					int ppn = -1;
 					for (int j=0; j < NumPhysPages; j++) {
@@ -533,11 +521,8 @@ void Exit_Syscall(int status) {
 							break;
 						}
 					}
-//					memMap->Clear(currentThread->space->pageTable[vpn].physicalPage);
 					memMap->Clear(ppn);
 					ipt[ppn].valid = FALSE;
-					
-//					ipt[currentThread->space->pageTable[vpn].physicalPage].valid = FALSE;
 					currentThread->space->pageTable[vpn].valid = FALSE;
 				}
 			}
@@ -1521,6 +1506,49 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
   delete [] buf;
 }
 
+int MemFullHandle(int vpn) {
+	//******
+	// TODO
+	//******
+	int ppn = memMap->Find();
+	return ppn;
+}
+
+int IPTMissHandle(int vpn) {
+	// find available physical page number
+	// (in step 3, we assume there is always space)
+	int ppn = memMap->Find();
+
+	if (ppn == -1) {
+		// if physical memory is full, handle it
+		// by evicting a page
+		ppn = MemFullHandle(vpn);
+	}
+
+	// populate IPT
+	ipt[ppn].virtualPage = vpn;
+	ipt[ppn].physicalPage = ppn;
+	ipt[ppn].valid = TRUE;
+	ipt[ppn].use = FALSE;
+	ipt[ppn].dirty = FALSE;
+	ipt[ppn].readOnly = FALSE;
+	ipt[ppn].space = currentThread->space;
+
+	// load physical memory from executable or swap if necessary
+	if (currentThread->space->pageTable[vpn].byteoffset != -1) {
+		currentThread->space->pageTable[vpn].location->ReadAt(
+			&(machine->mainMemory[ppn*PageSize]),
+			PageSize,
+			currentThread->space->pageTable[vpn].byteoffset);
+	}
+	
+	// update pageTable's valid bit
+	// (to synchronize with IPT)
+	currentThread->space->pageTable[vpn].valid = TRUE;
+
+	return ppn;
+}
+
 void PFEhandle(unsigned int badvaddr) {
 	// disable interrupts
 	IntStatus oldLevel = interrupt->SetLevel(IntOff);
@@ -1545,31 +1573,10 @@ void PFEhandle(unsigned int badvaddr) {
 	}
 
 	// if IPT-miss, handle it
+	// by finding an available physical page
+	// and loading physical memory from proper location
 	if (ppn == -1) {
-		// find available physical page number
-		// (in step 3, we assume there is always space)
-		ppn = memMap->Find();
-
-		// populate IPT
-		ipt[ppn].virtualPage = vpn;
-		ipt[ppn].physicalPage = ppn;
-		ipt[ppn].valid = TRUE;
-		ipt[ppn].use = FALSE;
-		ipt[ppn].dirty = FALSE;
-		ipt[ppn].readOnly = FALSE;
-		ipt[ppn].space = currentThread->space;
-
-		// load physical memory from executable or swap if necessary
-		if (currentThread->space->pageTable[vpn].byteoffset != -1) {
-			currentThread->space->pageTable[vpn].location->ReadAt(
-				&(machine->mainMemory[ppn*PageSize]),
-				PageSize,
-				currentThread->space->pageTable[vpn].byteoffset);
-		}
-		
-		// update pageTable's valid bit
-		// (to synchronize with IPT)
-		currentThread->space->pageTable[vpn].valid = TRUE;
+		ppn = IPTMissHandle(vpn);
 	}
 
 	// copy data from pageTable into TLB
@@ -1694,9 +1701,7 @@ void ExceptionHandler(ExceptionType which) {
 		return;
     }
 	else if ( which == PageFaultException ) {
-//printf("PageFaultException raised and handling\n");
 		PFEhandle(machine->ReadRegister(39));
-
 		return;
 	}
 	else {

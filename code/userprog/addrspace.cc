@@ -363,14 +363,13 @@ int* AddrSpace::AddStack()
 		// copy all old pages to new pages
 		// allocate 8 new pages
 		// deallocate old one
-//		TranslationEntry* oldPT = pageTable;
+
 		PTentry* oldPT = pageTable;
-//		pageTable = new TranslationEntry[numPages + 8];
 		pageTable = new PTentry[numPages + 8];
 		unsigned int i;
+
 		for (i=0; i < numPages; i++) {
 			pageTable[i].virtualPage = oldPT[i].virtualPage;
-//			pageTable[i].physicalPage = oldPT[i].physicalPage;
 			pageTable[i].valid = oldPT[i].valid;
 			pageTable[i].use = oldPT[i].use;
 			pageTable[i].dirty = oldPT[i].dirty;
@@ -384,17 +383,9 @@ int* AddrSpace::AddStack()
 
 		int ppn;
 		for (i; i < numPages; i++) {
-	//printf("i=%d\n", i);
 			ppn = memMap->Find();
 
 			pageTable[i].virtualPage = i;
-	/*			int* index = new int;
-				*index = i;
-				currentThread->pages->Append((void*)index);
-	*/
-//			pageTable[i].physicalPage = ppn;
-	//printf("pageTable[%d]=%d\n", i, pageTable[i].physicalPage);
-//			pageTable[i].valid = TRUE;
 			pageTable[i].valid = FALSE;
 			pageTable[i].use = FALSE;
 			pageTable[i].dirty = FALSE;
@@ -402,14 +393,6 @@ int* AddrSpace::AddStack()
 			pageTable[i].byteoffset = -1;
 			pageTable[i].location = NULL;
 
-			// add ITP info
-/*			ipt[ppn].virtualPage = i;
-			ipt[ppn].physicalPage = ppn;
-			ipt[ppn].valid = TRUE;
-			ipt[ppn].use = FALSE;
-			ipt[ppn].dirty = FALSE;
-			ipt[ppn].readOnly = FALSE;
-			ipt[ppn].space = this;*/
 		}
 
 //		machine->pageTable = pageTable; // using TLB instead of pageTable from now on
