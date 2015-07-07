@@ -102,8 +102,23 @@ extern SynchDisk *synchDisk;
 #endif
 
 #ifdef NETWORK
+
 #include "post.h"
+
+// SF - Server Function
+// These constants are used in a server 
+// to determine which function the sender wants to execute
+#define CreateLock_SF 0
+
 extern PostOffice* postOffice;
+
 #endif
 
 #endif // SYSTEM_H
+
+
+
+
+
+
+

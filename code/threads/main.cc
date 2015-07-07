@@ -38,6 +38,8 @@
 //    -n sets the network reliability
 //    -m sets this machine's host id (needed for the network)
 //    -o runs a simple test of the Nachos network software
+//	  -s runs a server
+//	  -c runs a client for Project 3
 //
 //  NOTE -- flags are ignored until the relevant assignment.
 //  Some of the flags are interpreted here; some in system.cc.
@@ -53,6 +55,8 @@
 #include "utility.h"
 #include "system.h"
 #include <iostream>
+#include <sstream>
+#include "../network/post.h"
 
 // External functions used by this file
 
@@ -63,7 +67,96 @@ extern void MailTest(int networkID);
 
 extern void AirportSim();
 extern void AirTest();
-void Server();
+extern void ClientSim(); // Project 3
+
+
+#ifdef NETWORK
+//----------------------------------------------------------------------
+//
+//	Server implementation starts
+//	
+//----------------------------------------------------------------------
+void Server() {
+	printf("Made it to server\n");
+
+	int farAddr = 0;
+
+	PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
+
+    char *data = "Hello there!";
+    char *ack = "Got it!";
+
+    char buffer[MaxMailSize];
+
+    // construct packet, mail header for original message
+    // To: destination machine, mailbox 0
+    // From: our machine, reply to: mailbox 1
+    outPktHdr.to = farAddr;		
+    outMailHdr.to = 0;
+    outMailHdr.from = 1;
+    outMailHdr.length = strlen(data) + 1;
+
+    // Send the first message
+    // bool success = postOffice->Send(outPktHdr, outMailHdr, data); 
+
+    // if ( !success ) {
+    //   printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
+    //   interrupt->Halt();
+    // }
+
+    while (true) {
+    	// Receive the next message
+    	printf("About to get my message\n");
+    	postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);	
+    	// printf("Got \"%s\" from %d, box %d\n",buffer,inPktHdr.from,inMailHdr.from);
+    	printf("Received my message\n");
+    	fflush(stdout);
+
+    	// Decode the message
+    	int type = 0; // TODO - grab the first two bytes
+
+    	// Figure out which server function to run, switch-case statement
+    	switch (type) {
+    		case CreateLock_SF : 
+    			printf("CreateLock_SF\n");
+    			interrupt->Halt();
+    			break;
+    	}
+    }
+
+    // Send acknowledgement to the other machine (using "reply to" mailbox
+    // in the message that just arrived
+    // outPktHdr.to = inPktHdr.from;
+    // outMailHdr.to = inMailHdr.from;
+    // outMailHdr.length = strlen(ack) + 1;
+    // success = postOffice->Send(outPktHdr, outMailHdr, ack); 
+
+    // if ( !success ) {
+    //   printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
+    //   interrupt->Halt();
+    // }
+
+    // Wait for the ack from the other machine to the first message we sent.
+    // postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
+    // printf("Got \"%s\" from %d, box %d\n",buffer,inPktHdr.from,inMailHdr.from);
+    // fflush(stdout);
+
+    // Then we're done!
+    interrupt->Halt();
+}
+
+/*
+	CreateLock
+*/
+// int CreateLock() {
+
+// }
+
+#endif
+/* end Server */
+
+
 //----------------------------------------------------------------------
 // main
 // 	Bootstrap the operating system kernel.  
@@ -164,12 +257,7 @@ main(int argc, char **argv)
             MailTest(atoi(*(argv + 1)));
             argCount = 2;
         } else if (!strcmp(*argv, "-s")) {
-        	if (!strcmp(*(argv + 1), "-n") && !strcmp(*(argv + 3), "-m")
-        		&& is_digit(*(argv + 2) && is_digit(*(argv + 4)) 
-        	) {
-        		// Server( (int *)*(argv + 2), (int *)*(argv + 4));
-        		std::cout << "*(argv + 1): " << *(argv + 1) << std::endl;
-        	}
+        	Server();
         }
 #endif // NETWORK
     }
@@ -183,48 +271,3 @@ main(int argc, char **argv)
 				// it from returning.
     return(0);			// Not reached...
 }
-
-
-
-/*
-	Server implementation starts
-	
-*/
-
-/*
-	CreateLock
-*/
-int CreateLock() {
-
-}
-
-/*
-	Server - function gets called in int main in main.cc
-*/
-void Server() {
-	postOffice = new PostOffice();
-	while(true) {
-		// PostOffice->Receive(); 
-			// This will wait if there are no messages. 
-		// switch-case statement that determines which action to take
-		switch() {
-			case CREATE_LOCK :
-				return CreateLock();
-				break;
-		}
-	}
-	
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
