@@ -115,6 +115,8 @@ void Server() {
 
     	// Decode the message
     	int type = 0; // TODO - grab the first two bytes
+    	std::stringstream ss(buffer);
+
 
     	// Figure out which server function to run, switch-case statement
     	switch (type) {

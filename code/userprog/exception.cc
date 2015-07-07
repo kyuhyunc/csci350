@@ -26,6 +26,7 @@
 #include "syscall.h"
 #include <stdio.h>
 #include <iostream>
+#include <sstream>
 
 using namespace std;
 
@@ -544,6 +545,52 @@ void Yield_Syscall() {
 }
 
 int CreateLock_Syscall(int vaddr, int size) {
+
+	//**********************************************************************
+	//				Project 3 Code
+	//**********************************************************************
+#ifdef NETWORK
+
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
+    // char *data = "Hello there!";
+    char *ack = "Got it!";
+    char buffer[MaxMailSize];
+	std::stringstream ss;
+	ss << CreateLock_SF;
+	ss << " ";
+	ss << "msg";
+	char* data = "";
+
+    // construct packet, mail header for original message
+    // To: destination machine, mailbox 0
+    // From: our machine, reply to: mailbox 1
+    outPktHdr.to = SERVER_NETWORK_ID;
+    outMailHdr.to = SERVER_NETWORK_ID;
+    outMailHdr.from = 1; // TODO make this dynamic
+    outMailHdr.length = strlen(data) + 1;
+
+    // Send the first message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, data);
+
+    if ( !success ) {
+      printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
+      interrupt->Halt();
+    }
+
+    // Wait for the first message from the other machine
+    postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);
+    printf("Got \"%s\" from %d, box %d\n",buffer,inPktHdr.from,inMailHdr.from);
+    fflush(stdout);
+
+    return 2;
+
+	//**********************************************************************
+	//				end Project 3 Code
+	//**********************************************************************
+	
+#else
+
 	locktablelock->Acquire();
 
 	//it returns -1 when user can't create lock for some reason.
@@ -628,6 +675,9 @@ int CreateLock_Syscall(int vaddr, int size) {
 
 	locktablelock->Release();
 	return index;
+
+#endif
+
 }
 
 int DestroyLock_Syscall(int index) {

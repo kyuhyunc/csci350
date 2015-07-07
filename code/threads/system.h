@@ -110,6 +110,8 @@ extern SynchDisk *synchDisk;
 // to determine which function the sender wants to execute
 #define CreateLock_SF 0
 
+#define SERVER_NETWORK_ID 0
+
 extern PostOffice* postOffice;
 
 #endif
