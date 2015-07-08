@@ -1506,11 +1506,19 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
   delete [] buf;
 }
 
-int MemFullHandle(int vpn) {
+/*
+	Evicts a page from memory (FIFO or RAND)
+	And returns evicted page number
+*/
+int MemFullHandle() {
 	//******
 	// TODO
 	//******
-	int ppn = memMap->Find();
+	int ppn = -1;
+
+	// FIFO eviction
+	ppn = *((int*) iptFIFOqueue->Remove());
+
 	return ppn;
 }
 
@@ -1522,7 +1530,7 @@ int IPTMissHandle(int vpn) {
 	if (ppn == -1) {
 		// if physical memory is full, handle it
 		// by evicting a page
-		ppn = MemFullHandle(vpn);
+		ppn = MemFullHandle();
 	}
 
 	// populate IPT
@@ -1533,6 +1541,11 @@ int IPTMissHandle(int vpn) {
 	ipt[ppn].dirty = FALSE;
 	ipt[ppn].readOnly = FALSE;
 	ipt[ppn].space = currentThread->space;
+
+	// add ppn to IPT FIFO queue
+	int* ppntemp = new int;
+	*ppntemp = ppn;
+	iptFIFOqueue->Append((void*) ppntemp);
 
 	// load physical memory from executable or swap if necessary
 	if (currentThread->space->pageTable[vpn].byteoffset != -1) {

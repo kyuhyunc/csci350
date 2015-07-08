@@ -97,7 +97,11 @@ class IPTentry {			// for IPT
 	AddrSpace * space;
 };
 
-extern IPTentry* ipt;
+extern IPTentry* ipt;		// for IPT
+extern List* iptFIFOqueue;	// for IPT eviction
+
+#include "filesys.h"
+extern OpenFile* swapfile;		// for SWAP file
 
 #endif
 

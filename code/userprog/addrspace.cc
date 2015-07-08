@@ -194,6 +194,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 		pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
 						// a separate page, we could set its 
 						// pages to be read-only
+		pageTable[i].type = EXECUTABLE;
 		pageTable[i].byteoffset = noffH.code.inFileAddr + i*PageSize;
 		pageTable[i].location = executable;
 
@@ -213,6 +214,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 		pageTable[i].use = FALSE;
 		pageTable[i].dirty = FALSE;
 		pageTable[i].readOnly = FALSE;
+		pageTable[i].type = NEITHER;
 		pageTable[i].byteoffset = -1;
 		pageTable[i].location = NULL;
 	}
@@ -375,6 +377,7 @@ int* AddrSpace::AddStack()
 			pageTable[i].dirty = oldPT[i].dirty;
 			pageTable[i].readOnly = oldPT[i].readOnly;
 			pageTable[i].byteoffset = oldPT[i].byteoffset;
+			pageTable[i].type = oldPT[i].type;
 			pageTable[i].location = oldPT[i].location;
 		}
 
@@ -391,6 +394,7 @@ int* AddrSpace::AddStack()
 			pageTable[i].dirty = FALSE;
 			pageTable[i].readOnly = FALSE;
 			pageTable[i].byteoffset = -1;
+			pageTable[i].type = NEITHER;
 			pageTable[i].location = NULL;
 
 		}

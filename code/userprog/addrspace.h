@@ -22,6 +22,12 @@
 #define MaxOpenFiles 256
 #define MaxChildSpaces 256
 
+enum FileLocType {
+	EXECUTABLE,
+	SWAP,
+	NEITHER
+};
+
 class PTentry {
   public:
     int virtualPage;
@@ -35,6 +41,7 @@ class PTentry {
     bool dirty;
 	int byteoffset;	// only applies to virutal pages that are in
 						// executable or swap
+	FileLocType type;
 	OpenFile* location; // location of the virtual page
 							// either in 1 of 3 places:
 								// 1) executable
