@@ -44,6 +44,8 @@ IPTentry* ipt;		// Inverted Page Table
 List* iptFIFOqueue;	// IPT eviction
 
 OpenFile* swapfile;		// SWAP file
+
+evict_alg evict_type;
 #endif
 
 #ifdef NETWORK

@@ -39,7 +39,6 @@ class PTentry {
     bool readOnly;
     bool use;
     bool dirty; // Not gonna be used
-    int type; // either exec, swap
 	int byteoffset;	// only applies to virutal pages that are in
 						// executable or swap
 	FileLocType type;

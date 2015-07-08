@@ -107,7 +107,7 @@ enum evict_alg {
     FIFO, RAND
 };
 
-int evict_type;
+extern evict_alg evict_type;
 
 #endif
 
