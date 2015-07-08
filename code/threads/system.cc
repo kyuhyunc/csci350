@@ -44,6 +44,7 @@ IPTentry* ipt;		// Inverted Page Table
 List* iptFIFOqueue;	// IPT eviction
 
 OpenFile* swapfile;		// SWAP file
+BitMap* swapMap;		// SWAP bitmap
 
 evict_alg evict_type;
 #endif
@@ -190,6 +191,7 @@ Initialize(int argc, char **argv)
 	if (swapfile == NULL) {
 		printf("Unable to open swapfile\n");
 	}
+	swapMap = new BitMap(SwapSize);
 #endif
 
 #ifdef FILESYS

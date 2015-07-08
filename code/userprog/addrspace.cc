@@ -166,7 +166,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 						// to leave room for the stack
     size = numPages * PageSize;
 
-    ASSERT(numPages <= NumPhysPages);		// check we're not trying
+//    ASSERT(numPages <= NumPhysPages);		// check we're not trying
 						// to run anything too big --
 						// at least until we have
 						// virtual memory
@@ -308,9 +308,14 @@ AddrSpace::InitRegisters()
 
 void AddrSpace::SaveState() 
 {
+	// Invalidate all TLB pages
 	IntStatus oldLevel = interrupt->SetLevel(IntOff);
 
 	for (int i=0; i < TLBSize; i++) {
+		// propogate dirty bit
+		if (machine->tlb[i].valid) {
+			ipt[machine->tlb[i].physicalPage].dirty = machine->tlb[i].dirty;
+		}
 		machine->tlb[i].valid = false;
 	}
 
@@ -329,9 +334,15 @@ void AddrSpace::RestoreState()
 {
 //    machine->pageTable = pageTable;
 //    machine->pageTableSize = numPages;
+
+	// Invalidate all TLB pages
 	IntStatus oldLevel = interrupt->SetLevel(IntOff);
 
 	for (int i=0; i < TLBSize; i++) {
+		// propogate dirty bit
+		if (machine->tlb[i].valid) {
+			ipt[machine->tlb[i].physicalPage].dirty = machine->tlb[i].dirty;
+		}
 		machine->tlb[i].valid = false;
 	}
 

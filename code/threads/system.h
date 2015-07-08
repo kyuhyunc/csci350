@@ -102,6 +102,8 @@ extern List* iptFIFOqueue;	// for IPT eviction
 
 #include "filesys.h"
 extern OpenFile* swapfile;		// for SWAP file
+#define SwapSize	5000
+extern BitMap* swapMap;			// for checking SWAP file availability
 
 enum evict_alg {
     FIFO, RAND
