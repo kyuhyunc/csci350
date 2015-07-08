@@ -109,6 +109,14 @@ extern SynchDisk *synchDisk;
 // These constants are used in a server 
 // to determine which function the sender wants to execute
 #define CreateLock_SF 0
+#define DestroyLock_SF 1
+#define CreateCV_SF 2
+#define DestroyCV_SF 3
+#define Acquire_SF 4
+#define Release_SF 5
+#define Wait_SF 6
+#define Signal_SF 7
+#define BroadCast_SF 8
 
 #define SERVER_NETWORK_ID 0
 

@@ -57,6 +57,8 @@
 #include <iostream>
 #include <sstream>
 #include "../network/post.h"
+#include <string>
+#include <vector>
 
 // External functions used by this file
 
@@ -71,6 +73,120 @@ extern void ClientSim(); // Project 3
 
 
 #ifdef NETWORK
+//----------------------------------------------------------------------
+//
+//  Server Lock/CV implementation starts
+//  
+//----------------------------------------------------------------------
+
+Lock* SLock;
+Lock* CVLock;
+
+enum state {
+    AVAIL, BUSY
+};
+class ServerLock {
+    
+public:
+    ServerLock(int s, int o, std::string n) {
+        state = s;
+        owner = o;
+        name = n;
+    }
+public:
+    int state;
+    int owner;
+    std::string name;
+    List waitQ;
+
+};
+
+std::vector<ServerLock*> ServerLockVector;
+//std::vector<ServerCV*> ServerCVVector;
+
+void initializeNetworkMessageHeaders(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr, MailHeader &outMailHdr, int dataLength) {
+    outPktHdr.to = inPktHdr.from;
+    outPktHdr.from = inPktHdr.to;
+    outMailHdr.to = inMailHdr.from;
+    outMailHdr.from = inMailHdr.to;
+    outMailHdr.length = dataLength + 1;
+
+}
+
+void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name) {
+
+    SLock->Acquire();
+    //iterating through serverlockVector to check lock is already in vector
+    //if other program already create lock with the same name, don't create new lock
+    //just return(send the message) the index to user(Client)
+    int index = -1;
+    for(int i = 0; i < ServerLockVector.size(); i++) {
+        if(ServerLockVector[i]->name == name) {
+            index = i;   
+            break;
+        }
+    }
+
+    if(index = -1) {
+
+        index = ServerLockVector.size();
+
+        ServerLock * sLock = new ServerLock(AVAIL, inPktHdr.from, name);
+        ServerLockVector.push_back(sLock);
+    }
+
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+
+    std::stringstream ss;
+    ss << index;
+
+    char *data = new char[ss.str().length()];
+    std::strcpy(data, ss.str().c_str());
+
+    initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
+
+    if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
+        printf("Something bad happens in Server. Unable to send message \n");
+        SLock->Release();
+        interrupt->Halt();
+    }
+
+    SLock->Release();
+
+}
+void DestoryLock() {
+    // for(int i = 0; i < ServerLockVector.size(); i++) {
+    //     if(ServerLockVector[i]->name == name) {
+    //         ServerLockVector[i]->state = BUSY;  
+    //     }
+    // }
+
+}
+void CreateCV() {
+
+}
+void DestroyCV() {
+
+}
+void Acquire() {
+
+}
+void Release() {
+
+}
+void Wait() {
+
+}
+void Signal() {
+
+}
+void BroadCast() {
+
+}
+
+
+
 //----------------------------------------------------------------------
 //
 //	Server implementation starts
@@ -115,15 +231,50 @@ void Server() {
 
     	// Decode the message
     	int type = 0; // TODO - grab the first two bytes
+        std::string name;
     	std::stringstream ss(buffer);
+        ss>>type;
+        ss>>name;
 
 
     	// Figure out which server function to run, switch-case statement
     	switch (type) {
     		case CreateLock_SF : 
     			printf("CreateLock_SF\n");
-    			interrupt->Halt();
+                CreateLock(inPktHdr, inMailHdr, name);
     			break;
+            case DestroyLock_SF : 
+                printf("DestroyLock_SF\n");
+                interrupt->Halt();
+                break;
+            case CreateCV_SF : 
+                printf("CreateCV_SF\n");
+                interrupt->Halt();
+                break;
+            case DestroyCV_SF : 
+                printf("DestroyCV_SF\n");
+                interrupt->Halt();
+                break;
+            case Acquire_SF : 
+                printf("Acquire_SF\n");
+                interrupt->Halt();
+                break;
+            case Release_SF : 
+                printf("Release_SF\n");
+                interrupt->Halt();
+                break;
+            case Wait_SF : 
+                printf("Wait_SF\n");
+                interrupt->Halt();
+                break;
+            case Signal_SF : 
+                printf("Signal_SF\n");
+                interrupt->Halt();
+                break;
+            case BroadCast_SF : 
+                printf("BroadCast_SF\n");
+                interrupt->Halt();
+                break;
     	}
     }
 
