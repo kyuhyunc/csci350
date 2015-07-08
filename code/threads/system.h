@@ -99,6 +99,12 @@ class IPTentry {			// for IPT
 
 extern IPTentry* ipt;
 
+enum evict_alg {
+    FIFO, RAND
+};
+
+int evict_type;
+
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 

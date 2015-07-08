@@ -196,6 +196,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 						// pages to be read-only
 		pageTable[i].byteoffset = noffH.code.inFileAddr + i*PageSize;
 		pageTable[i].location = executable;
+        pageTable[i].type = EXECUTABLE;
 
 		// add ITP info
 /*		ipt[ppn].virtualPage = i;
@@ -215,6 +216,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 		pageTable[i].readOnly = FALSE;
 		pageTable[i].byteoffset = -1;
 		pageTable[i].location = NULL;
+        pageTable[i].type = NEITHER;
 	}
 	
 // zero out the entire address space, to zero the unitialized data segment 
@@ -376,6 +378,7 @@ int* AddrSpace::AddStack()
 			pageTable[i].readOnly = oldPT[i].readOnly;
 			pageTable[i].byteoffset = oldPT[i].byteoffset;
 			pageTable[i].location = oldPT[i].location;
+            pageTable[i].type = oldPT[i].type;
 		}
 
 		// update page table size (increase it by 8)
@@ -392,7 +395,7 @@ int* AddrSpace::AddStack()
 			pageTable[i].readOnly = FALSE;
 			pageTable[i].byteoffset = -1;
 			pageTable[i].location = NULL;
-
+            pageTable[i].type = NEITHER;
 		}
 
 //		machine->pageTable = pageTable; // using TLB instead of pageTable from now on

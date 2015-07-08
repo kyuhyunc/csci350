@@ -32,7 +32,8 @@ class PTentry {
 						// set to false
     bool readOnly;
     bool use;
-    bool dirty;
+    bool dirty; // Not gonna be used
+    int type; // either exec, swap
 	int byteoffset;	// only applies to virutal pages that are in
 						// executable or swap
 	OpenFile* location; // location of the virtual page

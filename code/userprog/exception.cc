@@ -1506,10 +1506,14 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
   delete [] buf;
 }
 
-int MemFullHandle(int vpn) {
-	//******
+int MemFullHandle() {
+    //******
 	// TODO
+    // Evict a page and save it to SWAP if necessary
 	//******
+    
+
+
 	int ppn = memMap->Find();
 	return ppn;
 }
@@ -1522,7 +1526,7 @@ int IPTMissHandle(int vpn) {
 	if (ppn == -1) {
 		// if physical memory is full, handle it
 		// by evicting a page
-		ppn = MemFullHandle(vpn);
+		ppn = MemFullHandle();
 	}
 
 	// populate IPT

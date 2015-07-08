@@ -123,6 +123,12 @@ Initialize(int argc, char **argv)
 #ifdef USER_PROGRAM
 	if (!strcmp(*argv, "-s"))
 	    debugUserProg = TRUE;
+    else if (!strcmp(*argv, "-prand")) {
+        evict_type = RAND;
+    } else if (!strcmp(*argv, "-pfifo")) {
+        evict_type = FIFO;
+    }
+
 #endif
 #ifdef FILESYS_NEEDED
 	if (!strcmp(*argv, "-f"))
@@ -172,7 +178,8 @@ Initialize(int argc, char **argv)
 	processLock = new Lock("ProcessLock");
 
 	currentTLB = 0;					// initialize TLB
-	ipt = new IPTentry[NumPhysPages];	// initialize IPT
+	ipt = new IPTentry[NumPhysPages];	// initialize IPT 
+
 #endif
 
 #ifdef FILESYS
