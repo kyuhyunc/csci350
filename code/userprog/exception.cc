@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 using namespace std;
 
@@ -544,6 +545,18 @@ void Yield_Syscall() {
 	currentThread->Yield();
 }
 
+void initNetworkMessageHeaders(PacketHeader &ph, MailHeader &mh, int dataLength) {
+    // construct packet, mail header for original message
+    // To: destination machine, mailbox 0
+    // From: our machine, reply to: mailbox 1
+    // ph
+    ph.to = SERVER_NETWORK_ID;
+    // mh
+    mh.to = SERVER_NETWORK_ID;
+    mh.from = 1; 
+    mh.length = dataLength + 1;
+}
+
 int CreateLock_Syscall(int vaddr, int size) {
 
 	//**********************************************************************
@@ -554,36 +567,44 @@ int CreateLock_Syscall(int vaddr, int size) {
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
     // char *data = "Hello there!";
-    char *ack = "Got it!";
     char buffer[MaxMailSize];
 	std::stringstream ss;
 	ss << CreateLock_SF;
 	ss << " ";
-	ss << "msg";
-	char* data = "";
+	// Add lock name to stream
+	char *name = new char[size+1]; // Kernel buffer to put the name in
+	if(copyin(vaddr, size, name) == -1) {
+		//check if the pointer is valid one. if pointer is not valid, then return.
+		printf("error: Pointer is invalid(CreateLock)\n");
+		locktablelock->Release();
+		return -1;
+	}
+	ss << name;
+	ss << " ";
+	ss << size;
+	char *data = new char[ss.str().length()];
+	std::strcpy(data, ss.str().c_str());
 
-    // construct packet, mail header for original message
-    // To: destination machine, mailbox 0
-    // From: our machine, reply to: mailbox 1
-    outPktHdr.to = SERVER_NETWORK_ID;
-    outMailHdr.to = SERVER_NETWORK_ID;
-    outMailHdr.from = 1; // TODO make this dynamic
-    outMailHdr.length = strlen(data) + 1;
+    initNetworkMessageHeaders(outPktHdr, outMailHdr, ss.str().length());
 
-    // Send the first message
-    bool success = postOffice->Send(outPktHdr, outMailHdr, data);
-
-    if ( !success ) {
+    // Send message to get the lock ID
+    if ( !postOffice->Send(outPktHdr, outMailHdr, data) ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
     }
+    // cleanup from Send
+    delete[] data; 
 
-    // Wait for the first message from the other machine
+    // Wait for message from server -- comes with lock ID
     postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);
-    printf("Got \"%s\" from %d, box %d\n",buffer,inPktHdr.from,inMailHdr.from);
     fflush(stdout);
+    // Retrieve lock ID/index
+    ss.str(""); // clear stringstream
+    ss << buffer; // put received message into ss
+    int lockID = -1; // -1 is error
+    ss >> lockID;
 
-    return 2;
+    return lockID;
 
 	//**********************************************************************
 	//				end Project 3 Code
@@ -681,6 +702,22 @@ int CreateLock_Syscall(int vaddr, int size) {
 }
 
 int DestroyLock_Syscall(int index) {
+
+	//**********************************************************************
+	//				Project 3 Code
+	//**********************************************************************
+
+#ifdef NETWORK 
+
+
+
+
+	//**********************************************************************
+	//				END Project 3 Code
+	//**********************************************************************
+
+#else 
+
 	locktablelock->Acquire();
 
 	// it returns -1 when lock can't be destroyed
@@ -768,6 +805,9 @@ int DestroyLock_Syscall(int index) {
 
 	locktablelock->Release();
 	return index;
+
+#endif
+
 }
 
 int Acquire_Syscall(int index) {
