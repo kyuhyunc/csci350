@@ -41,6 +41,9 @@ Lock* processLock;
 
 int currentTLB;		// TLB tracker
 IPTentry* ipt;		// Inverted Page Table
+List* iptFIFOqueue;	// IPT eviction
+
+OpenFile* swapfile;		// SWAP file
 #endif
 
 #ifdef NETWORK
@@ -178,8 +181,13 @@ Initialize(int argc, char **argv)
 	processLock = new Lock("ProcessLock");
 
 	currentTLB = 0;					// initialize TLB
-	ipt = new IPTentry[NumPhysPages];	// initialize IPT 
+	ipt = new IPTentry[NumPhysPages];	// initialize IPT
+	iptFIFOqueue = new List();			// IPT eviction
 
+	swapfile = fileSystem->Open(".swapfile");
+	if (swapfile == NULL) {
+		printf("Unable to open swapfile\n");
+	}
 #endif
 
 #ifdef FILESYS
