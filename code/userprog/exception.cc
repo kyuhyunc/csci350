@@ -723,8 +723,49 @@ int DestroyLock_Syscall(int index) {
 
 #ifdef NETWORK 
 
+	DEBUG('n', "Client called DestroyLock\n");
 
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
 
+    // Create StringStream -- put in function ID 
+	std::stringstream ss;
+	ss << DestroyLock_SF;
+	ss << " ";
+	ss << index;
+
+	// Copy stream to data buffer
+	char *data = new char[ss.str().length()];
+	std::strcpy(data, ss.str().c_str());
+
+	//
+    initNetworkMessageHeaders(outPktHdr, outMailHdr, ss.str().length());
+
+    //
+    DEBUG('n', "Client is about to call Send from DestroyLock\n");
+    DEBUG('n', "message: %s\n", data);
+    // Send message to get the lock ID
+    if ( !postOffice->Send(outPktHdr, outMailHdr, data) ) {
+    	DEBUG('n', "The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
+      	interrupt->Halt();
+    }
+    // cleanup from Send
+    delete[] data; 
+
+	DEBUG('n', "Client is about to Receive message in DestroyLock\n");
+    char buffer[MaxMailSize];
+    // Wait for message from server -- comes with lock ID
+    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+    fflush(stdout);
+    // Retrieve lock ID/index
+    ss.str(""); // clear stringstream
+    ss << buffer; // put received message into ss
+    int result = -1; // -1 is error
+    ss >> result;
+
+    DEBUG('n', "Client destroyed lock #%d\n", result);
+
+    return result;
 
 	//**********************************************************************
 	//				END Project 3 Code
@@ -825,6 +866,21 @@ int DestroyLock_Syscall(int index) {
 }
 
 int Acquire_Syscall(int index) {
+
+	//**********************************************************************
+	//				Project 3 Code
+	//**********************************************************************
+
+#ifdef NETWORK 
+
+	
+
+#else
+
+	//**********************************************************************
+	//				END Project 3 Code
+	//**********************************************************************
+
 	locktablelock->Acquire();
 
 	DEBUG('c', "%d in Acquire\n", index);
@@ -874,6 +930,9 @@ int Acquire_Syscall(int index) {
 
 	locktablelock->Release();
 	return index;
+
+#endif
+
 }
 
 int Release_Syscall(int index) {
