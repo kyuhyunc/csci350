@@ -9,8 +9,26 @@
 /*
 *	"main"
 */
+int test1_1, test1_2, test1_3;
+
+void test1();
+
 int main() {
-	int lock = CreateLock("lock1", sizeof("lock1"));
-	Printf1("Lock id: %d\n", sizeof("Lock id: %d\n"), lock);
-	Exit(0);
+	Fork(test1);
+
+}
+
+void test1() {
+
+	Write("Test1: CreateLock index test\n", sizeof("Test1: CreateLock index test\n"), ConsoleOutput);
+
+	test1_1 = CreateLock("lock1", sizeof("lock1"));
+	test1_2 = CreateLock("lock2", sizeof("lock2"));
+	test1_3 = CreateLock("lock1", sizeof("lock1"));
+
+	if(test1_1 == test1_3) {
+		Write("Test1 passed!\n", sizeof("Test1 passed!\n"), ConsoleOutput);
+	}else{
+		Write("Test1 failed!\n", sizeof("Test1 failed!\n"), ConsoleOutput);
+	}
 }
