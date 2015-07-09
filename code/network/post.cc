@@ -234,8 +234,8 @@ PostOffice::PostalDelivery()
 
         mailHdr = *(MailHeader *)buffer;
         if (DebugIsEnabled('n')) {
-	    printf("Putting mail into mailbox: ");
-	    PrintHeader(pktHdr, mailHdr);
+	       printf("Putting mail into mailbox: ");
+	       PrintHeader(pktHdr, mailHdr);
         }
 
 	// check that arriving message is legal!
@@ -266,11 +266,6 @@ PostOffice::Send(PacketHeader pktHdr, MailHeader mailHdr, char* data)
     char* buffer = new char[MaxPacketSize];	// space to hold concatenated
 						// mailHdr + data
 
-    if (DebugIsEnabled('n')) {
-	printf("Post send: ");
-	PrintHeader(pktHdr, mailHdr);
-    }
-
     ASSERT(mailHdr.length <= MaxMailSize);
     ASSERT(0 <= mailHdr.to && mailHdr.to < numBoxes);
     
@@ -284,6 +279,10 @@ PostOffice::Send(PacketHeader pktHdr, MailHeader mailHdr, char* data)
 
     sendLock->Acquire();   		// only one message can be sent
 					// to the network at any one time
+    if (DebugIsEnabled('n')) {
+        printf("Post send: ");
+        PrintHeader(pktHdr, mailHdr);
+    }
     bool success = network->Send(pktHdr, buffer);
     messageSent->P();			// wait for interrupt to tell us
 					// ok to send the next message

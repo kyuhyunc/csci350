@@ -545,6 +545,8 @@ void Yield_Syscall() {
 	currentThread->Yield();
 }
 
+#define MAILBOX 1
+
 void initNetworkMessageHeaders(PacketHeader &ph, MailHeader &mh, int dataLength) {
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
@@ -553,7 +555,7 @@ void initNetworkMessageHeaders(PacketHeader &ph, MailHeader &mh, int dataLength)
     ph.to = SERVER_NETWORK_ID;
     // mh
     mh.to = SERVER_NETWORK_ID;
-    mh.from = 1; 
+    mh.from = MAILBOX; 
     mh.length = dataLength + 1;
 }
 
@@ -563,16 +565,19 @@ int CreateLock_Syscall(int vaddr, int size) {
 	//				Project 3 Code
 	//**********************************************************************
 #ifdef NETWORK
+	
+	DEBUG('n', "Client called CreateLock\n");
 
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-    // char *data = "Hello there!";
-    char buffer[MaxMailSize];
+
+    // Create StringStream -- put in function ID 
 	std::stringstream ss;
 	ss << CreateLock_SF;
 	ss << " ";
+
 	// Add lock name to stream
-	char *name = new char[size+1]; // Kernel buffer to put the name in
+	char *name = new char[size+1]; // buffer to put the lock name in
 	if(copyin(vaddr, size, name) == -1) {
 		//check if the pointer is valid one. if pointer is not valid, then return.
 		printf("error: Pointer is invalid(CreateLock)\n");
@@ -581,28 +586,37 @@ int CreateLock_Syscall(int vaddr, int size) {
 	}
 	ss << name;
 	ss << " ";
+
+	// Add data size to stream
 	ss << size;
+	
+	// Copy stream to data buffer
 	char *data = new char[ss.str().length()];
 	std::strcpy(data, ss.str().c_str());
 
     initNetworkMessageHeaders(outPktHdr, outMailHdr, ss.str().length());
 
+    DEBUG('n', "Client is about to call Send from CreateLock\n");
     // Send message to get the lock ID
     if ( !postOffice->Send(outPktHdr, outMailHdr, data) ) {
-      printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
+      DEBUG('n', "The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
     }
     // cleanup from Send
     delete[] data; 
 
+	DEBUG('n', "Client is about to Receive message in CreateLock\n");
+    char buffer[MaxMailSize];
     // Wait for message from server -- comes with lock ID
-    postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);
+    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
     fflush(stdout);
     // Retrieve lock ID/index
     ss.str(""); // clear stringstream
     ss << buffer; // put received message into ss
     int lockID = -1; // -1 is error
     ss >> lockID;
+
+    DEBUG('n', "Client received lock #%d\n", lockID);
 
     return lockID;
 
@@ -1673,3 +1687,5 @@ void ExceptionHandler(ExceptionType which) {
 		interrupt->Halt();
     }
 }
+
+#undef MAILBOX

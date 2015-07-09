@@ -249,7 +249,7 @@ void Condition::Signal(Lock* conditionLock) {
 
 	// if no waiting threads, then nothing to do
 	if (waitQueue->IsEmpty()) {
-		printf("Error in Condition::Signal -- There is no thread to signal in %s, sorry, %s...\n", getName(), currentThread->getName());
+		// printf("Error in Condition::Signal -- There is no thread to signal in %s, sorry, %s...\n", getName(), currentThread->getName());
 		// restore interrupts and return
 		(void) interrupt->SetLevel(old);
 		return;

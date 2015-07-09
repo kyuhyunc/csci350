@@ -167,13 +167,15 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
     char *data = new char[ss.str().length()];
     std::strcpy(data, ss.str().c_str());
 
-    initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
+    initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str().length());
 
     if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
-        printf("Something bad happens in Server. Unable to send message \n");
+        DEBUG('n', "Something bad happens in Server. Unable to send message \n");
         SLock->Release();
         interrupt->Halt();
     }
+
+    DEBUG('n', "Server is returning a lock index of %d\n", index);
 
     SLock->Release();
 
@@ -216,6 +218,7 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
     }
 
     SLock->Release();
+
 }
 void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name) {
     /*CVLock->Acquire();
@@ -363,49 +366,29 @@ void BroadCast() {
 //	
 //----------------------------------------------------------------------
 void Server() {
-	printf("Made it to server\n");
 
-	int farAddr = 0;
+	// initialized global data
+	SLock = new Lock("ServerLock");
 
+	// instantiate Network Data
 	PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-
-    char *data = "Hello there!";
-    char *ack = "Got it!";
-
     char buffer[MaxMailSize];
-
-    // construct packet, mail header for original message
-    // To: destination machine, mailbox 0
-    // From: our machine, reply to: mailbox 1
-    outPktHdr.to = farAddr;		
-    outMailHdr.to = 0;
-    outMailHdr.from = 1;
-    outMailHdr.length = strlen(data) + 1;
-
-    // Send the first message
-    // bool success = postOffice->Send(outPktHdr, outMailHdr, data); 
-
-    // if ( !success ) {
-    //   printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
-    //   interrupt->Halt();
-    // }
 
     while (true) {
     	// Receive the next message
-    	printf("About to get my message\n");
+    	DEBUG('n', "Server about to receive a message\n");
     	postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);	
     	// printf("Got \"%s\" from %d, box %d\n",buffer,inPktHdr.from,inMailHdr.from);
-    	printf("Received my message\n");
+    	DEBUG('n', "Server received a message\n");
     	fflush(stdout);
 
     	// Decode the message
-    	int type = 0; // TODO - grab the first two bytes
+    	int type = -1; 
         std::string name;
         int index;
     	std::stringstream ss(buffer);
         ss>>type;
-
 
     	// Figure out which server function to run, switch-case statement
     	switch (type) {
@@ -445,47 +428,25 @@ void Server() {
                 interrupt->Halt();
                 break;
             case Wait_SF : 
-                printf("Wait_SF\n");
+            	DEBUG('n', "Server is running Wait_SF\n");
                 interrupt->Halt();
                 break;
             case Signal_SF : 
-                printf("Signal_SF\n");
+            	DEBUG('n', "Server is running Signal_SF\n");
                 interrupt->Halt();
                 break;
             case BroadCast_SF : 
-                printf("BroadCast_SF\n");
+            	DEBUG('n', "Server is running BroadCast_SF\n");
                 interrupt->Halt();
                 break;
     	}
     }
 
-    // Send acknowledgement to the other machine (using "reply to" mailbox
-    // in the message that just arrived
-    // outPktHdr.to = inPktHdr.from;
-    // outMailHdr.to = inMailHdr.from;
-    // outMailHdr.length = strlen(ack) + 1;
-    // success = postOffice->Send(outPktHdr, outMailHdr, ack); 
-
-    // if ( !success ) {
-    //   printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
-    //   interrupt->Halt();
-    // }
-
-    // Wait for the ack from the other machine to the first message we sent.
-    // postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
-    // printf("Got \"%s\" from %d, box %d\n",buffer,inPktHdr.from,inMailHdr.from);
-    // fflush(stdout);
+    delete SLock;
 
     // Then we're done!
     interrupt->Halt();
 }
-
-/*
-	CreateLock
-*/
-// int CreateLock() {
-
-// }
 
 #endif
 /* end Server */
