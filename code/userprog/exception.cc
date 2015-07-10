@@ -1550,7 +1550,7 @@ int MemFullHandle(int vpn) {
 	// check if ppn is in TLB
 	// if it is, must propogate dirty bit and invalidate it
 	for (int i=0; i < TLBSize; i++) {
-		if (ppn == machine->tlb[i].physicalPage) {
+		if (ppn == machine->tlb[i].physicalPage && machine->tlb[i].valid) {
 			ipt[ppn].dirty = machine->tlb[i].dirty;
 			machine->tlb[i].valid = FALSE;
 			break;
