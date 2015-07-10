@@ -333,6 +333,8 @@ void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         //when current thread release lock.
         if(ServerLockVector[index]->state == BUSY) {
             ServerLockVector[index]->waitQ->Append((void*)inPktHdr.from);
+            SLock->Release();
+            return;
         }
     } 
 
