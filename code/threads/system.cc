@@ -42,6 +42,7 @@ Lock* processLock;
 int currentTLB;		// TLB tracker
 IPTentry* ipt;		// Inverted Page Table
 List* iptFIFOqueue;	// IPT eviction
+Lock* iptLock;      // IPT race condition prevention
 
 OpenFile* swapfile;		// SWAP file
 BitMap* swapMap;		// SWAP bitmap
@@ -101,6 +102,9 @@ Initialize(int argc, char **argv)
 
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
+
+    evict_type = FIFO; // default evicting algorithm is FIFO
+    srand(time(NULL));
 #endif
 #ifdef FILESYS_NEEDED
     bool format = FALSE;	// format disk
@@ -129,10 +133,22 @@ Initialize(int argc, char **argv)
 #ifdef USER_PROGRAM
 	if (!strcmp(*argv, "-s"))
 	    debugUserProg = TRUE;
-    else if (!strcmp(*argv, "-prand")) {
-        evict_type = RAND;
-    } else if (!strcmp(*argv, "-pfifo")) {
-        evict_type = FIFO;
+    else if (!strcmp(*argv, "-P")) {
+        ASSERT(argc > 1);
+        char* type = *(argv + 1);
+        if (!strcmp(type, "RAND")) {
+            evict_type = RAND;
+printf("evict_type = RAND\n");
+        }
+        else if (!strcmp(type, "FIFO")) {
+            evict_type = FIFO;
+printf("evict_type = FIFO\n");
+        }
+        else {
+            printf("ERROR: -P can only take RAND or FIFO as arguments. Exiting now.\n");
+            ASSERT(false);
+        }
+        argCount = 2;
     }
 
 #endif
@@ -192,6 +208,7 @@ Initialize(int argc, char **argv)
 		printf("Unable to open swapfile\n");
 	}
 	swapMap = new BitMap(SwapSize);
+    iptLock = new Lock("IPTLock");
 #endif
 
 #ifdef FILESYS

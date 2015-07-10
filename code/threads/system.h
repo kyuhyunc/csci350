@@ -99,6 +99,7 @@ class IPTentry {			// for IPT
 
 extern IPTentry* ipt;		// for IPT
 extern List* iptFIFOqueue;	// for IPT eviction
+extern Lock* iptLock;       // IPT race condition prevention
 
 #include "filesys.h"
 extern OpenFile* swapfile;		// for SWAP file

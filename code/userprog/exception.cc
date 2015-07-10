@@ -1541,11 +1541,16 @@ int MemFullHandle(int vpn) {
 	//**************
 	// FIFO eviction
 	//**************
-	int* temp = (int*) iptFIFOqueue->Remove();
-	ppn = *temp;
-	delete temp;
+    if (evict_type == FIFO) {
+        int* temp = (int*) iptFIFOqueue->Remove();
+        ppn = *temp;
+        delete temp;
+    }
+    else if (evict_type == RAND) {
+        ppn = rand() % NumPhysPages;
+    }
 
-//printf("Evicting ppn = %d, previously vpn = %d to make room for new vpn = %d\n", ppn, ipt[ppn].virtualPage, vpn);
+printf("Evicting ppn = %d, previously vpn = %d to make room for new vpn = %d\n", ppn, ipt[ppn].virtualPage, vpn);
 	
 	// check if ppn is in TLB
 	// if it is, must propogate dirty bit and invalidate it
@@ -1612,9 +1617,11 @@ int IPTMissHandle(int vpn) {
 	ipt[ppn].space = currentThread->space;
 
 	// add ppn to IPT FIFO queue
-	int* ppntemp = new int;
-	*ppntemp = ppn;
-	iptFIFOqueue->Append((void*) ppntemp);
+    if (evict_type == FIFO) {
+        int* ppntemp = new int;
+        *ppntemp = ppn;
+        iptFIFOqueue->Append((void*) ppntemp);
+    }
 
 	// load physical memory from executable or swap if necessary
 	if (currentThread->space->pageTable[vpn].byteoffset != -1) {
@@ -1623,7 +1630,7 @@ int IPTMissHandle(int vpn) {
 			PageSize,
 			currentThread->space->pageTable[vpn].byteoffset);
 		if (currentThread->space->pageTable[vpn].type == SWAP) {
-//printf("Writing from swap file where swap bit = %d, vpn = %d\n",
+//printf("Reading from swap file where swap bit = %d, vpn = %d\n",
 //							currentThread->space->pageTable[vpn].byteoffset/PageSize,
 //							vpn);
 			swapMap->Clear(currentThread->space->pageTable[vpn].byteoffset/PageSize);
