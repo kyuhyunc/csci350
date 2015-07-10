@@ -1559,7 +1559,7 @@ int MemFullHandle(int vpn) {
 
 	// check if bit is dirty
 	// if it is, then write to SWAP file
-	if (ipt[ppn].dirty) {
+	if (ipt[ppn].valid && ipt[ppn].dirty) {
 
 		// find available SWAP bit
 		int swapbit = swapMap->Find();
@@ -1627,6 +1627,7 @@ int IPTMissHandle(int vpn) {
 //							currentThread->space->pageTable[vpn].byteoffset/PageSize,
 //							vpn);
 			swapMap->Clear(currentThread->space->pageTable[vpn].byteoffset/PageSize);
+            ipt[ppn].dirty = TRUE;
 		}
 	}
 	// load from swap file						***********************
