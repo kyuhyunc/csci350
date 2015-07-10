@@ -352,13 +352,11 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
     //Check if the lock is null or in the vector. send the error message if client can't properly release the lock
     if(ServerLockVector[index] == NULL) {
         printf("No Lock client can release!\n");
-
-        return;
     }
 
     //check if client is waiting for acquire the lock after releasing the lock
     if(!ServerLockVector[index]->waitQ->IsEmpty()) {
-        int nextClient = (int) ServerLockVector[index]waitQ->Remove();
+        int nextClient = (int)ServerLockVector[index]->waitQ->Remove();
     }
 
 
