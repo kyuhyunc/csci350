@@ -1531,10 +1531,6 @@ void DumpIPT() {
 	And returns evicted page number
 */
 int MemFullHandle(int vpn) {
-	//******
-	// TODO
-	//******
-
     // Evict a page and save it to SWAP if necessary
 	int ppn = -1;
 	
@@ -1546,11 +1542,14 @@ int MemFullHandle(int vpn) {
         ppn = *temp;
         delete temp;
     }
+	//**************
+	// RAND eviction
+	//**************
     else if (evict_type == RAND) {
         ppn = rand() % NumPhysPages;
     }
 
-printf("Evicting ppn = %d, previously vpn = %d to make room for new vpn = %d\n", ppn, ipt[ppn].virtualPage, vpn);
+//printf("Evicting ppn = %d, previously vpn = %d to make room for new vpn = %d\n", ppn, ipt[ppn].virtualPage, vpn);
 	
 	// check if ppn is in TLB
 	// if it is, must propogate dirty bit and invalidate it
