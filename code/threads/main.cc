@@ -100,13 +100,12 @@ public:
     std::string name;
     List * waitQ;
     bool toBeDeleted;
-
 };
 
 class ServerCV {
-    /*
+    
 public:
-    ServerLock(int s, int o, std::string n) {
+    ServerCV(int s, int o, std::string n) {
         state = s;
         owner = o;
         name = n;
@@ -117,8 +116,6 @@ public:
     std::string name;
     List * waitQ;
     bool toBeDeleted;
-    */
-
 };
 
 std::vector<ServerLock*> ServerLockVector;
@@ -131,6 +128,19 @@ void initializeNetworkMessageHeaders(const PacketHeader &inPktHdr, PacketHeader 
     outMailHdr.from = inMailHdr.to;
     outMailHdr.length = dataLength + 1;
 }
+
+void sendMessage(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, 
+    const MailHeader &inMailHdr, MailHeader &outMailHdr, const std::string msg) 
+    {
+        char *data = new char[msg.length()];
+        std::strcpy(data, msg.c_str());
+
+        initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
+        if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
+            printf("Something bad happens in Server. Unable to send message \n");
+        }
+        delete[] data;
+    }
 
 void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name) {
 
@@ -337,7 +347,6 @@ void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
             return;
         }
     } 
-
     char *data = new char[ss.str().length()];
     std::strcpy(data, ss.str().c_str());
 
@@ -351,18 +360,38 @@ void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
 void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index) {
     SLock->Acquire();
 
-    //Check if the lock is null or in the vector. send the error message if client can't properly release the lock
-    if(ServerLockVector[index] == NULL) {
-        printf("No Lock client can release!\n");
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    std::stringstream ss;
+    //check if invalid pointer is passed and Lock is NULL
+    //if so, server needs to send -1 to client so client know there's something wrong 
+    if(index < 0 || index >= ServerLockVector.size()) {
+        printf("Invalid index is passed in. Can't Acquire Lock.(Acquire)\n.");
+        ss << -1;
+
+    }else if(ServerLockVector[index] == NULL) {
+        printf("Lock you try to release is already deleted. Can't Acquire Lock(Release)\n ");
+        ss << -1;
+    }else {
+        
+        if(!ServerLockVector[index]->waitQ->IsEmpty()) {
+            int nextClient = (int)ServerLockVector[index]->waitQ->Remove();
+            ss << nextClient;
+            PacketHeader waitPktHdr;
+            MailHeader waitMailHdr;
+
+            char *data = new char[ss.str().length()];
+            sendMessage(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, data);
+            ss.str("");
+        }else{
+            ServerLockVector[index]->state = AVAIL;
+        }
+
+        ss << index;
     }
 
-    //check if client is waiting for acquire the lock after releasing the lock
-    if(!ServerLockVector[index]->waitQ->IsEmpty()) {
-        int nextClient = (int)ServerLockVector[index]->waitQ->Remove();
-    }
-
-
-
+    char *data = new char[ss.str().length()];
+    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, data);
     SLock->Release();
     
 }
