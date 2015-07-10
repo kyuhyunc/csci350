@@ -185,6 +185,8 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
     //otherwise, set boolean toBeDeleted true so it can be deleted when the lock is done using.
     SLock->Acquire();
     
+    DEBUG('n', "Server is destroying a lock\n");
+
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
 
@@ -210,6 +212,8 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
     std::strcpy(data, ss.str().c_str());
 
     initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
+
+    DEBUG('n', "Server destroyed the lock\n");
 
     if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
         printf("Something bad happens in Server. Unable to send message \n");
@@ -400,8 +404,7 @@ void Server() {
             case DestroyLock_SF : 
                 printf("DestroyLock_SF\n");
                 ss>>index;
-                DestroyCV(inPktHdr, inMailHdr, index);
-                interrupt->Halt();
+                DestroyLock(inPktHdr, inMailHdr, index);
                 break;
             case CreateCV_SF : 
                 printf("CreateCV_SF\n");
