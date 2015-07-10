@@ -139,7 +139,7 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
     //if other program already create lock with the same name, don't create new lock
     //just return(send the message) the index to user(Client)
     int index = -1;
-    for(int i = 0; i < ServerLockVector.size(); i++) {
+    for(unsigned int i = 0; i < ServerLockVector.size(); i++) {
         if(ServerLockVector[i] != NULL) {
             if(ServerLockVector[i]->name == name) {
             index = i;   
@@ -172,7 +172,6 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
     if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
         DEBUG('n', "Something bad happens in Server. Unable to send message \n");
         SLock->Release();
-        interrupt->Halt();
     }
 
     DEBUG('n', "Server is returning a lock index of %d\n", index);
@@ -189,8 +188,13 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
     MailHeader outMailHdr;
 
     std::stringstream ss;
-    //if the lock is already deleted or null for some reasons, print error message
-    if(ServerLockVector[index] == NULL || index < 0 || index >= ServerLockVector.size()) {
+    if(index < 0 || index >= ServerLockVector.size()) {
+        //if invalid index is passed in, then you need to 
+        printf("Lock does not exist in vector.(Destory)\n.");
+        //send -1 to client so client know they can't properly destroy lock.
+        ss << -1;
+    }else if(ServerLockVector[index] == NULL ) {
+        //if the lock is already deleted or null for some reasons, print error message
         printf("Lock does not exist in vector.(Destory)\n.");
         //send -1 to client so client know they can't properly destroy lock.
         ss << -1;
@@ -214,7 +218,6 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
     if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
         printf("Something bad happens in Server. Unable to send message \n");
         SLock->Release();
-        interrupt->Halt();
     }
 
     SLock->Release();
@@ -306,30 +309,41 @@ void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
     */
 }
 void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index) {
-   /* SLock->Acquire();
+    
+    SLock->Acquire();
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    std::stringstream ss;
     //check if the lock is null or in the vector. Send the error message if client can't properly acquire the lock
-    if(ServerLockVector[index] == NULL) {
-        printf("No Lock client can acquire!\n");
+    if(index < 0 || index >= ServerLockVector.size()) {
+        printf("Invalid index is passed in. Can't Acquire Lock.(Acquire)\n.");
+        ss << -1;
 
-        return;
-    }
-    ss << index
+    }else if(ServerLockVector[index] == NULL) {
+        printf("Lock you try to acquire is already deleted. Can't Acquire Lock(Acquire)\n ");
+        ss << -1;
+    }else {
+        ss << index;
+        //if state is busy, that means lock is already acquired.
+        //Therefore, put the id in waitqueue so it can be acquired
+        //when current thread release lock.
+        if(ServerLockVector[index]->state == BUSY) {
+            ServerLockVector[index]->waitQ->Append((void*)inPktHdr.from);
+        }
+    } 
+
     char *data = new char[ss.str().length()];
     std::strcpy(data, ss.str().c_str());
-    //Check the size of waitQueue. if it is empty, then client can acquire.
-    //Otherwise, put client number in the waitQueue so clients can acquire the lock in their turn.
-    if(ServerLockVector[index]->waitQ->IsEmpty()) {
-        initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
-        interrupt->Halt();
-    }else {//if other client is waiting for being called
 
-        ServerLockVector[index]->waitQ->Append((int)inPktHdr.from);
+    initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
+    if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
+        printf("Something bad happens in Server. Unable to send message \n");
     }
     SLock->Release();
-    */
+    
 }
 void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index) {
-   /* SLock->Acquire();
+    SLock->Acquire();
 
     //Check if the lock is null or in the vector. send the error message if client can't properly release the lock
     if(ServerLockVector[index] == NULL) {
@@ -340,13 +354,13 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
 
     //check if client is waiting for acquire the lock after releasing the lock
     if(!ServerLockVector[index]->waitQ->IsEmpty()) {
-        int nextClient = (int) waitQ->Remove();
+        int nextClient = (int) ServerLockVector[index]waitQ->Remove();
     }
 
 
 
     SLock->Release();
-    */
+    
 }
 void Wait() {
 
@@ -418,13 +432,13 @@ void Server() {
             case Acquire_SF : 
                 printf("Acquire_SF\n");
                 ss>>index;
-                //Acquire(inPktHdr, inMailHdr, index);
+                Acquire(inPktHdr, inMailHdr, index);
                 interrupt->Halt();
                 break;
             case Release_SF : 
                 printf("Release_SF\n");
                 ss>>index;
-                //Release(inPktHdr, inMailHdr, index);
+                Release(inPktHdr, inMailHdr, index);
                 interrupt->Halt();
                 break;
             case Wait_SF : 
