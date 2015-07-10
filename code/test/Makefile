@@ -31,7 +31,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
-all: halt matmult sort matmult2 sort2 testfiles testprint testexit testexithelper airportsim airstart
+all: halt matmult sort matmult2exec matmult2fork sort2exec testfiles testprint testexit testexithelper airportsim airstart
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -56,17 +56,23 @@ matmult: matmult.o start.o
 	$(LD) $(LDFLAGS) start.o matmult.o -o matmult.coff
 	../bin/coff2noff matmult.coff matmult
 
-sort2.o: sort2.c
-	$(CC) $(CFLAGS) -c sort2.c
-sort2: sort2.o start.o
-	$(LD) $(LDFLAGS) start.o sort2.o -o sort2.coff
-	../bin/coff2noff sort2.coff sort2
+sort2exec.o: sort2exec.c
+	$(CC) $(CFLAGS) -c sort2exec.c
+sort2exec: sort2exec.o start.o
+	$(LD) $(LDFLAGS) start.o sort2exec.o -o sort2exec.coff
+	../bin/coff2noff sort2exec.coff sort2exec
 
-matmult2.o: matmult2.c
-	$(CC) $(CFLAGS) -c matmult2.c
-matmult2: matmult2.o start.o
-	$(LD) $(LDFLAGS) start.o matmult2.o -o matmult2.coff
-	../bin/coff2noff matmult2.coff matmult2
+matmult2exec.o: matmult2exec.c
+	$(CC) $(CFLAGS) -c matmult2exec.c
+matmult2exec: matmult2exec.o start.o
+	$(LD) $(LDFLAGS) start.o matmult2exec.o -o matmult2exec.coff
+	../bin/coff2noff matmult2exec.coff matmult2exec
+
+matmult2fork.o: matmult2fork.c
+	$(CC) $(CFLAGS) -c matmult2fork.c
+matmult2fork: matmult2fork.o start.o
+	$(LD) $(LDFLAGS) start.o matmult2fork.o -o matmult2fork.coff
+	../bin/coff2noff matmult2fork.coff matmult2fork
 
 testfiles.o: testfiles.c
 	$(CC) $(CFLAGS) -c testfiles.c
@@ -106,5 +112,5 @@ airstart: airstart.o start.o
 
 clean:
 	rm -f *.o *.coff
-	rm halt sort matmult sort2 matmult2 testfiles testprint testexit testexithelper airportsim airstart
+	rm halt sort matmult sort2exec matmult2exec matmult2fork testfiles testprint testexit testexithelper airportsim airstart
 	rm *~
