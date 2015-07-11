@@ -168,7 +168,6 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
         sLock->waitQ = new List();
         ServerLockVector.push_back(sLock);
     }
-std::cout << "HERE 4?!?" << std::endl;
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
 
