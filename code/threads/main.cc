@@ -236,9 +236,7 @@ void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const s
     }
 
     if(index == -1) {
-
         index = ServerCVVector.size();
-
         ServerCV * sCV = new ServerCV(AVAIL, inPktHdr.from, name);
         sCV->toBeDeleted = false;
         sCV->waitQ = new List();
@@ -251,14 +249,7 @@ void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const s
     std::stringstream ss;
     ss << index;
 
-    char *data = new char[ss.str().length()];
-    std::strcpy(data, ss.str().c_str());
-
-    initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str().length());
-
-    if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
-        DEBUG('n', "Something bad happens in Server. Unable to send message \n");
-    }
+    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
 
     DEBUG('n', "Server is returning a CV index of %d\n", index);
 
@@ -296,17 +287,7 @@ void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
                 ServerCVVector[index]->toBeDeleted = true;
         }
     } 
-    //send the message to client
-    char *data = new char[ss.str().length()];
-    std::strcpy(data, ss.str().c_str());
-
-    initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
-
-    DEBUG('n', "Server destroyed the CV\n");
-
-    if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
-        printf("Something bad happens in Server. Unable to send message \n");
-    }
+    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
 
     CVLock->Release();
 }
@@ -316,7 +297,7 @@ void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
     std::stringstream ss;
-    //check if the lock is null or in the vector. Send the error message if client can't properly acquire the lock
+    //check if the lock is null or in the vector. Issue error message if client can't properly acquire the lock
     if(index < 0 || index >= ServerLockVector.size()) {
         printf("Invalid index is passed in. Can't Acquire Lock.(Acquire)\n.");
         ss << -1;
