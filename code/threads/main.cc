@@ -461,13 +461,13 @@ void Server() {
             case CreateCV_SF : 
                 printf("CreateCV_SF\n");
                 ss>>name;
-                //CreateCV(inPktHdr, inMailHdr, name);
+                CreateCV(inPktHdr, inMailHdr, name);
                 interrupt->Halt();
                 break;
             case DestroyCV_SF : 
                 printf("DestroyCV_SF\n");
                 ss>>index;
-                //DestroyCV(inPktHdr, inMailHdr, index);
+                DestroyCV(inPktHdr, inMailHdr, index);
                 interrupt->Halt();
                 break;
             case Acquire_SF : 
