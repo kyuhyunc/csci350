@@ -393,25 +393,22 @@ void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &
         printf("Lock you try to wait is already deleted. Can't process wait.(Wait)\n ");
         ss << -1;  
     }else {
-        //if no lock is attached to this CV, attach it!
-        //Otherwise, check if waitingLock is matched with lock that is passed in!
-        //if those two locks are not the same, send the error message to the client!
+        // If this is the first time Wait is being called with this lock, then set the lock variable
         if(ServerCVVector[CVIndex]->waitingLock == NULL) {
-
             ServerCVVector[CVIndex]->waitingLock = ServerLockVector[LockIndex];
-
-        }else if(ServerCVVector[CVIndex]->waitingLock != ServerLockVector[LockIndex]) {
-            //sending the error message!
-            //then, stop the process!
+        }
+        // If this is not the first thread to call wait, AND they passed in the incorrect lock, send error
+        if(ServerCVVector[CVIndex]->waitingLock != ServerLockVector[LockIndex]) {
             ss << -1;
-            sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
-
         }else{
-            //Otherwise, client can wait the thread!
+        	// everything is good to go! Thread will wait until Signal is called
+            ServerLockVector[LockIndex]->state = AVAIL; // Release the lock
             ServerCVVector[CVIndex]->waitQ->Append((void*)inPktHdr.from);
+            CVLock->Release();
+            return; // Don't send a message
         }
     }
-
+	sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
     CVLock->Release();
 }
 void Signal() {
