@@ -98,25 +98,31 @@ bool test2_acquireLock() {
 *	Test 3 - Checks that on a release, the release will destroy a lock is need be. 
 */
 bool test3_releaseAndDestroy() {
-	int lock_t3;
+	int lock0_t3, lock1_t3;
 
 	Printf0("Running test3_releaseAndDestroy\n", sizeof("Running test3_releaseAndDestroy\n"));
 
 	/* isToBeDeleted case */
 	Printf0("Running test3_releaseAndDestroy case 1\n", sizeof("Running test3_releaseAndDestroy case 1\n"));
-	lock_t3 = CreateLock("lock_t3", sizeof("lock_t3"));
+	lock0_t3 = CreateLock("lock_t3", sizeof("lock_t3"));
 	Acquire(lock_t3);
 	DestroyLock(lock_t3);
 	Release(lock_t3);
 
 	/* Normal case */
 	Printf0("Running test3_releaseAndDestroy case 2\n", sizeof("Running test3_releaseAndDestroy case 2\n"));
-	lock_t3 = CreateLock("lock_t3", sizeof("lock_t3"));
+	lock1_t3 = CreateLock("lock_t3", sizeof("lock_t3"));
 	Acquire(lock_t3);
 	Release(lock_t3);
 	DestroyLock(lock_t3);
 
-	return false;
+	if(lock0_t3 != lock1_t3) {
+		Printf0("test3_releaseAndDestroy passed!\n", sizeof("test3_releaseAndDestroy passed!\n"));
+		return true;
+	}else{
+		Printf0("test3_releaseAndDestroy failed!\n", sizeof("test3_releaseAndDestroy failed!\n"));
+		return false;
+	}
 }
 
 /*
