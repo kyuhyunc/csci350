@@ -275,15 +275,14 @@ void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
         printf("CV does not exist in vector.(DestoryCV)\n.");
         //send -1 to client so client know they can't properly destroy lock.
         ss << -1;
-
     } else {
         ss << index;
-        
         if(ServerCVVector[index]->state == AVAIL) {
-                ServerCVVector[index]->toBeDeleted = true;
-                ServerCVVector[index] = NULL;
+            ServerCV* sCV = ServerCVVector[index];
+            ServerCVVector[index] = NULL;
+            delete sCV;
         }else{
-                ServerCVVector[index]->toBeDeleted = true;
+            ServerCVVector[index]->toBeDeleted = true;
         }
     } 
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());

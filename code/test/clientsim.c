@@ -125,7 +125,7 @@ bool test3_releaseAndDestroy() {
 *		and hence the same CV is returned
 *		This test is very similar to Test 0 -- CreateLock test
 */
-void test4_createCV() {
+bool test4_createCV() {
 	int cv0, cv1, cv2;
 
 	Printf0("Running test4_createCV\n", sizeof("Running test4_createCV\n"));
@@ -144,7 +144,33 @@ void test4_createCV() {
 }
 
 /*
+*	Test 5 - Test Destroy CV. Very similar to destroy lock test
+*/
+bool test5_destroyCV() {
+	int cv0, cv1, destroyResult;
+	
+	Printf0("Running test5_destroyCV\n", sizeof("Running test5_destroyCV\n"));
+
+	cv0 = CreateCV("cv0", sizeof("cv0"));
+	destroyResult = DestroyCV(cv0);
+
+	cv1 = CreateCV("cv0", sizeof("cv0")); /* should not return same address */
+
+	if(destroyResult == cv0 && cv0 != cv1) {
+		Printf0("test5_destroyCV passed!\n", sizeof("test5_destroyCV passed!\n"));
+		return true;
+	} else {
+		Printf0("test5_destroyCV failed!\n", sizeof("test5_destroyCV failed!\n"));
+		return false;
+	}
+}
+
+/*
+*
+*
 *	"main"
+*
+*
 */
 int main() {
 
@@ -152,7 +178,8 @@ int main() {
 	/*test1_deleteLock();*/
 	/*test2_acquireLock();*/
 	/*test3_releaseAndDestroy();*/
-	test4_createCV();
+	/*test4_createCV();*/
+	test5_destroyCV();
 
 /*	if (
 		test0_createLock() &&

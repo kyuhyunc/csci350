@@ -1225,94 +1225,137 @@ int CreateCV_Syscall(int vaddr, int size) {
 }
 
 int DestroyCV_Syscall(int index) {
-	cvtablelock->Acquire();
-
-    // it returns -1 when lock can't be destroyed
-    // otherwise, it returns index.
-    //if it is ready to be destroyed, then set the boolean value true and make the lock pointer NULL
-    //it has to be checked whether the lock is already used or not AND the boolean(destroyed) is false
-    DEBUG('c',"DestroyCV starts\n");
 
 	//**********************************************************************
-	//				ERROR CHECKING
+	//				Project 3 Code
 	//**********************************************************************
 
-    //checking index. if index is -1 then user did not properly create CV!
-    if(index == -1) {
-		printf("ERROR: Condition not created properly. Condition not destroyed.\n");
-		cvtablelock->Release();
-        return -1;
-    }
-	// checking other indices to protect against garbage values
-	if (index < 0 || index > NumLocks) {
-		// index out of range
-		printf("ERROR: Invalid index passed in. Condition not destroyed.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	#ifdef NETWORK 
 
-	kernelCV* kc = (kernelCV*) cvtable->Get(index);
-	if (kc == NULL || kc->condition == NULL) {
-		// lock does not exist. Return -1 since it can't be deleted
-		printf("ERROR: Target Lock does not exist. Condition not destroyed.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+		DEBUG('o', "Client called DestroyLock\n");
 
-	// if current thread is not the thread that create cv, then it can't be destroyed.
-	if (kc->adds != currentThread->space) {
-		printf("ERROR: Permission denied! Target Condition belongs to a different process. Condition not destroyed.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	    PacketHeader outPktHdr, inPktHdr;
+	    MailHeader outMailHdr, inMailHdr;
+
+	    // Create StringStream -- put in function ID 
+		std::stringstream ss;
+		ss << DestroyCV_SF;
+		ss << " ";
+		ss << index;
+
+	    sendMessage(outPktHdr, outMailHdr, ss.str());
+
+		DEBUG('o', "Client is about to Receive message in DestroyCV\n");
+	    char buffer[MaxMailSize];
+	    // Wait for message from server -- comes with lock ID
+	    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+	    fflush(stdout);
+	    // Retrieve lock ID/index
+	    ss.str(""); // clear stringstream
+	    ss << buffer; // put received message into ss
+	    int result = -1; // -1 is error
+	    ss >> result;
+
+	    DEBUG('o', "Client destroyed cv #%d\n", result);
+
+	    return result;
 
 	//**********************************************************************
-	//				DESTROYING CONDITION
+	//				END Project 3 Code
 	//**********************************************************************
 
-	// if Condition is currently available, destroy it now
-	if (kc->counter == 0) {
-		kc = (kernelCV*) cvtable->Remove(index);
-		delete kc->condition;
-		delete kc;
+	#else 
 
+		cvtablelock->Acquire();
+
+	    // it returns -1 when lock can't be destroyed
+	    // otherwise, it returns index.
+	    //if it is ready to be destroyed, then set the boolean value true and make the lock pointer NULL
+	    //it has to be checked whether the lock is already used or not AND the boolean(destroyed) is false
+	    DEBUG('c',"DestroyCV starts\n");
 
 		//**********************************************************************
-		//				UPDATE PROCESS TABLE
+		//				ERROR CHECKING
 		//**********************************************************************
 
-		// find the current process
-		processLock->Acquire();
-			int PID = -1;
-			kernelProcess* kp;
-			for (int i=0; i < NumProcesses; i++) {
-				kp = (kernelProcess*) processTable->Get(i);
-				if (kp == NULL) {
-					continue;
+	    //checking index. if index is -1 then user did not properly create CV!
+	    if(index == -1) {
+			printf("ERROR: Condition not created properly. Condition not destroyed.\n");
+			cvtablelock->Release();
+	        return -1;
+	    }
+		// checking other indices to protect against garbage values
+		if (index < 0 || index > NumLocks) {
+			// index out of range
+			printf("ERROR: Invalid index passed in. Condition not destroyed.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		kernelCV* kc = (kernelCV*) cvtable->Get(index);
+		if (kc == NULL || kc->condition == NULL) {
+			// lock does not exist. Return -1 since it can't be deleted
+			printf("ERROR: Target Lock does not exist. Condition not destroyed.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		// if current thread is not the thread that create cv, then it can't be destroyed.
+		if (kc->adds != currentThread->space) {
+			printf("ERROR: Permission denied! Target Condition belongs to a different process. Condition not destroyed.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		//**********************************************************************
+		//				DESTROYING CONDITION
+		//**********************************************************************
+
+		// if Condition is currently available, destroy it now
+		if (kc->counter == 0) {
+			kc = (kernelCV*) cvtable->Remove(index);
+			delete kc->condition;
+			delete kc;
+
+
+			//**********************************************************************
+			//				UPDATE PROCESS TABLE
+			//**********************************************************************
+
+			// find the current process
+			processLock->Acquire();
+				int PID = -1;
+				kernelProcess* kp;
+				for (int i=0; i < NumProcesses; i++) {
+					kp = (kernelProcess*) processTable->Get(i);
+					if (kp == NULL) {
+						continue;
+					}
+					if (kp->adds == currentThread->space) {
+						PID = i;
+						break;
+					}
 				}
-				if (kp->adds == currentThread->space) {
-					PID = i;
-					break;
+				if (PID == -1) {
+					printf("Error: invalid process identifier (DestroyCV_Syscall)\n");
+					processLock->Release();
+					cvtablelock->Release();
+					return -1;
 				}
-			}
-			if (PID == -1) {
-				printf("Error: invalid process identifier (DestroyCV_Syscall)\n");
-				processLock->Release();
-				cvtablelock->Release();
-				return -1;
-			}
-			kp->cvs[index] = false;
-		processLock->Release();
+				kp->cvs[index] = false;
+			processLock->Release();
 
-	}
-	// if other threads are currently Waiting on this Condition, destroy it later
-	else {
-		kc->isToBeDeleted = true;
+		}
+		// if other threads are currently Waiting on this Condition, destroy it later
+		else {
+			kc->isToBeDeleted = true;
 
-	}
+		}
 
-	cvtablelock->Release();
-    return index;
+		cvtablelock->Release();
+	    return index;
+
+    #endif
 }
 
 int Wait_Syscall(int lockIndex, int CVIndex) {
