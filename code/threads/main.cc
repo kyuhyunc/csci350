@@ -118,6 +118,7 @@ public:
     std::string name;
     List * waitQ;
     bool toBeDeleted;
+    ServerLock * waitingLock;
 };
 
 std::vector<ServerLock*> ServerLockVector;
@@ -370,8 +371,48 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
     SLock->Release();
     
 }
-void Wait() {
-	
+void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex) {
+	CVLock->Acquire();
+
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    std::stringstream ss;
+    //check if the lock/CV is null or in the vector. Issue error message if client can't properly wait
+    if(LockIndex < 0 || LockIndex >= ServerLockVector.size()) {
+        printf("Invalid Lock index is passed in. Can't process wait.(Wait)\n.");
+        ss << -1;
+
+    }else if(CVIndex < 0 || CVIndex >= ServerCVVector.size()) {
+        printf("Invalid CV index is passed in. Can't process wait.(Wait)\n.");
+        ss << -1;
+
+    }else if(ServerLockVector[LockIndex] == NULL) {
+        printf("Lock you try to wait is already deleted. Can't process wait.(Wait)\n ");
+        ss << -1;  
+    }else if(ServerCVVector[CVIndex] == NULL) {
+        printf("Lock you try to wait is already deleted. Can't process wait.(Wait)\n ");
+        ss << -1;  
+    }else {
+        //if no lock is attached to this CV, attach it!
+        //Otherwise, check if waitingLock is matched with lock that is passed in!
+        //if those two locks are not the same, send the error message to the client!
+        if(ServerCVVector[CVIndex]->waitingLock == NULL) {
+
+            ServerCVVector[CVIndex]->waitingLock = ServerLockVector[LockIndex];
+
+        }else if(ServerCVVector[CVIndex]->waitingLock != ServerLockVector[LockIndex]) {
+            //sending the error message!
+            //then, stop the process!
+            ss << -1;
+            sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+
+        }else{
+            //Otherwise, client can wait the thread!
+            ServerCVVector[CVIndex]->waitQ->Append((void*)inPktHdr.from);
+        }
+    }
+
+    CVLock->Release();
 }
 void Signal() {
 	
@@ -408,7 +449,8 @@ void Server() {
     	// Decode the message
     	int type = -1; 
         std::string name;
-        int index;
+        int index1;
+        int index2;
     	std::stringstream ss(buffer);
         ss>>type;
 
@@ -419,26 +461,29 @@ void Server() {
                 CreateLock(inPktHdr, inMailHdr, name);
     			break;
             case DestroyLock_SF : 
-                ss>>index;
-                DestroyLock(inPktHdr, inMailHdr, index);
+                ss>>index1;
+                DestroyLock(inPktHdr, inMailHdr, index1);
                 break;
             case CreateCV_SF : 
                 ss>>name;
                 CreateCV(inPktHdr, inMailHdr, name);
                 break;
             case DestroyCV_SF : 
-                ss>>index;
-                DestroyCV(inPktHdr, inMailHdr, index);
+                ss>>index1;
+                DestroyCV(inPktHdr, inMailHdr, index1);
                 break;
             case Acquire_SF : 
-                ss>>index;
-                Acquire(inPktHdr, inMailHdr, index);
+                ss>>index1;
+                Acquire(inPktHdr, inMailHdr, index1);
                 break;
             case Release_SF : 
-                ss>>index;
-                Release(inPktHdr, inMailHdr, index);
+                ss>>index1;
+                Release(inPktHdr, inMailHdr, index1);
                 break;
             case Wait_SF : 
+                ss>>index1;
+                ss>>index2;
+                Wait(inPktHdr, inMailHdr, index1, index2);
                 break;
             case Signal_SF : 
                 break;
