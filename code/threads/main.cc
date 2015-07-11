@@ -109,6 +109,8 @@ public:
         state = s;
         owner = o;
         name = n;
+        toBeDeleted = false;
+        waitQ = new List();
     }
 public:
     int state;
@@ -228,7 +230,7 @@ void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const s
     for(unsigned int i = 0; i < ServerCVVector.size(); i++) {
         if(ServerCVVector[i] != NULL) {
             if(ServerCVVector[i]->name == name) {
-            index = i;   
+            	index = i;   
             break;
             }
         }
@@ -237,8 +239,6 @@ void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const s
     if(index == -1) {
         index = ServerCVVector.size();
         ServerCV * sCV = new ServerCV(AVAIL, inPktHdr.from, name);
-        sCV->toBeDeleted = false;
-        sCV->waitQ = new List();
         ServerCVVector.push_back(sCV);
     }
 
@@ -250,7 +250,7 @@ void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const s
 
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
 
-    DEBUG('n', "Server is returning a CV index of %d\n", index);
+    DEBUG('o', "Server is returning a CV index of %d\n", index);
 
     CVLock->Release();
 }
@@ -259,7 +259,7 @@ void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
     //otherwise, set boolean toBeDeleted true so it can be deleted when the lock is done using.
     CVLock->Acquire();
     
-    DEBUG('n', "Server is destroying a CV\n");
+    DEBUG('o', "Server is destroying a CV\n");
 
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
@@ -416,43 +416,34 @@ void Server() {
     	// Figure out which server function to run, switch-case statement
     	switch (type) {
     		case CreateLock_SF : 
-    			printf("CreateLock_SF\n");
                 ss>>name;
                 CreateLock(inPktHdr, inMailHdr, name);
     			break;
             case DestroyLock_SF : 
-                printf("DestroyLock_SF\n");
                 ss>>index;
                 DestroyLock(inPktHdr, inMailHdr, index);
                 break;
             case CreateCV_SF : 
-                printf("CreateCV_SF\n");
                 ss>>name;
-                //CreateCV(inPktHdr, inMailHdr, name);
+                CreateCV(inPktHdr, inMailHdr, name);
                 break;
             case DestroyCV_SF : 
-                printf("DestroyCV_SF\n");
                 ss>>index;
-                //DestroyCV(inPktHdr, inMailHdr, index);
+                DestroyCV(inPktHdr, inMailHdr, index);
                 break;
             case Acquire_SF : 
-                printf("Acquire_SF\n");
                 ss>>index;
                 Acquire(inPktHdr, inMailHdr, index);
                 break;
             case Release_SF : 
-                printf("Release_SF\n");
                 ss>>index;
                 Release(inPktHdr, inMailHdr, index);
                 break;
             case Wait_SF : 
-            	DEBUG('o', "Server is running Wait_SF\n");
                 break;
             case Signal_SF : 
-            	DEBUG('o', "Server is running Signal_SF\n");
                 break;
             case BroadCast_SF : 
-            	DEBUG('o', "Server is running BroadCast_SF\n");
                 break;
     	}
     }

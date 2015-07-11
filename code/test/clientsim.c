@@ -120,6 +120,30 @@ bool test3_releaseAndDestroy() {
 }
 
 /*
+*	Test 4 - Test CreateCV functionality
+*		The first and second CV have the same name, 
+*		and hence the same CV is returned
+*		This test is very similar to Test 0 -- CreateLock test
+*/
+void test4_createCV() {
+	int cv0, cv1, cv2;
+
+	Printf0("Running test4_createCV\n", sizeof("Running test4_createCV\n"));
+
+	cv0 = CreateCV("cv0", sizeof("cv0"));
+	cv1 = CreateCV("cv1", sizeof("cv1"));
+	cv2 = CreateCV("cv0", sizeof("cv0")); /* should return same index as lock0 */
+
+	if(cv0 == 0 && cv1 == 1 && cv2 == 0) {
+		Printf0("test4_createCV passed!\n", sizeof("test4_createCV passed!\n"));
+		return true;
+	}else{
+		Printf0("test4_createCV failed!\n", sizeof("test4_createCV failed!\n"));
+		return false;
+	}
+}
+
+/*
 *	"main"
 */
 int main() {
@@ -127,7 +151,8 @@ int main() {
 	/*test0_createLock();*/
 	/*test1_deleteLock();*/
 	/*test2_acquireLock();*/
-	test3_releaseAndDestroy();
+	/*test3_releaseAndDestroy();*/
+	test4_createCV();
 
 /*	if (
 		test0_createLock() &&
