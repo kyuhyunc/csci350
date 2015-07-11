@@ -9,6 +9,10 @@
 #define false 0
 typedef char bool;
 
+/* Test 2 - Acquire Lock */
+int lock_t2;
+int numLockAcquires;
+
 /*
 *	Test 1 - CreateLock test
 */
@@ -52,10 +56,53 @@ bool test1_deleteLock() {
 	}
 }
 
+void test2_thread() {
+	int id = numLockAcquires, loopCnt;
+	loopCnt = 0;
+	numLockAcquires++;
+	Printf1("TEST 2 - Thread %d is about to call acquire\n", sizeof("TEST 2 - Thread %d is about to call acquire\n"), id);
+	Acquire(lock_t2);
+	Printf1("TEST 2 - Thread %d successfully acquired a lock\n", sizeof("TEST 2 - Thread %d successfully acquired a lock\n"), id);
+	while (numLockAcquires < 2 || loopCnt < 2) { /* wait for both threads to acquire lock */
+		Printf1("TEST 2 - Thread %d is yielding\n", sizeof("TEST 2 - Thread %d is yielding\n"), id);
+		Yield();
+		loopCnt++;
+	}
+	Printf1("TEST 2 - Thread %d is definitely releasing the lock\n", sizeof("TEST 2 - Thread %d is releasing the lock\n"), id);
+	Release(lock_t2);
+	Exit(0);
+}
+
+bool test2_acquireLock() {
+	Printf0("Running test2_acquireLock\n", sizeof("Running test2_acquireLock\n"));
+
+	lock_t2 = CreateLock("lock_t2", sizeof("lock_t2"));
+
+	Printf1("******** lock_t2: %d\n", sizeof("******** lock_t2: %d\n"), lock_t2);
+
+	numLockAcquires = 0;
+
+	Fork(test2_thread, "test2_thread_0", sizeof("test2_thread_0"));
+	Fork(test2_thread, "test2_thread_1", sizeof("test2_thread_1"));
+	return true; /* Must look at print statements to determine */
+}
+
 /*
 *	"main"
 */
 int main() {
-	test0_createLock();
-	test1_deleteLock();
+
+	/*test0_createLock();*/
+	/*test1_deleteLock();*/
+	test2_acquireLock();
+
+/*	if (
+		test0_createLock() &&
+		test1_deleteLock() &&
+		test2_acquireLock()
+	) {
+		Printf0("All tests passed!\n", sizeof("All tests passed!\n"));
+	} else {
+		Printf0("Not all tests passed...\n", sizeof("Not all tests passed...\n"));
+	}*/
 }

@@ -31,6 +31,36 @@
 
 using namespace std;
 
+#define MAILBOX 1
+
+#ifdef NETWORK
+
+void initNetworkMessageHeaders(PacketHeader &ph, MailHeader &mh, int dataLength) {
+    // construct packet, mail header for original message
+    // To: destination machine, mailbox 0
+    // From: our machine, reply to: mailbox 1
+    // ph
+    ph.to = SERVER_NETWORK_ID;
+    // mh
+    mh.to = SERVER_NETWORK_ID;
+    mh.from = MAILBOX; 
+    mh.length = dataLength + 1;
+}
+
+void sendMessage(PacketHeader &outPktHdr, MailHeader &outMailHdr, const std::string msg) 
+{
+        char *data = new char[msg.length()];
+        std::strcpy(data, msg.c_str());
+
+        initNetworkMessageHeaders(outPktHdr, outMailHdr, strlen(data));
+        if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
+            printf("Something bad happens in Server. Unable to send message \n");
+        }
+        delete[] data;
+}
+
+#endif
+
 int copyin(unsigned int vaddr, int len, char *buf) {
 	// Copy len bytes from the current thread's virtual address vaddr.
 	// Return the number of bytes so read, or -1 if an error occors.
@@ -545,26 +575,12 @@ void Yield_Syscall() {
 	currentThread->Yield();
 }
 
-#define MAILBOX 1
-
-void initNetworkMessageHeaders(PacketHeader &ph, MailHeader &mh, int dataLength) {
-    // construct packet, mail header for original message
-    // To: destination machine, mailbox 0
-    // From: our machine, reply to: mailbox 1
-    // ph
-    ph.to = SERVER_NETWORK_ID;
-    // mh
-    mh.to = SERVER_NETWORK_ID;
-    mh.from = MAILBOX; 
-    mh.length = dataLength + 1;
-}
-
 int CreateLock_Syscall(int vaddr, int size) {
 
 	//**********************************************************************
 	//				Project 3 Code
 	//**********************************************************************
-#ifdef NETWORK
+	#ifdef NETWORK
 	
 	DEBUG('n', "Client called CreateLock\n");
 
@@ -624,7 +640,7 @@ int CreateLock_Syscall(int vaddr, int size) {
 	//				end Project 3 Code
 	//**********************************************************************
 	
-#else
+	#else
 
 	locktablelock->Acquire();
 
@@ -711,7 +727,7 @@ int CreateLock_Syscall(int vaddr, int size) {
 	locktablelock->Release();
 	return index;
 
-#endif
+	#endif
 
 }
 
@@ -721,7 +737,7 @@ int DestroyLock_Syscall(int index) {
 	//				Project 3 Code
 	//**********************************************************************
 
-#ifdef NETWORK 
+	#ifdef NETWORK 
 
 	DEBUG('n', "Client called DestroyLock\n");
 
@@ -771,7 +787,7 @@ int DestroyLock_Syscall(int index) {
 	//				END Project 3 Code
 	//**********************************************************************
 
-#else 
+	#else 
 
 	locktablelock->Acquire();
 
@@ -861,7 +877,7 @@ int DestroyLock_Syscall(int index) {
 	locktablelock->Release();
 	return index;
 
-#endif
+	#endif
 
 }
 
@@ -871,11 +887,38 @@ int Acquire_Syscall(int index) {
 	//				Project 3 Code
 	//**********************************************************************
 
-#ifdef NETWORK 
+	#ifdef NETWORK 
 
-	
+	DEBUG('n', "Client called Acquire\n");
 
-#else
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
+
+    // Create StringStream -- put in function ID 
+	std::stringstream ss;
+	ss << Acquire_SF;
+	ss << " ";
+	ss << index;
+
+    sendMessage(outPktHdr, outMailHdr, ss.str());
+
+	DEBUG('n', "Client is about to Receive message in AcuireLOCK\n");
+    char buffer[MaxMailSize];
+    // Wait for message from server -- comes with lock ID
+    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+    fflush(stdout);
+
+    // Retrieve lock ID/index
+    ss.str(""); // clear stringstream
+    ss << buffer; // put received message into ss
+    int result = -1; // -1 is error
+    ss >> result;
+
+    DEBUG('n', "Client acquired lock #%d\n", result);
+
+    return result;
+
+	#else
 
 	//**********************************************************************
 	//				END Project 3 Code
@@ -931,11 +974,53 @@ int Acquire_Syscall(int index) {
 	locktablelock->Release();
 	return index;
 
-#endif
+	#endif
 
 }
 
 int Release_Syscall(int index) {
+
+	//**********************************************************************
+	//				Project 3 Code
+	//**********************************************************************
+
+	#ifdef NETWORK 
+
+	DEBUG('n', "Client called Release\n");
+
+	PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
+
+    // Create StringStream -- put in function ID 
+	std::stringstream ss;
+	ss << Release_SF;
+	ss << " ";
+	ss << index;
+
+    sendMessage(outPktHdr, outMailHdr, ss.str());
+
+    char buffer[MaxMailSize];
+    // Wait for message from server -- comes with lock ID
+    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+    fflush(stdout);
+
+    // Retrieve lock ID/index
+    ss.str(""); // clear stringstream
+    ss << buffer; // put received message into ss
+    std::cout << "    **** received message: " << ss.str() << std::endl;
+    int result = -1; // -1 is error
+    ss >> result;
+
+    DEBUG('n', "Client Released lock #%d\n", result);
+
+    return result;
+
+    //**********************************************************************
+	//				END Project 3 Code
+	//**********************************************************************
+
+	#else
+
 	locktablelock->Acquire();
 
 	//if there is error, return -1
@@ -1024,6 +1109,8 @@ int Release_Syscall(int index) {
 
 	locktablelock->Release();
 	return index;
+
+	#endif
 }
 
 int CreateCV_Syscall(int vaddr, int size) {

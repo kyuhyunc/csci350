@@ -139,7 +139,7 @@ void sendMessage(const PacketHeader &inPktHdr, PacketHeader &outPktHdr,
         if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
             printf("Something bad happens in Server. Unable to send message \n");
         }
-        delete[] data;
+        /*delete[] data;*/
     }
 
 void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name) {
@@ -158,7 +158,7 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
         }
     }
 
-    if(index = -1) {
+    if(index == -1) {
 
         index = ServerLockVector.size();
 
@@ -174,15 +174,7 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
     std::stringstream ss;
     ss << index;
 
-    char *data = new char[ss.str().length()];
-    std::strcpy(data, ss.str().c_str());
-
-    initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str().length());
-
-    if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
-        DEBUG('n', "Something bad happens in Server. Unable to send message \n");
-        SLock->Release();
-    }
+    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
 
     DEBUG('n', "Server is returning a lock index of %d\n", index);
 
@@ -221,21 +213,8 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
                 ServerLockVector[index]->toBeDeleted = true;
         }
     } 
-    //send the message to client
-    char *data = new char[ss.str().length()];
-    std::strcpy(data, ss.str().c_str());
-
-    initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
-
-    DEBUG('n', "Server destroyed the lock\n");
-
-    if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
-        printf("Something bad happens in Server. Unable to send message \n");
-        SLock->Release();
-    }
-
+    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     SLock->Release();
-
 }
 void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name) {
     /*CVLock->Acquire();
@@ -323,7 +302,7 @@ void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
     */
 }
 void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index) {
-    
+    DEBUG('n', "Inside SERVERs Acquire!");
     SLock->Acquire();
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
@@ -337,23 +316,22 @@ void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         printf("Lock you try to acquire is already deleted. Can't Acquire Lock(Acquire)\n ");
         ss << -1;
     }else {
+    	DEBUG('n', "Inside SERVERs Acquire ELSE statement!");
         ss << index;
         //if state is busy, that means lock is already acquired.
         //Therefore, put the id in waitqueue so it can be acquired
         //when current thread release lock.
         if(ServerLockVector[index]->state == BUSY) {
+        	DEBUG('n', "Lock->Acquire -- Lock is busy, %d is going on waitQ\n", inPktHdr.from);
             ServerLockVector[index]->waitQ->Append((void*)inPktHdr.from);
             SLock->Release();
             return;
+        } else { // lock is available! "Acquire" this lock
+        	DEBUG('n', "Lock->Acquire -- Lock is avaiable!, %d acquired lock\n", inPktHdr.from);
+        	ServerLockVector[index]->state = BUSY;
         }
     } 
-    char *data = new char[ss.str().length()];
-    std::strcpy(data, ss.str().c_str());
-
-    initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
-    if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
-        printf("Something bad happens in Server. Unable to send message \n");
-    }
+    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     SLock->Release();
     
 }
@@ -376,22 +354,29 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         
         if(!ServerLockVector[index]->waitQ->IsEmpty()) {
             int nextClient = (int)ServerLockVector[index]->waitQ->Remove();
-            ss << nextClient;
-            PacketHeader waitPktHdr;
-            MailHeader waitMailHdr;
+            
+            DEBUG('n', "Lock->Release -- Giving lock %d to thread %d in waitQueue\n", index, nextClient);
+            ss << index;
 
-            char *data = new char[ss.str().length()];
-            sendMessage(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, data);
+            PacketHeader waitPktHdr;
+            waitPktHdr.to = inPktHdr.to;
+            waitPktHdr.from = nextClient;
+
+            MailHeader waitMailHdr;
+            waitMailHdr.to = inMailHdr.to;
+            waitMailHdr.from = nextClient;
+
+            sendMessage(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
             ss.str("");
         }else{
+        	DEBUG('n', "Lock->Release -- Lock is now available\n");
             ServerLockVector[index]->state = AVAIL;
         }
 
         ss << index;
     }
 
-    char *data = new char[ss.str().length()];
-    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, data);
+    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     SLock->Release();
     
 }
@@ -453,37 +438,30 @@ void Server() {
                 printf("CreateCV_SF\n");
                 ss>>name;
                 //CreateCV(inPktHdr, inMailHdr, name);
-                interrupt->Halt();
                 break;
             case DestroyCV_SF : 
                 printf("DestroyCV_SF\n");
                 ss>>index;
                 //DestroyCV(inPktHdr, inMailHdr, index);
-                interrupt->Halt();
                 break;
             case Acquire_SF : 
                 printf("Acquire_SF\n");
                 ss>>index;
                 Acquire(inPktHdr, inMailHdr, index);
-                interrupt->Halt();
                 break;
             case Release_SF : 
                 printf("Release_SF\n");
                 ss>>index;
                 Release(inPktHdr, inMailHdr, index);
-                interrupt->Halt();
                 break;
             case Wait_SF : 
             	DEBUG('n', "Server is running Wait_SF\n");
-                interrupt->Halt();
                 break;
             case Signal_SF : 
             	DEBUG('n', "Server is running Signal_SF\n");
-                interrupt->Halt();
                 break;
             case BroadCast_SF : 
             	DEBUG('n', "Server is running BroadCast_SF\n");
-                interrupt->Halt();
                 break;
     	}
     }
@@ -518,7 +496,7 @@ main(int argc, char **argv)
     int argCount;			// the number of arguments 
 					// for a particular command
 
-    DEBUG('t', "Entering main");
+    DEBUG('t', "Entering main\n");
     (void) Initialize(argc, argv);
     
 #ifdef THREADS
