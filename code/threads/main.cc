@@ -119,6 +119,7 @@ public:
     List * waitQ;
     bool toBeDeleted;
     ServerLock * waitingLock;
+    int CVCounter;
 };
 
 std::vector<ServerLock*> ServerLockVector;
@@ -240,6 +241,8 @@ void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const s
     if(index == -1) {
         index = ServerCVVector.size();
         ServerCV * sCV = new ServerCV(AVAIL, inPktHdr.from, name);
+        sCV->waitQ = new List();
+        sCV->CVCounter = 0;
         ServerCVVector.push_back(sCV);
     }
 
@@ -404,6 +407,7 @@ void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &
         	// everything is good to go! Thread will wait until Signal is called
             ServerLockVector[LockIndex]->state = AVAIL; // Release the lock
             ServerCVVector[CVIndex]->waitQ->Append((void*)inPktHdr.from);
+            ServerCVVector[CVIndex]->CVCounter++;
             CVLock->Release();
             return; // Don't send a message
         }
@@ -411,11 +415,78 @@ void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &
 	sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
     CVLock->Release();
 }
-void Signal() {
+void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex) {
+    CVLock->Acquire();
+
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    std::stringstream ss;
+    //check if the lock/CV is null or in the vector. Issue error message if client can't properly signal
+    if(LockIndex < 0 || LockIndex >= ServerLockVector.size()) {
+        printf("Invalid Lock index is passed in. Can't process Signal.(Signal)\n.");
+        ss << -1;
+
+    }else if(CVIndex < 0 || CVIndex >= ServerCVVector.size()) {
+        printf("Invalid CV index is passed in. Can't process Signal.(Signal)\n.");
+        ss << -1;
+
+    }else if(ServerLockVector[LockIndex] == NULL) {
+        printf("Lock you try to signal is already deleted. Can't process Signal.(Signal)\n ");
+        ss << -1;  
+    }else if(ServerCVVector[CVIndex] == NULL) {
+        printf("Lock you try to signal is already deleted. Can't process Signal.(Signal)\n ");
+        ss << -1;  
+    }else {
+        //if there is nothing to signal, then send the error message to client.
+        if(ServerCVVector[CVIndex]->waitQ->IsEmpty()) {
+            printf("There is nothing to signal. Can't process Signal.(Signal)\n");
+            ss << -1;
+        }
+        // If this is not the first thread to call wait, AND they passed in the incorrect lock, send error
+        if(ServerCVVector[CVIndex]->waitingLock != ServerLockVector[LockIndex]) {
+            printf("Condition Lock does not match waitingLock\n");
+            ss << -1;
+        }else{
+
+            // everything is good to go! Waiting thread will be signaled
+            int nextClient = (int)ServerLockVector[LockIndex]->waitQ->Remove();
+            ss << nextClient;
+
+            PacketHeader waitPktHdr;
+            waitPktHdr.to = inPktHdr.to;
+            waitPktHdr.from = nextClient;
+
+            MailHeader waitMailHdr;
+            waitMailHdr.to = inMailHdr.to;
+            waitMailHdr.from = nextClient;
+
+            sendMessage(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
+            ss.str("");
+            ServerLockVector[LockIndex]->state = AVAIL; // Release the lock
+
+            ServerCVVector[CVIndex]->CVCounter--;
+
+            if(ServerCVVector[CVIndex]->waitQ->IsEmpty()) {
+                ServerCVVector[CVIndex]->waitingLock = NULL;
+            }
+
+
+            CVLock->Release();
+            return; //don't send to error message
+        }
+
+    }
+    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
+    CVLock->Release();
 	
 }
-void BroadCast() {
-	
+void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex) {
+    CVLock->Acquire();
+    
+    while(ServerCVVector[CVIndex]->CVCounter != 0) {
+        Signal(inPktHdr, inMailHdr, LockIndex, CVIndex);
+    }
+	CVLock->Release();
 }
 
 
@@ -483,8 +554,14 @@ void Server() {
                 Wait(inPktHdr, inMailHdr, index1, index2);
                 break;
             case Signal_SF : 
+                ss>>index1;
+                ss>>index2;
+                Signal(inPktHdr, inMailHdr, index1, index2);
                 break;
             case BroadCast_SF : 
+                ss>>index1;
+                ss>>index2;
+                BroadCast(inPktHdr, inMailHdr, index1, index2);
                 break;
     	}
     }
