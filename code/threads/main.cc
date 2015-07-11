@@ -159,7 +159,6 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
 	        }
 	    }
     }
-std::cout << "HERE 3?!?" << std::endl;
     if(index == -1) {
 
         index = ServerLockVector.size();
@@ -222,12 +221,12 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
     SLock->Release();
 }
 void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name) {
-    /*CVLock->Acquire();
-    //iterating through serverlockVector to check CV is already in vector
-    //if other program already create lock with the same name, don't create new lock
+    CVLock->Acquire();
+    //iterating through serverCVVector to check CV is already in vector
+    //if other program already create CV with the same name, don't create new CV
     //just return(send the message) the index to user(Client)
     int index = -1;
-    for(int i = 0; i < ServerCVVector.size(); i++) {
+    for(unsigned int i = 0; i < ServerCVVector.size(); i++) {
         if(ServerCVVector[i] != NULL) {
             if(ServerCVVector[i]->name == name) {
             index = i;   
@@ -236,14 +235,14 @@ void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const s
         }
     }
 
-    if(index = -1) {
+    if(index == -1) {
 
         index = ServerCVVector.size();
 
         ServerCV * sCV = new ServerCV(AVAIL, inPktHdr.from, name);
         sCV->toBeDeleted = false;
         sCV->waitQ = new List();
-        ServerCVVector.push_back(sLock);
+        ServerCVVector.push_back(sCV);
     }
 
     PacketHeader outPktHdr;
@@ -255,56 +254,61 @@ void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const s
     char *data = new char[ss.str().length()];
     std::strcpy(data, ss.str().c_str());
 
-    initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
+    initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str().length());
 
     if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
-        printf("Something bad happens in Server. Unable to send message \n");
-        CVLock->Release();
-        interrupt->Halt();
+        DEBUG('n', "Something bad happens in Server. Unable to send message \n");
     }
 
+    DEBUG('n', "Server is returning a CV index of %d\n", index);
+
     CVLock->Release();
-    */
 }
 void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index) {
     //if no client currently acquire the lock, server simply delete the lock
     //otherwise, set boolean toBeDeleted true so it can be deleted when the lock is done using.
-   /* CVLock->Acquire();
+    CVLock->Acquire();
     
+    DEBUG('n', "Server is destroying a CV\n");
+
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
 
     std::stringstream ss;
-
-    //if the lock is already deleted or null for some reasons, print error message
-    if(ServerLockVector[index] == NULL) {
-        printf("CV does not exist in vector.(Destory)\n.");
+    if(index < 0 || index >= ServerCVVector.size()) {
+        //if invalid index is passed in, then you need to 
+        printf("CV does not exist in vector.(DestoryCV)\n.");
         //send -1 to client so client know they can't properly destroy lock.
         ss << -1;
-        char *data = new char[ss.str().length()];
-        std::strcpy(data, ss.str().c_str());
+    }else if(ServerCVVector[index] == NULL ) {
+        //if the lock is already deleted or null for some reasons, print error message
+        printf("CV does not exist in vector.(DestoryCV)\n.");
+        //send -1 to client so client know they can't properly destroy lock.
+        ss << -1;
 
-        initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
-
-        CVLock->Release();
-        interrupt->Halt();
-        return;
-    }
-    if(ServerCVVector[index]->state == AVAIL) {
-            ServerCVVector[index]->toBeDeleted = true;
-            ServerCVVector[index] = NULL;
-    }else{
-            ServerCVVector[index]->toBeDeleted = true;
-    }
-
-    ss << index;
-
+    } else {
+        ss << index;
+        
+        if(ServerCVVector[index]->state == AVAIL) {
+                ServerCVVector[index]->toBeDeleted = true;
+                ServerCVVector[index] = NULL;
+        }else{
+                ServerCVVector[index]->toBeDeleted = true;
+        }
+    } 
+    //send the message to client
     char *data = new char[ss.str().length()];
     std::strcpy(data, ss.str().c_str());
 
     initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
+
+    DEBUG('n', "Server destroyed the CV\n");
+
+    if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
+        printf("Something bad happens in Server. Unable to send message \n");
+    }
+
     CVLock->Release();
-    */
 }
 void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index) {
     DEBUG('o', "Inside SERVERs Acquire!\n");
@@ -381,10 +385,8 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         	DEBUG('o', "Lock->Release -- Lock is now available\n");
             ServerLockVector[index]->state = AVAIL;
         }
-
         ss << index;
     }
-
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     SLock->Release();
     
