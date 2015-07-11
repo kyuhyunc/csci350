@@ -582,7 +582,7 @@ int CreateLock_Syscall(int vaddr, int size) {
 	//**********************************************************************
 	#ifdef NETWORK
 	
-	DEBUG('n', "Client called CreateLock\n");
+	DEBUG('o', "Client called CreateLock\n");
 
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
@@ -597,31 +597,17 @@ int CreateLock_Syscall(int vaddr, int size) {
 	if(copyin(vaddr, size, name) == -1) {
 		//check if the pointer is valid one. if pointer is not valid, then return.
 		printf("error: Pointer is invalid(CreateLock)\n");
-		locktablelock->Release();
 		return -1;
 	}
 	ss << name;
+    delete[] name;
 	ss << " ";
-
 	// Add data size to stream
 	ss << size;
-	
-	// Copy stream to data buffer
-	char *data = new char[ss.str().length()];
-	std::strcpy(data, ss.str().c_str());
 
-    initNetworkMessageHeaders(outPktHdr, outMailHdr, ss.str().length());
+    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-    DEBUG('n', "Client is about to call Send from CreateLock\n");
-    // Send message to get the lock ID
-    if ( !postOffice->Send(outPktHdr, outMailHdr, data) ) {
-      DEBUG('n', "The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
-      interrupt->Halt();
-    }
-    // cleanup from Send
-    delete[] data; 
-
-	DEBUG('n', "Client is about to Receive message in CreateLock\n");
+	DEBUG('o', "Client is about to Receive message in CreateLock\n");
     char buffer[MaxMailSize];
     // Wait for message from server -- comes with lock ID
     postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
@@ -632,7 +618,7 @@ int CreateLock_Syscall(int vaddr, int size) {
     int lockID = -1; // -1 is error
     ss >> lockID;
 
-    DEBUG('n', "Client received lock #%d\n", lockID);
+    DEBUG('o', "Client received lock #%d\n", lockID);
 
     return lockID;
 
@@ -739,7 +725,7 @@ int DestroyLock_Syscall(int index) {
 
 	#ifdef NETWORK 
 
-	DEBUG('n', "Client called DestroyLock\n");
+	DEBUG('o', "Client called DestroyLock\n");
 
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
@@ -750,25 +736,9 @@ int DestroyLock_Syscall(int index) {
 	ss << " ";
 	ss << index;
 
-	// Copy stream to data buffer
-	char *data = new char[ss.str().length()];
-	std::strcpy(data, ss.str().c_str());
+    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	//
-    initNetworkMessageHeaders(outPktHdr, outMailHdr, ss.str().length());
-
-    //
-    DEBUG('n', "Client is about to call Send from DestroyLock\n");
-    DEBUG('n', "message: %s\n", data);
-    // Send message to get the lock ID
-    if ( !postOffice->Send(outPktHdr, outMailHdr, data) ) {
-    	DEBUG('n', "The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
-      	interrupt->Halt();
-    }
-    // cleanup from Send
-    delete[] data; 
-
-	DEBUG('n', "Client is about to Receive message in DestroyLock\n");
+	DEBUG('o', "Client is about to Receive message in DestroyLock\n");
     char buffer[MaxMailSize];
     // Wait for message from server -- comes with lock ID
     postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
@@ -779,7 +749,7 @@ int DestroyLock_Syscall(int index) {
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('n', "Client destroyed lock #%d\n", result);
+    DEBUG('o', "Client destroyed lock #%d\n", result);
 
     return result;
 
@@ -889,7 +859,7 @@ int Acquire_Syscall(int index) {
 
 	#ifdef NETWORK 
 
-	DEBUG('n', "Client called Acquire\n");
+	DEBUG('o', "Client called Acquire\n");
 
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
@@ -902,7 +872,7 @@ int Acquire_Syscall(int index) {
 
     sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	DEBUG('n', "Client is about to Receive message in AcuireLOCK\n");
+	DEBUG('o', "Client is about to Receive message in AcuireLOCK\n");
     char buffer[MaxMailSize];
     // Wait for message from server -- comes with lock ID
     postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
@@ -914,7 +884,7 @@ int Acquire_Syscall(int index) {
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('n', "Client acquired lock #%d\n", result);
+    DEBUG('o', "Client acquired lock #%d\n", result);
 
     return result;
 
@@ -986,7 +956,7 @@ int Release_Syscall(int index) {
 
 	#ifdef NETWORK 
 
-	DEBUG('n', "Client called Release\n");
+	DEBUG('o', "Client called Release\n");
 
 	PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
@@ -1007,11 +977,10 @@ int Release_Syscall(int index) {
     // Retrieve lock ID/index
     ss.str(""); // clear stringstream
     ss << buffer; // put received message into ss
-    std::cout << "    **** received message: " << ss.str() << std::endl;
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('n', "Client Released lock #%d\n", result);
+    DEBUG('o', "Client Released lock #%d\n", result);
 
     return result;
 
@@ -1114,6 +1083,58 @@ int Release_Syscall(int index) {
 }
 
 int CreateCV_Syscall(int vaddr, int size) {
+
+	//**********************************************************************
+	//				Project 3 Code
+	//**********************************************************************
+
+	#ifdef NETWORK 
+
+		DEBUG('o', "Client called CreateCV\n");
+
+		PacketHeader outPktHdr, inPktHdr;
+	    MailHeader outMailHdr, inMailHdr;
+
+	    // Create StringStream
+		std::stringstream ss;
+		ss << CreateCV_SF;
+		ss << " ";
+		// Add cv name to stream
+		char *name = new char[size+1]; // buffer to put the cv name in
+		if(copyin(vaddr, size, name) == -1) {
+			//check if the pointer is valid one. if pointer is not valid, then return.
+			printf("error: Pointer is invalid(CreateCV)\n");
+			return -1;
+		}
+		ss << name;
+		delete[] name;
+		ss << " ";
+		// Add data size to stream
+		ss << size;
+
+	    sendMessage(outPktHdr, outMailHdr, ss.str());
+
+	    char buffer[MaxMailSize];
+	    // Wait for message from server -- comes with lock ID
+	    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+	    fflush(stdout);
+
+	    // Retrieve lock ID/index
+	    ss.str(""); // clear stringstream
+	    ss << buffer; // put received message into ss
+	    int result = -1; // -1 is error
+	    ss >> result;
+
+	    DEBUG('o', "Client created cv #%d\n", result);
+
+	    return result;
+
+    //**********************************************************************
+	//				END Project 3 Code
+	//**********************************************************************
+
+    #else
+
 	cvtablelock->Acquire();
 
 	//it returns -1 when user can't create CV for some reason.
@@ -1199,6 +1220,8 @@ int CreateCV_Syscall(int vaddr, int size) {
 
 	cvtablelock->Release();
 	return index;
+
+	#endif
 }
 
 int DestroyCV_Syscall(int index) {

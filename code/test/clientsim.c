@@ -56,6 +56,12 @@ bool test1_deleteLock() {
 	}
 }
 
+/*
+*	Test 2 Helper
+* 	Thread acquires the lock, gives cpu up, then releases lock. 
+*	The yielding is there so that other threads can have a chance to acquire the lock, 
+*	and hence get put on the waitQueue
+*/
 void test2_thread() {
 	int id = numLockAcquires, loopCnt;
 	loopCnt = 0;
@@ -73,12 +79,13 @@ void test2_thread() {
 	Exit(0);
 }
 
+/*
+*	Test 2 - Tests Acquire functionality
+*/
 bool test2_acquireLock() {
 	Printf0("Running test2_acquireLock\n", sizeof("Running test2_acquireLock\n"));
 
 	lock_t2 = CreateLock("lock_t2", sizeof("lock_t2"));
-
-	Printf1("******** lock_t2: %d\n", sizeof("******** lock_t2: %d\n"), lock_t2);
 
 	numLockAcquires = 0;
 
@@ -88,13 +95,39 @@ bool test2_acquireLock() {
 }
 
 /*
+*	Test 3 - Checks that on a release, the release will destroy a lock is need be. 
+*/
+bool test3_releaseAndDestroy() {
+	int lock_t3;
+
+	Printf0("Running test3_releaseAndDestroy\n", sizeof("Running test3_releaseAndDestroy\n"));
+
+	/* isToBeDeleted case */
+	Printf0("Running test3_releaseAndDestroy case 1\n", sizeof("Running test3_releaseAndDestroy case 1\n"));
+	lock_t3 = CreateLock("lock_t3", sizeof("lock_t3"));
+	Acquire(lock_t3);
+	DestroyLock(lock_t3);
+	Release(lock_t3);
+
+	/* Normal case */
+	Printf0("Running test3_releaseAndDestroy case 2\n", sizeof("Running test3_releaseAndDestroy case 2\n"));
+	lock_t3 = CreateLock("lock_t3", sizeof("lock_t3"));
+	Acquire(lock_t3);
+	Release(lock_t3);
+	DestroyLock(lock_t3);
+
+	return false;
+}
+
+/*
 *	"main"
 */
 int main() {
 
 	/*test0_createLock();*/
 	/*test1_deleteLock();*/
-	test2_acquireLock();
+	/*test2_acquireLock();*/
+	test3_releaseAndDestroy();
 
 /*	if (
 		test0_createLock() &&

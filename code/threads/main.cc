@@ -150,14 +150,16 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
     //just return(send the message) the index to user(Client)
     int index = -1;
     for(unsigned int i = 0; i < ServerLockVector.size(); i++) {
-        if(ServerLockVector[i] != NULL) {
-            if(ServerLockVector[i]->name == name) {
-            index = i;   
-            break;
-            }
-        }
+        if (ServerLockVector[i] != NULL) {
+	        if(ServerLockVector[i]->toBeDeleted) {
+	            if(ServerLockVector[i]->name == name) {
+		            index = i;   
+		            break;
+	            }
+	        }
+	    }
     }
-
+std::cout << "HERE 3?!?" << std::endl;
     if(index == -1) {
 
         index = ServerLockVector.size();
@@ -167,7 +169,7 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
         sLock->waitQ = new List();
         ServerLockVector.push_back(sLock);
     }
-
+std::cout << "HERE 4?!?" << std::endl;
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
 
@@ -176,7 +178,7 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
 
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
 
-    DEBUG('n', "Server is returning a lock index of %d\n", index);
+    DEBUG('o', "Server is returning a lock index of %d\n", index);
 
     SLock->Release();
 
@@ -186,7 +188,7 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
     //otherwise, set boolean toBeDeleted true so it can be deleted when the lock is done using.
     SLock->Acquire();
     
-    DEBUG('n', "Server is destroying a lock\n");
+    DEBUG('o', "Server is destroying a lock\n");
 
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
@@ -207,10 +209,13 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
         ss << index;
         
         if(ServerLockVector[index]->state == AVAIL) {
-                ServerLockVector[index]->toBeDeleted = true;
-                ServerLockVector[index] = NULL;
-        }else{
-                ServerLockVector[index]->toBeDeleted = true;
+        	DEBUG('o', "SERVER is deleting lock %d\n", index);
+        	ServerLock * sl = ServerLockVector[index];
+            ServerLockVector[index] = NULL; /* TODO - this probably isn't necessary */
+            delete sl;
+        } else {
+        	DEBUG('o', "SERVER is setting lock %d toBeDeleted\n", index);
+            ServerLockVector[index]->toBeDeleted = true;
         }
     } 
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
@@ -302,7 +307,7 @@ void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
     */
 }
 void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index) {
-    DEBUG('n', "Inside SERVERs Acquire!");
+    DEBUG('o', "Inside SERVERs Acquire!\n");
     SLock->Acquire();
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
@@ -316,18 +321,17 @@ void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         printf("Lock you try to acquire is already deleted. Can't Acquire Lock(Acquire)\n ");
         ss << -1;
     }else {
-    	DEBUG('n', "Inside SERVERs Acquire ELSE statement!");
         ss << index;
         //if state is busy, that means lock is already acquired.
         //Therefore, put the id in waitqueue so it can be acquired
         //when current thread release lock.
         if(ServerLockVector[index]->state == BUSY) {
-        	DEBUG('n', "Lock->Acquire -- Lock is busy, %d is going on waitQ\n", inPktHdr.from);
+        	DEBUG('o', "Lock->Acquire -- Lock is busy, %d is going on waitQ\n", inPktHdr.from);
             ServerLockVector[index]->waitQ->Append((void*)inPktHdr.from);
             SLock->Release();
             return;
         } else { // lock is available! "Acquire" this lock
-        	DEBUG('n', "Lock->Acquire -- Lock is avaiable!, %d acquired lock\n", inPktHdr.from);
+        	DEBUG('o', "Lock->Acquire -- Lock is avaiable!, %d acquired lock\n", inPktHdr.from);
         	ServerLockVector[index]->state = BUSY;
         }
     } 
@@ -355,7 +359,7 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         if(!ServerLockVector[index]->waitQ->IsEmpty()) {
             int nextClient = (int)ServerLockVector[index]->waitQ->Remove();
             
-            DEBUG('n', "Lock->Release -- Giving lock %d to thread %d in waitQueue\n", index, nextClient);
+            DEBUG('o', "Lock->Release -- Giving lock %d to thread %d in waitQueue\n", index, nextClient);
             ss << index;
 
             PacketHeader waitPktHdr;
@@ -368,8 +372,13 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
 
             sendMessage(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
             ss.str("");
-        }else{
-        	DEBUG('n', "Lock->Release -- Lock is now available\n");
+        } else if (ServerLockVector[index]->toBeDeleted) {
+        	DEBUG('o', "Lock->Release() -- deleted isToBeDeleted lock\n");
+        	ServerLock* sl = ServerLockVector[index];
+        	ServerLockVector[index] = NULL;
+        	delete sl;
+        } else {
+        	DEBUG('o', "Lock->Release -- Lock is now available\n");
             ServerLockVector[index]->state = AVAIL;
         }
 
@@ -409,10 +418,10 @@ void Server() {
 
     while (true) {
     	// Receive the next message
-    	DEBUG('n', "Server about to receive a message\n");
+    	DEBUG('o', "Server about to receive a message\n");
     	postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);	
     	// printf("Got \"%s\" from %d, box %d\n",buffer,inPktHdr.from,inMailHdr.from);
-    	DEBUG('n', "Server received a message\n");
+    	DEBUG('o', "Server received a message\n");
     	fflush(stdout);
 
     	// Decode the message
@@ -455,13 +464,13 @@ void Server() {
                 Release(inPktHdr, inMailHdr, index);
                 break;
             case Wait_SF : 
-            	DEBUG('n', "Server is running Wait_SF\n");
+            	DEBUG('o', "Server is running Wait_SF\n");
                 break;
             case Signal_SF : 
-            	DEBUG('n', "Server is running Signal_SF\n");
+            	DEBUG('o', "Server is running Signal_SF\n");
                 break;
             case BroadCast_SF : 
-            	DEBUG('n', "Server is running BroadCast_SF\n");
+            	DEBUG('o', "Server is running BroadCast_SF\n");
                 break;
     	}
     }
@@ -590,3 +599,9 @@ main(int argc, char **argv)
 				// it from returning.
     return(0);			// Not reached...
 }
+
+
+
+
+
+
