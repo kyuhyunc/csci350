@@ -124,7 +124,13 @@ public:
 std::vector<ServerLock*> ServerLockVector;
 std::vector<ServerCV*> ServerCVVector;
 
-void initializeNetworkMessageHeaders(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr, MailHeader &outMailHdr, int dataLength) {
+void initializeNetworkMessageHeaders(
+		const PacketHeader &inPktHdr, 
+		PacketHeader &outPktHdr, 
+		const MailHeader &inMailHdr, 
+		MailHeader &outMailHdr, 
+		int dataLength
+) {
     outPktHdr.to = inPktHdr.from;
     outPktHdr.from = inPktHdr.to;
     outMailHdr.to = inMailHdr.from;
@@ -132,18 +138,22 @@ void initializeNetworkMessageHeaders(const PacketHeader &inPktHdr, PacketHeader 
     outMailHdr.length = dataLength + 1;
 }
 
-void sendMessage(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, 
-    const MailHeader &inMailHdr, MailHeader &outMailHdr, const std::string msg) 
-    {
-        char *data = new char[msg.length()];
-        std::strcpy(data, msg.c_str());
+void sendMessage(
+		const PacketHeader &inPktHdr, 
+		PacketHeader &outPktHdr, 
+    	const MailHeader &inMailHdr, 
+    	MailHeader &outMailHdr, 
+    	const std::string msg
+) {
+    char *data = new char[msg.length()];
+    std::strcpy(data, msg.c_str());
 
-        initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
-        if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
-            printf("Something bad happens in Server. Unable to send message \n");
-        }
-        /*delete[] data;*/
+    initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
+    if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
+        printf("Something bad happens in Server. Unable to send message \n");
     }
+    /*delete[] data;*/
+}
 
 void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name) {
 
@@ -323,6 +333,33 @@ void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
     SLock->Release();
     
 }
+
+void ReleaseFromWaitQ(	const PacketHeader &inPktHdr, 
+						PacketHeader &outPktHdr, 
+    					const MailHeader &inMailHdr, 
+						MailHeader &outMailHdr, 
+    					const int &lockIndex
+) {
+
+	if(!ServerLockVector[lockIndex]->waitQ->IsEmpty()) {
+    	int nextClient = (int)ServerLockVector[lockIndex]->waitQ->Remove();
+        DEBUG('o', "Lock->Release -- Giving lock %d to thread %d in waitQueue\n", lockIndex, nextClient);
+        std::stringstream ss;
+        ss << lockIndex;
+
+        PacketHeader waitPktHdr;
+	    waitPktHdr.to = inPktHdr.to;
+	    waitPktHdr.from = nextClient;
+
+	    MailHeader waitMailHdr;
+	    waitMailHdr.to = inMailHdr.to;
+	    waitMailHdr.from = nextClient;
+
+	    sendMessage(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
+    }
+
+	
+}
 void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index) {
     SLock->Acquire();
 
@@ -341,21 +378,7 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
     }else {
         
         if(!ServerLockVector[index]->waitQ->IsEmpty()) {
-            int nextClient = (int)ServerLockVector[index]->waitQ->Remove();
-            
-            DEBUG('o', "Lock->Release -- Giving lock %d to thread %d in waitQueue\n", index, nextClient);
-            ss << index;
-
-            PacketHeader waitPktHdr;
-            waitPktHdr.to = inPktHdr.to;
-            waitPktHdr.from = nextClient;
-
-            MailHeader waitMailHdr;
-            waitMailHdr.to = inMailHdr.to;
-            waitMailHdr.from = nextClient;
-
-            sendMessage(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
-            ss.str("");
+            ReleaseFromWaitQ(inPktHdr, outPktHdr, inMailHdr, outMailHdr, index);
         } else if (ServerLockVector[index]->toBeDeleted) {
         	DEBUG('o', "Lock->Release() -- deleted isToBeDeleted lock\n");
         	ServerLock* sl = ServerLockVector[index];
@@ -402,7 +425,7 @@ void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &
             ss << -1;
         }else{
         	// everything is good to go! Thread will wait until Signal is called
-            ServerLockVector[LockIndex]->state = AVAIL; // Release the lock
+            ReleaseFromWaitQ(inPktHdr, outPktHdr, inMailHdr, outMailHdr, LockIndex);
             ServerCVVector[CVIndex]->waitQ->Append((void*)inPktHdr.from);
             CVLock->Release();
             return; // Don't send a message

@@ -59,6 +59,19 @@ void sendMessage(PacketHeader &outPktHdr, MailHeader &outMailHdr, const std::str
         delete[] data;
 }
 
+std::string receiveMessage(int mailBox, PacketHeader &ph, MailHeader &mh) {
+	char *buffer = new char[MaxMailSize];
+    // Wait for message from server -- comes with lock ID
+    postOffice->Receive(mailBox, &ph, &mh, buffer);
+    fflush(stdout);
+    // Retrieve lock ID/index
+    std::stringstream ss;
+    ss.str(""); // clear stringstream
+    ss << buffer; // put received message into ss
+    delete[] buffer;
+    return ss.str();
+}
+
 #endif
 
 int copyin(unsigned int vaddr, int len, char *buf) {
@@ -582,45 +595,38 @@ int CreateLock_Syscall(int vaddr, int size) {
 	//**********************************************************************
 	#ifdef NETWORK
 	
-	DEBUG('o', "Client called CreateLock\n");
+		DEBUG('o', "Client called CreateLock\n");
 
-    PacketHeader outPktHdr, inPktHdr;
-    MailHeader outMailHdr, inMailHdr;
+	    PacketHeader outPktHdr, inPktHdr;
+	    MailHeader outMailHdr, inMailHdr;
 
-    // Create StringStream -- put in function ID 
-	std::stringstream ss;
-	ss << CreateLock_SF;
-	ss << " ";
+	    // Create StringStream -- put in function ID 
+		std::stringstream ss;
+		ss << CreateLock_SF;
+		ss << " ";
 
-	// Add lock name to stream
-	char *name = new char[size+1]; // buffer to put the lock name in
-	if(copyin(vaddr, size, name) == -1) {
-		//check if the pointer is valid one. if pointer is not valid, then return.
-		printf("error: Pointer is invalid(CreateLock)\n");
-		return -1;
-	}
-	ss << name;
-    delete[] name;
-	ss << " ";
-	// Add data size to stream
-	ss << size;
+		// Add lock name to stream
+		char *name = new char[size+1]; // buffer to put the lock name in
+		if(copyin(vaddr, size, name) == -1) {
+			//check if the pointer is valid one. if pointer is not valid, then return.
+			printf("error: Pointer is invalid(CreateLock)\n");
+			return -1;
+		}
+		ss << name;
+	    delete[] name;
+		ss << " ";
+		// Add data size to stream
+		ss << size;
 
-    sendMessage(outPktHdr, outMailHdr, ss.str());
+	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	DEBUG('o', "Client is about to Receive message in CreateLock\n");
-    char buffer[MaxMailSize];
-    // Wait for message from server -- comes with lock ID
-    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
-    fflush(stdout);
-    // Retrieve lock ID/index
-    ss.str(""); // clear stringstream
-    ss << buffer; // put received message into ss
-    int lockID = -1; // -1 is error
-    ss >> lockID;
+	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+	    int lockID = -1; // -1 is error
+	    ss >> lockID;
 
-    DEBUG('o', "Client received lock #%d\n", lockID);
+	    DEBUG('o', "Client received lock #%d\n", lockID);
 
-    return lockID;
+	    return lockID;
 
 	//**********************************************************************
 	//				end Project 3 Code
@@ -628,90 +634,90 @@ int CreateLock_Syscall(int vaddr, int size) {
 	
 	#else
 
-	locktablelock->Acquire();
+		locktablelock->Acquire();
 
-	//it returns -1 when user can't create lock for some reason.
-	//otherwise, it returns index of table where the lock that user creates is located. 
-	DEBUG('c',"CreateLock starts\n");
+		//it returns -1 when user can't create lock for some reason.
+		//otherwise, it returns index of table where the lock that user creates is located. 
+		DEBUG('c',"CreateLock starts\n");
 
-	//**********************************************************************
-	//				PARSING NAME
-	//**********************************************************************
+		//**********************************************************************
+		//				PARSING NAME
+		//**********************************************************************
 
-	// reading in lock name
-	char *buf = new char[size+1]; // Kernel buffer to put the name in
-	if (!buf) {
-		printf("%s","Can't allocate kernel buffer CreateLock(CreateLock)\n");
-		locktablelock->Release();
-		return -1;
-	}
-	if(copyin(vaddr, size, buf) == -1) {
-		//check if the pointer is valid one. if pointer is not valid, then return.
-		printf("error: Pointer is invalid(CreateLock)\n");
-		locktablelock->Release();
-		return -1;
-	}
-
-	//**********************************************************************
-	//				ERROR CHECKING
-	//**********************************************************************
-
-	//check if the kernel lock table is full, then you can't put lock in there.
-	if(locktable->NumUsed() >= NumLocks) {
-		printf("ERROR: No more Locks available. Lock not created.\n");
-	}
-
-	//**********************************************************************
-	//				CREATING LOCK
-	//**********************************************************************
-
-	Lock * l = new Lock(buf);
-	kernelLock * kl = new kernelLock();
-	kl->lock = l;
-	kl->isToBeDeleted = false;
-	kl->adds = currentThread->space;
-	kl->counter = 0; //to check and to know when I can destroy!
-
-	// search for available lock
-	// returns -1 if there is no available lock
-	int index = locktable->Put((void * )kl);
-
-	//return when you can't put lock in the table.
-	if(index == -1) {
-		printf("ERROR: No more Locks available. Lock not created.\n");
-		locktablelock->Release();
-		return -1;
-	}
-
-	//**********************************************************************
-	//				UPDATE PROCESS TABLE
-	//**********************************************************************
-
-	// find the current process
-	processLock->Acquire();
-		int PID = -1;
-		kernelProcess* kp;
-		for (int i=0; i < NumProcesses; i++) {
-			kp = (kernelProcess*) processTable->Get(i);
-			if (kp == NULL) {
-				continue;
-			}
-			if (kp->adds == currentThread->space) {
-				PID = i;
-				break;
-			}
-		}
-		if (PID == -1) {
-			printf("Error: invalid process identifier (CreateLock_Syscall)\n");
-			processLock->Release();
+		// reading in lock name
+		char *buf = new char[size+1]; // Kernel buffer to put the name in
+		if (!buf) {
+			printf("%s","Can't allocate kernel buffer CreateLock(CreateLock)\n");
 			locktablelock->Release();
 			return -1;
 		}
-		kp->locks[index] = true;
-	processLock->Release();
+		if(copyin(vaddr, size, buf) == -1) {
+			//check if the pointer is valid one. if pointer is not valid, then return.
+			printf("error: Pointer is invalid(CreateLock)\n");
+			locktablelock->Release();
+			return -1;
+		}
 
-	locktablelock->Release();
-	return index;
+		//**********************************************************************
+		//				ERROR CHECKING
+		//**********************************************************************
+
+		//check if the kernel lock table is full, then you can't put lock in there.
+		if(locktable->NumUsed() >= NumLocks) {
+			printf("ERROR: No more Locks available. Lock not created.\n");
+		}
+
+		//**********************************************************************
+		//				CREATING LOCK
+		//**********************************************************************
+
+		Lock * l = new Lock(buf);
+		kernelLock * kl = new kernelLock();
+		kl->lock = l;
+		kl->isToBeDeleted = false;
+		kl->adds = currentThread->space;
+		kl->counter = 0; //to check and to know when I can destroy!
+
+		// search for available lock
+		// returns -1 if there is no available lock
+		int index = locktable->Put((void * )kl);
+
+		//return when you can't put lock in the table.
+		if(index == -1) {
+			printf("ERROR: No more Locks available. Lock not created.\n");
+			locktablelock->Release();
+			return -1;
+		}
+
+		//**********************************************************************
+		//				UPDATE PROCESS TABLE
+		//**********************************************************************
+
+		// find the current process
+		processLock->Acquire();
+			int PID = -1;
+			kernelProcess* kp;
+			for (int i=0; i < NumProcesses; i++) {
+				kp = (kernelProcess*) processTable->Get(i);
+				if (kp == NULL) {
+					continue;
+				}
+				if (kp->adds == currentThread->space) {
+					PID = i;
+					break;
+				}
+			}
+			if (PID == -1) {
+				printf("Error: invalid process identifier (CreateLock_Syscall)\n");
+				processLock->Release();
+				locktablelock->Release();
+				return -1;
+			}
+			kp->locks[index] = true;
+		processLock->Release();
+
+		locktablelock->Release();
+		return index;
 
 	#endif
 
@@ -1359,207 +1365,287 @@ int DestroyCV_Syscall(int index) {
 }
 
 int Wait_Syscall(int lockIndex, int CVIndex) {
-	cvtablelock->Acquire();
-
-    //if you can't call wait properly, then it returns -1 so we know if there is something wrong.
-    //Otherwise, it returns CV index number
-    //first you need to check if the valid index is passed in
-    DEBUG('c', "lock index %d and CVIndex %d in Wait\n", lockIndex, CVIndex);
 
 	//**********************************************************************
-	//				ERROR CHECKING
+	//				Project 3 Code
 	//**********************************************************************
 
-	// validate lock index
-	if (lockIndex == -1) {
-		printf("ERROR: Lock not created properly. Wait not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
-	if (lockIndex < 0 || lockIndex > NumLocks) {
-		// index out of range
-		printf("ERROR: Invalid Lock index passed in. Wait not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	#ifdef NETWORK 
 
-	// validate lock
-	kernelLock* kl = (kernelLock*) locktable->Get(lockIndex);
-	if (kl == NULL || kl->lock == NULL) {
-		// lock does not exist. Return -1 since it can't be acquired
-		printf("ERROR: Target Lock does not exist. Wait not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+		DEBUG('o', "Client called Wait\n");
 
-	// validate lock's process
-	if (kl->adds != currentThread->space) {
-		printf("ERROR: Permission denied! Target Lock belongs to a different process. Wait not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	    PacketHeader outPktHdr, inPktHdr;
+	    MailHeader outMailHdr, inMailHdr;
 
-	// validate cv index
-	if (CVIndex == -1) {
-		printf("ERROR: Condition not created properly. Wait not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
-	if (CVIndex < 0 || CVIndex > NumCVs) {
-		// index out of range
-		printf("ERROR: Invalid Condition index passed in. Wait not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
-	
-	// validate condition
-	kernelCV* kc = (kernelCV*) cvtable->Get(CVIndex);
-	if (kc == NULL || kc->condition == NULL) {
-		// cv does not exist. Return -1 since it can't be acquired
-		printf("ERROR: Target Condition does not exist. Wait not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	    // Create StringStream -- put in function ID 
+		std::stringstream ss;
+		ss << Wait_SF;
+		ss << " ";
+		ss << lockIndex;
+		ss << " ";
+		ss << CVIndex;
 
-	// validate condition's process
-	if (kc->adds != currentThread->space) {
-		printf("ERROR: Permission denied! Target Condition belongs to a different process. Wait not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-    DEBUG('c',"before being called wait!\n");
-	
+	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );	    
+	    int result = -1; // -1 is error
+	    ss >> result;
+
+	    DEBUG('o', "Client woke up from Wait #%d\n", result);
+
+	    return result;
+
 	//**********************************************************************
-	//				WAIT
+	//				END Project 3 Code
 	//**********************************************************************
 
-	kc->counter++;
-	cvtablelock->Release();
-	kc->condition->Wait(kl->lock);
-	cvtablelock->Acquire();
-	kc->counter--;
+	#else 
 
-	// if DestroyCV was supposed to destroy this lock but wasn't able to,
-	// check if nobody is waiting on the Condition, and destroy it if
-	// that condition is met!
-	if (kc->isToBeDeleted == true && kc->counter == 0) {
-		DEBUG('c', "condition is deleted\n");
 
-		kc = (kernelCV*) cvtable->Remove(CVIndex);
-		delete kc->condition;
-		delete kc;
+		cvtablelock->Acquire();
+
+	    //if you can't call wait properly, then it returns -1 so we know if there is something wrong.
+	    //Otherwise, it returns CV index number
+	    //first you need to check if the valid index is passed in
+	    DEBUG('c', "lock index %d and CVIndex %d in Wait\n", lockIndex, CVIndex);
 
 		//**********************************************************************
-		//				UPDATE PROCESS TABLE
+		//				ERROR CHECKING
 		//**********************************************************************
 
-		// find the current process
-		processLock->Acquire();
-			int PID = -1;
-			kernelProcess* kp;
-			for (int i=0; i < NumProcesses; i++) {
-				kp = (kernelProcess*) processTable->Get(i);
-				if (kp == NULL) {
-					continue;
-				}
-				if (kp->adds == currentThread->space) {
-					PID = i;
-					break;
-				}
-			}
-			if (PID == -1) {
-				printf("Error: invalid process identifier (Wait_Syscall)\n");
-				processLock->Release();
-				cvtablelock->Release();
-				return -1;
-			}
-			kp->cvs[CVIndex] = false;
-		processLock->Release();
+		// validate lock index
+		if (lockIndex == -1) {
+			printf("ERROR: Lock not created properly. Wait not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+		if (lockIndex < 0 || lockIndex > NumLocks) {
+			// index out of range
+			printf("ERROR: Invalid Lock index passed in. Wait not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
 
-	}
+		// validate lock
+		kernelLock* kl = (kernelLock*) locktable->Get(lockIndex);
+		if (kl == NULL || kl->lock == NULL) {
+			// lock does not exist. Return -1 since it can't be acquired
+			printf("ERROR: Target Lock does not exist. Wait not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
 
-	cvtablelock->Release();
-    return CVIndex;
+		// validate lock's process
+		if (kl->adds != currentThread->space) {
+			printf("ERROR: Permission denied! Target Lock belongs to a different process. Wait not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		// validate cv index
+		if (CVIndex == -1) {
+			printf("ERROR: Condition not created properly. Wait not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+		if (CVIndex < 0 || CVIndex > NumCVs) {
+			// index out of range
+			printf("ERROR: Invalid Condition index passed in. Wait not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+		
+		// validate condition
+		kernelCV* kc = (kernelCV*) cvtable->Get(CVIndex);
+		if (kc == NULL || kc->condition == NULL) {
+			// cv does not exist. Return -1 since it can't be acquired
+			printf("ERROR: Target Condition does not exist. Wait not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		// validate condition's process
+		if (kc->adds != currentThread->space) {
+			printf("ERROR: Permission denied! Target Condition belongs to a different process. Wait not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+	    DEBUG('c',"before being called wait!\n");
+		
+		//**********************************************************************
+		//				WAIT
+		//**********************************************************************
+
+		kc->counter++;
+		cvtablelock->Release();
+		kc->condition->Wait(kl->lock);
+		cvtablelock->Acquire();
+		kc->counter--;
+
+		// if DestroyCV was supposed to destroy this lock but wasn't able to,
+		// check if nobody is waiting on the Condition, and destroy it if
+		// that condition is met!
+		if (kc->isToBeDeleted == true && kc->counter == 0) {
+			DEBUG('c', "condition is deleted\n");
+
+			kc = (kernelCV*) cvtable->Remove(CVIndex);
+			delete kc->condition;
+			delete kc;
+
+			//**********************************************************************
+			//				UPDATE PROCESS TABLE
+			//**********************************************************************
+
+			// find the current process
+			processLock->Acquire();
+				int PID = -1;
+				kernelProcess* kp;
+				for (int i=0; i < NumProcesses; i++) {
+					kp = (kernelProcess*) processTable->Get(i);
+					if (kp == NULL) {
+						continue;
+					}
+					if (kp->adds == currentThread->space) {
+						PID = i;
+						break;
+					}
+				}
+				if (PID == -1) {
+					printf("Error: invalid process identifier (Wait_Syscall)\n");
+					processLock->Release();
+					cvtablelock->Release();
+					return -1;
+				}
+				kp->cvs[CVIndex] = false;
+			processLock->Release();
+
+		}
+
+		cvtablelock->Release();
+	    return CVIndex;
+
+    #endif
 }
 
 int Signal_Syscall(int lockIndex, int CVIndex) {
-	cvtablelock->Acquire();
 
-      //if you can't call signal properly, then it returns -1 so we know if there is something wrong.
-    //Otherwise, it returns CV index number
-    DEBUG('c', "lock index %d and CVIndex %d in signal\n", lockIndex, CVIndex);
+	#ifdef NETWORK 
 
-	//**********************************************************************
-	//				ERROR CHECKING
-	//**********************************************************************
+		DEBUG('o', "Client called Signal\n");
 
-	// validate lock index
-	if (lockIndex == -1) {
-		printf("ERROR: Lock not created properly. Signal not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
-	if (lockIndex < 0 || lockIndex > NumLocks) {
-		// index out of range
-		printf("ERROR: Invalid Lock index passed in. Signal not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	    PacketHeader outPktHdr, inPktHdr;
+	    MailHeader outMailHdr, inMailHdr;
 
-	// validate lock
-	kernelLock* kl = (kernelLock*) locktable->Get(lockIndex);
-	if (kl == NULL || kl->lock == NULL) {
-		// lock does not exist. Return -1 since it can't be acquired
-		printf("ERROR: Target Lock does not exist. Signal not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	    // Create StringStream -- put in function ID 
+		std::stringstream ss;
+		ss << Signal_SF;
+		ss << " ";
+		ss << lockIndex;
+		ss << " ";
+		ss << CVIndex;
 
-	// validate lock's process
-	if (kl->adds != currentThread->space) {
-		printf("ERROR: Permission denied! Target Lock belongs to a different process. Signal not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	// validate cv index
-	if (CVIndex == -1) {
-		printf("ERROR: Condition not created properly. Signal not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
-	if (CVIndex < 0 || CVIndex > NumCVs) {
-		// index out of range
-		printf("ERROR: Invalid Condition index passed in. Signal not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
-	
-	// validate condition
-	kernelCV* kc = (kernelCV*) cvtable->Get(CVIndex);
-	if (kc == NULL || kc->condition == NULL) {
-		// cv does not exist. Return -1 since it can't be acquired
-		printf("ERROR: Target Condition does not exist. Signal not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	    char buffer[MaxMailSize];
+	    // Wait for message from server -- comes with lock ID
+	    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+	    fflush(stdout);
+	    // Retrieve lock ID/index
+	    ss.str(""); // clear stringstream
+	    ss << buffer; // put received message into ss
+	    int result = -1; // -1 is error
+	    ss >> result;
 
-	// validate condition's process
-	if (kc->adds != currentThread->space) {
-		printf("ERROR: Permission denied! Target Condition belongs to a different process. Signal not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	    DEBUG('o', "Client Signaled #%d\n", result);
+
+	    return result;
 
 	//**********************************************************************
-	//				SIGNAL
+	//				END Project 3 Code
 	//**********************************************************************
 
-	kc->condition->Signal(kl->lock);
+	#else 
 
-	cvtablelock->Release();
-	return CVIndex;
+
+		cvtablelock->Acquire();
+
+	      //if you can't call signal properly, then it returns -1 so we know if there is something wrong.
+	    //Otherwise, it returns CV index number
+	    DEBUG('c', "lock index %d and CVIndex %d in signal\n", lockIndex, CVIndex);
+
+		//**********************************************************************
+		//				ERROR CHECKING
+		//**********************************************************************
+
+		// validate lock index
+		if (lockIndex == -1) {
+			printf("ERROR: Lock not created properly. Signal not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+		if (lockIndex < 0 || lockIndex > NumLocks) {
+			// index out of range
+			printf("ERROR: Invalid Lock index passed in. Signal not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		// validate lock
+		kernelLock* kl = (kernelLock*) locktable->Get(lockIndex);
+		if (kl == NULL || kl->lock == NULL) {
+			// lock does not exist. Return -1 since it can't be acquired
+			printf("ERROR: Target Lock does not exist. Signal not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		// validate lock's process
+		if (kl->adds != currentThread->space) {
+			printf("ERROR: Permission denied! Target Lock belongs to a different process. Signal not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		// validate cv index
+		if (CVIndex == -1) {
+			printf("ERROR: Condition not created properly. Signal not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+		if (CVIndex < 0 || CVIndex > NumCVs) {
+			// index out of range
+			printf("ERROR: Invalid Condition index passed in. Signal not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+		
+		// validate condition
+		kernelCV* kc = (kernelCV*) cvtable->Get(CVIndex);
+		if (kc == NULL || kc->condition == NULL) {
+			// cv does not exist. Return -1 since it can't be acquired
+			printf("ERROR: Target Condition does not exist. Signal not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		// validate condition's process
+		if (kc->adds != currentThread->space) {
+			printf("ERROR: Permission denied! Target Condition belongs to a different process. Signal not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		//**********************************************************************
+		//				SIGNAL
+		//**********************************************************************
+
+		kc->condition->Signal(kl->lock);
+
+		cvtablelock->Release();
+		return CVIndex;	
+
+	#endif
 }
 
 int Broadcast_Syscall(int lockIndex, int CVIndex) {

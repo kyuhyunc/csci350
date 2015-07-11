@@ -8,10 +8,15 @@
 #define true 1
 #define false 0
 typedef char bool;
+#define BUSY 0
+#define AVAIL 1
 
 /* Test 2 - Acquire Lock */
 int lock_t2;
 int numLockAcquires;
+
+/* Test 6 - Wait */
+int lock_t6, cv_t6, waitState_t6;
 
 /*
 *	Test 1 - CreateLock test
@@ -66,15 +71,23 @@ void test2_thread() {
 	int id = numLockAcquires, loopCnt;
 	loopCnt = 0;
 	numLockAcquires++;
-	Printf1("TEST 2 - Thread %d is about to call acquire\n", sizeof("TEST 2 - Thread %d is about to call acquire\n"), id);
+	Printf1("TEST 2 - Thread %d is about to call acquire\n", 
+		sizeof("TEST 2 - Thread %d is about to call acquire\n"), 
+		id);
 	Acquire(lock_t2);
-	Printf1("TEST 2 - Thread %d successfully acquired a lock\n", sizeof("TEST 2 - Thread %d successfully acquired a lock\n"), id);
+	Printf1("TEST 2 - Thread %d successfully acquired a lock\n", 
+		sizeof("TEST 2 - Thread %d successfully acquired a lock\n"), 
+		id);
 	while (numLockAcquires < 2 || loopCnt < 2) { /* wait for both threads to acquire lock */
-		Printf1("TEST 2 - Thread %d is yielding\n", sizeof("TEST 2 - Thread %d is yielding\n"), id);
+		Printf1("TEST 2 - Thread %d is yielding\n", 
+			sizeof("TEST 2 - Thread %d is yielding\n"), 
+			id);
 		Yield();
 		loopCnt++;
 	}
-	Printf1("TEST 2 - Thread %d is definitely releasing the lock\n", sizeof("TEST 2 - Thread %d is releasing the lock\n"), id);
+	Printf1("TEST 2 - Thread %d is definitely releasing the lock\n", 
+		sizeof("TEST 2 - Thread %d is releasing the lock\n"), 
+		id);
 	Release(lock_t2);
 	Exit(0);
 }
@@ -83,14 +96,17 @@ void test2_thread() {
 *	Test 2 - Tests Acquire functionality
 */
 bool test2_acquireLock() {
-	Printf0("Running test2_acquireLock\n", sizeof("Running test2_acquireLock\n"));
+	Printf0("Running test2_acquireLock\n", 
+		sizeof("Running test2_acquireLock\n"));
 
 	lock_t2 = CreateLock("lock_t2", sizeof("lock_t2"));
 
 	numLockAcquires = 0;
 
-	Fork(test2_thread, "test2_thread_0", sizeof("test2_thread_0"));
-	Fork(test2_thread, "test2_thread_1", sizeof("test2_thread_1"));
+	Fork(test2_thread, "test2_thread_0", 
+		sizeof("test2_thread_0"));
+	Fork(test2_thread, "test2_thread_1", 
+		sizeof("test2_thread_1"));
 	return true; /* Must look at print statements to determine */
 }
 
@@ -105,16 +121,16 @@ bool test3_releaseAndDestroy() {
 	/* isToBeDeleted case */
 	Printf0("Running test3_releaseAndDestroy case 1\n", sizeof("Running test3_releaseAndDestroy case 1\n"));
 	lock0_t3 = CreateLock("lock_t3", sizeof("lock_t3"));
-	Acquire(lock_t3);
-	DestroyLock(lock_t3);
-	Release(lock_t3);
+	Acquire(lock0_t3);
+	DestroyLock(lock0_t3);
+	Release(lock0_t3);
 
 	/* Normal case */
 	Printf0("Running test3_releaseAndDestroy case 2\n", sizeof("Running test3_releaseAndDestroy case 2\n"));
 	lock1_t3 = CreateLock("lock_t3", sizeof("lock_t3"));
-	Acquire(lock_t3);
-	Release(lock_t3);
-	DestroyLock(lock_t3);
+	Acquire(lock1_t3);
+	Release(lock1_t3);
+	DestroyLock(lock1_t3);
 
 	if(lock0_t3 != lock1_t3) {
 		Printf0("test3_releaseAndDestroy passed!\n", sizeof("test3_releaseAndDestroy passed!\n"));
@@ -172,6 +188,47 @@ bool test5_destroyCV() {
 }
 
 /*
+* 	Test 6 - See if Wait works
+*/
+void test6_thread() {
+	if (waitState_t6 == AVAIL) {
+		waitState_t6 == BUSY;
+		Acquire(lock_t6);
+		Printf1("TEST 2 - Thread %d is about to Wait\n", 
+			sizeof("TEST 2 - Thread %d is about to Wait\n"), 
+			0);
+		Wait(lock_t6, cv_t6);
+		Release(lock_t6);
+	} else {
+		Acquire(lock_t6);
+		Printf1("TEST 2 - Thread %d is about to Signal\n", 
+			sizeof("TEST 2 - Thread %d is about to Signal\n"), 
+			1);
+		Signal(lock_t6, cv_t6);
+		Release(lock_t6);
+	}
+
+	Exit(0);
+}
+
+bool test6_waitAndSignal() {
+	Printf0("Running test2_acquireLock\n", sizeof("Running test2_acquireLock\n"));
+	
+	/* Init Values */
+	lock_t6 = CreateLock("lock_t6", sizeof("lock_t6"));
+	cv_t6 = CreateCV("cv_t6", sizeof("cv_t6"));
+	waitState_t6 = AVAIL;
+
+	/* Start test */
+	Fork(test6_thread, "test6_thread_0", sizeof("test6_thread_0"));
+	Fork(test6_thread, "test6_thread_1", sizeof("test6_thread_1"));
+
+	/* TODO add long while loop of yields that checks values, return true here if conditions are met. */
+
+	return true; /* Must look at output to determine... */
+}
+
+/*
 *
 *
 *	"main"
@@ -185,7 +242,8 @@ int main() {
 	/*test2_acquireLock();*/
 	/*test3_releaseAndDestroy();*/
 	/*test4_createCV();*/
-	test5_destroyCV();
+	/*test5_destroyCV();*/
+	test6_waitAndSignal();
 
 /*	if (
 		test0_createLock() &&
