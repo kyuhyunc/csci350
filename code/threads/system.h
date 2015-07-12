@@ -121,6 +121,7 @@ extern SynchDisk *synchDisk;
 #define SERVER_NETWORK_ID 0
 
 extern PostOffice* postOffice;
+extern std::vector< std::vector<int> > monitorVars;
 
 #endif
 

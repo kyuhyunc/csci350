@@ -58,7 +58,6 @@
 #include <sstream>
 #include "../network/post.h"
 #include <string>
-#include <vector>
 
 // External functions used by this file
 
@@ -379,8 +378,9 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         printf("Lock you try to release is already deleted. Can't Acquire Lock(Release)\n ");
         ss << -1;
     }else {
-        
+        printf("    ****    1\n");
         if(!ServerLockVector[index]->waitQ->IsEmpty()) {
+        	printf("    ****    2\n");
             ReleaseFromWaitQ(inPktHdr, outPktHdr, inMailHdr, outMailHdr, index);
         } else if (ServerLockVector[index]->toBeDeleted) {
         	DEBUG('o', "Lock->Release() -- deleted isToBeDeleted lock\n");
@@ -388,6 +388,7 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         	ServerLockVector[index] = NULL;
         	delete sl;
         } else {
+        	printf("    ****    3, %d\n", inPktHdr.from);
         	DEBUG('o', "Lock->Release -- Lock is now available\n");
             ServerLockVector[index]->state = AVAIL;
         }
@@ -472,7 +473,7 @@ void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int
         }else{
 
             // everything is good to go! Waiting thread will be signaled
-            int nextClient = (int)ServerLockVector[LockIndex]->waitQ->Remove();
+            int nextClient = (int)ServerCVVector[CVIndex]->waitQ->Remove();
             ss << nextClient;
 
             PacketHeader waitPktHdr;

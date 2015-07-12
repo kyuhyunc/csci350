@@ -876,6 +876,8 @@ int Acquire_Syscall(int index) {
 	ss << " ";
 	ss << index;
 
+	printf("currentThread: %s\n", currentThread->getName());
+
     sendMessage(outPktHdr, outMailHdr, ss.str());
 
 	DEBUG('o', "Client is about to Receive message in AcuireLOCK\n");
@@ -1547,13 +1549,7 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
 
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	    char buffer[MaxMailSize];
-	    // Wait for message from server -- comes with lock ID
-	    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
-	    fflush(stdout);
-	    // Retrieve lock ID/index
-	    ss.str(""); // clear stringstream
-	    ss << buffer; // put received message into ss
+	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
 	    int result = -1; // -1 is error
 	    ss >> result;
 
@@ -1729,6 +1725,27 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 
 	cvtablelock->Release();
     return CVIndex;
+}
+
+int CreateMV_Syscall(int size) {
+	std::cout << "CreateMV of size: " << size << std::endl;
+	monitorVars.push_back(std::vector<int>(size, 0));
+	return (monitorVars.size() - 1);
+}
+
+int GetMV_Syscall(int mv, int index) {
+	std::cout << "GetMV -- mv: " << mv << std::endl;
+	return 0;
+}
+
+int SetMV_Syscall(int mv, int index, int value) {
+	std::cout << "SetMV -- mv: " << mv << ", value: " << value << std::endl;
+	return 0;
+}
+
+int DestroyMV_Syscall(int mv) {
+	std::cout << "DestroyMV -- mv: " << mv << std::endl;
+	return 0;
 }
 
 void Printf0_Syscall(unsigned int vaddr, int len) {
@@ -1959,6 +1976,22 @@ void ExceptionHandler(ExceptionType which) {
 			case SC_Broadcast:
 				DEBUG('a', "Broadcast syscall.\n");
 				rv = Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_CreateMV:
+				DEBUG('a', "Broadcast syscall.\n");
+				rv = CreateMV_Syscall(machine->ReadRegister(4));
+				break;
+			case SC_GetMV:
+				DEBUG('a', "Broadcast syscall.\n");
+				rv = GetMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_SetMV:
+				DEBUG('a', "Broadcast syscall.\n");
+				rv = SetMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
+				break;
+			case SC_DestroyMV:
+				DEBUG('a', "Broadcast syscall.\n");
+				rv = DestroyMV_Syscall(machine->ReadRegister(4));
 				break;
 			case SC_Printf0:
 				DEBUG('a', "Printf0 syscall.\n");

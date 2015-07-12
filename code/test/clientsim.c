@@ -191,28 +191,29 @@ bool test5_destroyCV() {
 * 	Test 6 - See if Wait works
 */
 void test6_thread() {
+	Acquire(lock_t6);
 	if (waitState_t6 == AVAIL) {
-		waitState_t6 == BUSY;
-		Acquire(lock_t6);
-		Printf1("TEST 2 - Thread %d is about to Wait\n", 
-			sizeof("TEST 2 - Thread %d is about to Wait\n"), 
+		waitState_t6 = BUSY;
+		Printf1("TEST 6 - Thread %d is about to Wait\n", 
+			sizeof("TEST 6 - Thread %d is about to Wait\n"), 
 			0);
 		Wait(lock_t6, cv_t6);
-		Release(lock_t6);
 	} else {
-		Acquire(lock_t6);
-		Printf1("TEST 2 - Thread %d is about to Signal\n", 
-			sizeof("TEST 2 - Thread %d is about to Signal\n"), 
+		Printf1("TEST 6 - Thread %d is about to Signal\n", 
+			sizeof("TEST 6 - Thread %d is about to Signal\n"), 
 			1);
 		Signal(lock_t6, cv_t6);
-		Release(lock_t6);
 	}
+	Printf1("TEST 6 - Thread %d is about to Release\n", 
+		sizeof("TEST 6 - Thread %d is about to Release\n"), 
+		0);	
+	Release(lock_t6);
 
 	Exit(0);
 }
 
 bool test6_waitAndSignal() {
-	Printf0("Running test2_acquireLock\n", sizeof("Running test2_acquireLock\n"));
+	Printf0("Running test6_waitAndSignal\n", sizeof("Running test6_waitAndSignal\n"));
 	
 	/* Init Values */
 	lock_t6 = CreateLock("lock_t6", sizeof("lock_t6"));
@@ -221,7 +222,7 @@ bool test6_waitAndSignal() {
 
 	/* Start test */
 	Fork(test6_thread, "test6_thread_0", sizeof("test6_thread_0"));
-	Fork(test6_thread, "test6_thread_1", sizeof("test6_thread_1"));
+	/*Fork(test6_thread, "test6_thread_1", sizeof("test6_thread_1"));*/
 
 	/* TODO add long while loop of yields that checks values, return true here if conditions are met. */
 
@@ -236,14 +237,18 @@ bool test6_waitAndSignal() {
 *
 */
 int main() {
-
 	/*test0_createLock();*/
 	/*test1_deleteLock();*/
 	/*test2_acquireLock();*/
 	/*test3_releaseAndDestroy();*/
 	/*test4_createCV();*/
 	/*test5_destroyCV();*/
-	test6_waitAndSignal();
+	/*test6_waitAndSignal();*/
+	int mv = CreateMV(1);
+	int r = SetMV(mv, 0, 69);
+	int mv_value = GetMV(mv, 0);
+	int w = DestroyMV(mv);
+
 
 /*	if (
 		test0_createLock() &&
