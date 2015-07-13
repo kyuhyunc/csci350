@@ -104,7 +104,6 @@ extern SynchDisk *synchDisk;
 #ifdef NETWORK
 
 #include "post.h"
-
 // SF - Server Function
 // These constants are used in a server 
 // to determine which function the sender wants to execute
@@ -126,6 +125,7 @@ extern SynchDisk *synchDisk;
 #define MAX_NUM_MONITOR_VARS 1000
 
 extern PostOffice* postOffice;
+
 
 #endif
 
