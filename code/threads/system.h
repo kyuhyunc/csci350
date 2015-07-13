@@ -104,7 +104,7 @@ extern SynchDisk *synchDisk;
 #ifdef NETWORK
 
 #include "post.h"
-
+#include <vector>
 // SF - Server Function
 // These constants are used in a server 
 // to determine which function the sender wants to execute
@@ -121,7 +121,7 @@ extern SynchDisk *synchDisk;
 #define SERVER_NETWORK_ID 0
 
 extern PostOffice* postOffice;
-extern std::vector< std::vector<int> > monitorVars;
+extern std::vector< std::vector<int>* >* monitorVars;
 
 #endif
 
