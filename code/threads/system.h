@@ -117,11 +117,15 @@ extern SynchDisk *synchDisk;
 #define Wait_SF 6
 #define Signal_SF 7
 #define BroadCast_SF 8
+#define CreateMV_SF 9
+#define GetMV_SF 10
+#define SetMV_SF 11
+#define DestroyMV_SF 12
 
 #define SERVER_NETWORK_ID 0
+#define MAX_NUM_MONITOR_VARS 1000
 
 extern PostOffice* postOffice;
-extern std::vector< std::vector<int> > monitorVars;
 
 #endif
 

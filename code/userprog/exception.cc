@@ -28,12 +28,15 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 using namespace std;
 
 #define MAILBOX 1
 
 #ifdef NETWORK
+
+std::vector< std::vector<int>* > monitorVars;
 
 void initNetworkMessageHeaders(PacketHeader &ph, MailHeader &mh, int dataLength) {
     // construct packet, mail header for original message
@@ -1728,24 +1731,160 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 }
 
 int CreateMV_Syscall(int size) {
-	std::cout << "CreateMV of size: " << size << std::endl;
-	monitorVars.push_back(std::vector<int>(size, 0));
-	return (monitorVars.size() - 1);
+
+	//**********************************************************************
+	//				Project 3 Code
+	//**********************************************************************
+
+	#ifdef NETWORK 
+
+		DEBUG('o', "Client called Signal\n");
+
+	    PacketHeader outPktHdr, inPktHdr;
+	    MailHeader outMailHdr, inMailHdr;
+
+	    // Create StringStream -- put in function ID 
+		std::stringstream ss;
+		ss << Signal_SF;
+		ss << " ";
+		ss << lockIndex;
+		ss << " ";
+		ss << CVIndex;
+
+	    sendMessage(outPktHdr, outMailHdr, ss.str());
+
+	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+	    int result = -1; // -1 is error
+	    ss >> result;
+
+	    DEBUG('o', "Client Signaled #%d\n", result);
+
+	    return result;
+
+	//**********************************************************************
+	//				END Project 3 Code
+	//**********************************************************************
+
+	#else
+	    return -1;
+    #endif
 }
 
 int GetMV_Syscall(int mv, int index) {
-	std::cout << "GetMV -- mv: " << mv << std::endl;
-	return 0;
+	//**********************************************************************
+	//				Project 3 Code
+	//**********************************************************************
+
+	#ifdef NETWORK 
+
+		DEBUG('o', "Client called Signal\n");
+
+	    PacketHeader outPktHdr, inPktHdr;
+	    MailHeader outMailHdr, inMailHdr;
+
+	    // Create StringStream -- put in function ID 
+		std::stringstream ss;
+		ss << Signal_SF;
+		ss << " ";
+		ss << lockIndex;
+		ss << " ";
+		ss << CVIndex;
+
+	    sendMessage(outPktHdr, outMailHdr, ss.str());
+
+	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+	    int result = -1; // -1 is error
+	    ss >> result;
+
+	    DEBUG('o', "Client Signaled #%d\n", result);
+
+	    return result;
+
+	//**********************************************************************
+	//				END Project 3 Code
+	//**********************************************************************
+
+	#else
+	    return -1;
+    #endif
 }
 
 int SetMV_Syscall(int mv, int index, int value) {
-	std::cout << "SetMV -- mv: " << mv << ", value: " << value << std::endl;
-	return 0;
+	//**********************************************************************
+	//				Project 3 Code
+	//**********************************************************************
+
+	#ifdef NETWORK 
+
+		DEBUG('o', "Client called Signal\n");
+
+	    PacketHeader outPktHdr, inPktHdr;
+	    MailHeader outMailHdr, inMailHdr;
+
+	    // Create StringStream -- put in function ID 
+		std::stringstream ss;
+		ss << Signal_SF;
+		ss << " ";
+		ss << lockIndex;
+		ss << " ";
+		ss << CVIndex;
+
+	    sendMessage(outPktHdr, outMailHdr, ss.str());
+
+	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+	    int result = -1; // -1 is error
+	    ss >> result;
+
+	    DEBUG('o', "Client Signaled #%d\n", result);
+
+	    return result;
+
+	//**********************************************************************
+	//				END Project 3 Code
+	//**********************************************************************
+
+	#else
+	    return -1;
+    #endif
 }
 
 int DestroyMV_Syscall(int mv) {
-	std::cout << "DestroyMV -- mv: " << mv << std::endl;
-	return 0;
+	//**********************************************************************
+	//				Project 3 Code
+	//**********************************************************************
+
+	#ifdef NETWORK 
+
+		DEBUG('o', "Client called Signal\n");
+
+	    PacketHeader outPktHdr, inPktHdr;
+	    MailHeader outMailHdr, inMailHdr;
+
+	    // Create StringStream -- put in function ID 
+		std::stringstream ss;
+		ss << Signal_SF;
+		ss << " ";
+		ss << lockIndex;
+		ss << " ";
+		ss << CVIndex;
+
+	    sendMessage(outPktHdr, outMailHdr, ss.str());
+
+	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+	    int result = -1; // -1 is error
+	    ss >> result;
+
+	    DEBUG('o', "Client Signaled #%d\n", result);
+
+	    return result;
+
+	//**********************************************************************
+	//				END Project 3 Code
+	//**********************************************************************
+
+	#else
+	    return -1;
+    #endif
 }
 
 void Printf0_Syscall(unsigned int vaddr, int len) {
