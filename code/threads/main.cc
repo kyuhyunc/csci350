@@ -525,9 +525,14 @@ void CreateMV(
     const int size) 
 {
     SLock->Acquire();
-    MonitorVars.push_back(new std::vector<int>(size, 0));
     std::stringstream ss;
-    ss << MonitorVars.size() - 1;
+    if (size < 1) {
+        printf("Invalid monitor variable size of %d in CreateMV\n", size);
+        ss << -1;
+    } else {
+        MonitorVars.push_back(new std::vector<int>(size, 0));
+        ss << MonitorVars.size() - 1;
+    }
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
@@ -542,7 +547,15 @@ void GetMV(
 {
     SLock->Acquire();
     std::stringstream ss;
-    ss << MonitorVars.at(mv)->at(index);
+    if (mv >= 0 && mv < MonitorVars.size()) {
+        printf("Invalid MV: %d in GetMV\n", mv);
+        ss << -1;
+    } else if (index >= 0 && index < MonitorVars.at(mv)->size()) {
+        printf("Invalid index: %d in GetMV\n", index);
+        ss << -1;
+    } else {
+        ss << MonitorVars.at(mv)->at(index);
+    }
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
@@ -557,7 +570,23 @@ void SetMV(
     const int value) 
 {
     SLock->Acquire();
-    MonitorVars.at(mv)->at(index) = value;
+    //
+    std::stringstream ss;
+    if ( mv >= 0 && mv < MonitorVars.size() ) {
+        printf("Invalid MV: %d in GetMV\n", mv);
+        ss << -1;
+    } else if ( index >= 0 && index < MonitorVars.at(mv)->size() ) {
+        printf("Invalid index: %d in GetMV\n", index);
+        ss << -1;
+    } else {
+        MonitorVars.at(mv)->at(index) = value;
+        ss << value;
+    }
+    //
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    //
     SLock->Release();
 }
 
@@ -568,12 +597,17 @@ void DestroyMV(
 {
     SLock->Acquire();
     //
-    std::vector<int> *monArray = MonitorVars.at(mv);
-    MonitorVars.at(mv) = NULL;
-    delete monArray;
-    //
     std::stringstream ss;
-    ss << mv;
+    if (mv >= 0 && mv < MonitorVars.size()) {
+        printf("Invalid MV: %d in GetMV\n", mv);
+        ss << -1;
+    } else {
+        std::vector<int> *monArray = MonitorVars.at(mv);
+        MonitorVars.at(mv) = NULL;
+        delete monArray;
+        ss << mv;
+    }
+    //
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
