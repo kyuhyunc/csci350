@@ -1629,9 +1629,7 @@ int IPTMissHandle(int vpn) {
 			PageSize,
 			currentThread->space->pageTable[vpn].byteoffset);
 		if (currentThread->space->pageTable[vpn].type == SWAP) {
-//printf("Reading from swap file where swap bit = %d, vpn = %d\n",
-//							currentThread->space->pageTable[vpn].byteoffset/PageSize,
-//							vpn);
+//printf("Reading from swap file where swap bit = %d, vpn = %d\n", currentThread->space->pageTable[vpn].byteoffset/PageSize, vpn);
 			swapMap->Clear(currentThread->space->pageTable[vpn].byteoffset/PageSize);
             ipt[ppn].dirty = TRUE;
 		}

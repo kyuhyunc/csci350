@@ -315,8 +315,15 @@ void AddrSpace::SaveState()
 		// propogate dirty bit
 		if (machine->tlb[i].valid) {
 			ipt[machine->tlb[i].physicalPage].dirty = machine->tlb[i].dirty;
+            ipt[machine->tlb[i].physicalPage].space->pageTable[machine->tlb[i].virtualPage].valid = false;
 		}
 		machine->tlb[i].valid = false;
+
+        // must also invalidate proper AddrSpace->pageTable
+//        int ppn = machine->tlb[i].physicalPage;
+//        int vpn = machine->tlb[i].virtualPage;
+//        ipt[ppn].space->pageTable[ipt[ppn].virtualPage].valid = false;
+//        ipt[machine->tlb[i].physicalPage].space->pageTable[ipt[machine->tlb[i].virtualPage]].valid = false;
 	}
 
 	(void) interrupt->SetLevel(oldLevel);
@@ -342,8 +349,15 @@ void AddrSpace::RestoreState()
 		// propogate dirty bit
 		if (machine->tlb[i].valid) {
 			ipt[machine->tlb[i].physicalPage].dirty = machine->tlb[i].dirty;
+            ipt[machine->tlb[i].physicalPage].space->pageTable[machine->tlb[i].virtualPage].valid = false;
 		}
 		machine->tlb[i].valid = false;
+
+        // must also invalidate proper AddrSpace->pageTable
+//        int ppn = machine->tlb[i].physicalPage;
+//        int vpn = machine->tlb[i].virtualPage;
+//        ipt[ppn].space->pageTable[ipt[ppn].virtualPage].valid = false;
+//        ipt[machine->tlb[i].physicalPage].space->pageTable[ipt[machine->tlb[i].virtualPage]].valid = false;
 	}
 
 	(void) interrupt->SetLevel(oldLevel);
