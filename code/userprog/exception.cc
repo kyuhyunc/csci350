@@ -1745,11 +1745,9 @@ int CreateMV_Syscall(int size) {
 
 	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
-		ss << Signal_SF;
+		ss << CreateMV_SF;
 		ss << " ";
-		ss << lockIndex;
-		ss << " ";
-		ss << CVIndex;
+		ss << size;
 
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
@@ -1784,11 +1782,11 @@ int GetMV_Syscall(int mv, int index) {
 
 	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
-		ss << Signal_SF;
+		ss << GetMV_SF;
 		ss << " ";
-		ss << lockIndex;
+		ss << mv;
 		ss << " ";
-		ss << CVIndex;
+		ss << index;
 
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
@@ -1823,11 +1821,13 @@ int SetMV_Syscall(int mv, int index, int value) {
 
 	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
-		ss << Signal_SF;
+		ss << SetMV_SF;
 		ss << " ";
-		ss << lockIndex;
+		ss << mv;
 		ss << " ";
-		ss << CVIndex;
+		ss << index;
+		ss << " ";
+		ss << value;
 
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
@@ -1862,11 +1862,9 @@ int DestroyMV_Syscall(int mv) {
 
 	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
-		ss << Signal_SF;
+		ss << DestroyMV_SF;
 		ss << " ";
-		ss << lockIndex;
-		ss << " ";
-		ss << CVIndex;
+		ss << mv;
 
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
