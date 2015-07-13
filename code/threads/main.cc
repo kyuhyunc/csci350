@@ -556,7 +556,9 @@ void SetMV(
     const int index, 
     const int value) 
 {
-
+    SLock->Acquire();
+    MonitorVars.at(mv)->at(index) = value;
+    SLock->Release();
 }
 
 void DestroyMV(
@@ -564,7 +566,19 @@ void DestroyMV(
     const MailHeader &inMailHdr, 
     const int mv) 
 {
-
+    SLock->Acquire();
+    //
+    std::vector<int> *monArray = MonitorVars.at(mv);
+    MonitorVars.at(mv) = NULL;
+    delete monArray;
+    //
+    std::stringstream ss;
+    ss << mv;
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    //
+    SLock->Release();
 }
 
 //----------------------------------------------------------------------
