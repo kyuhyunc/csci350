@@ -1738,7 +1738,7 @@ int CreateMV_Syscall(int vaddr, int nameLength, int size) {
 
 	#ifdef NETWORK 
 
-		DEBUG('o', "Client called Signal\n");
+		DEBUG('o', "Client called CreateMV\n");
 
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
@@ -1770,8 +1770,6 @@ int CreateMV_Syscall(int vaddr, int nameLength, int size) {
 	    int result = -1; // -1 is error
 	    ss >> result;
 
-	    DEBUG('o', "Client Signaled #%d\n", result);
-
 	    return result;
 
 	//**********************************************************************
@@ -1790,7 +1788,7 @@ int GetMV_Syscall(int mv, int index) {
 
 	#ifdef NETWORK 
 
-		DEBUG('o', "Client called Signal\n");
+		DEBUG('o', "Client called GetMV\n");
 
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
@@ -1809,7 +1807,7 @@ int GetMV_Syscall(int mv, int index) {
 	    int result = -1; // -1 is error
 	    ss >> result;
 
-	    DEBUG('o', "Client Signaled #%d\n", result);
+	    DEBUG('o', "Client GotMV #%d\n", result);
 
 	    return result;
 
@@ -1829,7 +1827,7 @@ int SetMV_Syscall(int mv, int index, int value) {
 
 	#ifdef NETWORK 
 
-		DEBUG('o', "Client called Signal\n");
+		DEBUG('o', "Client called SetMV\n");
 
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
@@ -1850,7 +1848,7 @@ int SetMV_Syscall(int mv, int index, int value) {
 	    int result = -1; // -1 is error
 	    ss >> result;
 
-	    DEBUG('o', "Client Signaled #%d\n", result);
+	    DEBUG('o', "Client SetMV #%d\n", result);
 
 	    return result;
 
@@ -1870,7 +1868,7 @@ int DestroyMV_Syscall(int mv) {
 
 	#ifdef NETWORK 
 
-		DEBUG('o', "Client called Signal\n");
+		DEBUG('o', "Client called DestroyMV\n");
 
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
@@ -1887,7 +1885,7 @@ int DestroyMV_Syscall(int mv) {
 	    int result = -1; // -1 is error
 	    ss >> result;
 
-	    DEBUG('o', "Client Signaled #%d\n", result);
+	    DEBUG('o', "Client DestroyEDMV #%d\n", result);
 
 	    return result;
 

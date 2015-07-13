@@ -723,8 +723,8 @@ void Server() {
                 BroadCast(inPktHdr, inMailHdr, index1, index2);
                 break;
             case CreateMV_SF : 
-                ss>>index1;
                 ss>>name;
+                ss>>index1;
                 CreateMV(inPktHdr, inMailHdr, index1, name);
                 break;
             case GetMV_SF :

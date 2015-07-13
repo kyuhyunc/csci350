@@ -219,7 +219,7 @@ bool test6_waitAndSignal() {
 	lock_t6 = CreateLock("lock_t6", sizeof("lock_t6"));
 	cv_t6 = CreateCV("cv_t6", sizeof("cv_t6"));
 	waitState_t6 = CreateMV("waitState_t6", sizeof("waitState_t6"), 1);
-	std::cout << "    ****    " << waitState_t6 << std::endl;
+
 	SetMV(waitState_t6, 0, AVAIL);
 
 	/* Start test */
@@ -229,6 +229,34 @@ bool test6_waitAndSignal() {
 	/* TODO add long while loop of yields that checks values, return true here if conditions are met. */
 
 	return true; /* Must look at output to determine... */
+}
+
+/*
+*	Test 7 - Create MV
+*/
+bool test7_createMV() {
+	int mv0, mv1, mv2;
+	int mv0_size = 3, mv1_size = 1;
+
+	Printf0("Running test7_createMV\n", sizeof("Running test7_createMV\n"));
+
+	mv0 = CreateMV("mv0", sizeof("mv0"), mv0_size);
+	mv1 = CreateMV("mv1", sizeof("mv1"), mv1_size);
+	mv2 = CreateMV("mv0", sizeof("mv0"), mv0_size);
+
+	if(mv0 == 0 && mv1 == 1 && mv2 == 0) {
+		Printf0("test7_createMV passed!\n", sizeof("test7_createMV passed!\n"));
+		return true;
+	}else{
+		Printf1(
+			"test7_createMV failed! %d, %d, %d\n", 
+			sizeof("test7_createMV failed! %d, %d, %d\n\n"),
+			100*100*mv0 + 100*mv1 + mv2
+			);
+		return false;
+	}
+
+	return false;
 }
 
 /*
@@ -245,7 +273,8 @@ int main() {
 	/*test3_releaseAndDestroy();*/
 	/*test4_createCV();*/
 	/*test5_destroyCV();*/
-	test6_waitAndSignal();
+	/*test6_waitAndSignal();*/
+	test7_createMV();
 
 /*	if (
 		test0_createLock() &&
