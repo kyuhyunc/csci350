@@ -307,6 +307,7 @@ void Fork_Syscall(int pc, unsigned int vaddr, int len) {
 }
 
 void kernel_exec(int pc) {
+//printf("In kernel_exec\n");
 	currentThread->space->InitRegisters();
 	currentThread->space->RestoreState();
 	machine->Run();
@@ -347,6 +348,8 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 	t->space = space;
 	//  t->threadtype = MAIN;
 	//  t->stackreg = currentThread->space->AddStack();
+//printf("AddrSpace = %x\n", space);
+//printf("Executable = %x\n", executable);
 
 	// add process to processTable
 	kernelProcess* kp = new kernelProcess();
@@ -1581,13 +1584,13 @@ int MemFullHandle(int vpn) {
 			swapbit*PageSize);
 
 		// modify pageTable info
-		currentThread->space->pageTable[ipt[ppn].virtualPage].byteoffset = swapbit*PageSize;
-		currentThread->space->pageTable[ipt[ppn].virtualPage].type = SWAP;
-		currentThread->space->pageTable[ipt[ppn].virtualPage].location = swapfile;
+		ipt[ppn].space->pageTable[ipt[ppn].virtualPage].byteoffset = swapbit*PageSize;
+		ipt[ppn].space->pageTable[ipt[ppn].virtualPage].type = SWAP;
+		ipt[ppn].space->pageTable[ipt[ppn].virtualPage].location = swapfile;
 		
 	}
 
-	currentThread->space->pageTable[ipt[ppn].virtualPage].valid = FALSE;
+	ipt[ppn].space->pageTable[ipt[ppn].virtualPage].valid = FALSE;
 	
 
 	return ppn;
