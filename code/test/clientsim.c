@@ -192,8 +192,8 @@ bool test5_destroyCV() {
 */
 void test6_thread() {
 	Acquire(lock_t6);
-	if (waitState_t6 == AVAIL) {
-		waitState_t6 = BUSY;
+	if ( GetMV(waitState_t6, 0) == AVAIL ) {
+		SetMV(waitState_t6, 0, BUSY);
 		Printf1("TEST 6 - Thread %d is about to Wait\n", 
 			sizeof("TEST 6 - Thread %d is about to Wait\n"), 
 			0);
@@ -218,7 +218,8 @@ bool test6_waitAndSignal() {
 	/* Init Values */
 	lock_t6 = CreateLock("lock_t6", sizeof("lock_t6"));
 	cv_t6 = CreateCV("cv_t6", sizeof("cv_t6"));
-	waitState_t6 = AVAIL;
+	waitState_t6 = CreateMV(1);
+	SetMV(waitState_t6, 0, AVAIL);
 
 	/* Start test */
 	Fork(test6_thread, "test6_thread_0", sizeof("test6_thread_0"));
