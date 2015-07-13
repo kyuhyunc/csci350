@@ -58,6 +58,7 @@
 #include <sstream>
 #include "../network/post.h"
 #include <string>
+#include <vector>
 
 // External functions used by this file
 
@@ -123,6 +124,7 @@ public:
 
 std::vector<ServerLock*> ServerLockVector;
 std::vector<ServerCV*> ServerCVVector;
+std::vector< std::vector<int>* > MonitorVars;
 
 void initializeNetworkMessageHeaders(
 		const PacketHeader &inPktHdr, 
@@ -513,7 +515,57 @@ void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
 	CVLock->Release();
 }
 
+/*
+*   Monitor Variable Methods
+*/
 
+void CreateMV(
+    const PacketHeader &inPktHdr, 
+    const MailHeader &inMailHdr, 
+    const int size) 
+{
+    SLock->Acquire();
+    MonitorVars.push_back(new std::vector<int>(size, 0));
+    std::stringstream ss;
+    ss << MonitorVars.size() - 1;
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    SLock->Release();
+}
+
+void GetMV(
+    const PacketHeader &inPktHdr, 
+    const MailHeader &inMailHdr, 
+    const int mv, 
+    const int index) 
+{
+    SLock->Acquire();
+    std::stringstream ss;
+    ss << MonitorVars.at(mv)->at(index);
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    SLock->Release();
+}
+
+void SetMV(
+    const PacketHeader &inPktHdr, 
+    const MailHeader &inMailHdr, 
+    const int mv, 
+    const int index, 
+    const int value) 
+{
+
+}
+
+void DestroyMV(
+    const PacketHeader &inPktHdr, 
+    const MailHeader &inMailHdr, 
+    const int mv) 
+{
+
+}
 
 //----------------------------------------------------------------------
 //
@@ -543,6 +595,7 @@ void Server() {
         std::string name;
         int index1;
         int index2;
+        int index3;
     	std::stringstream ss(buffer);
         ss>>type;
 
@@ -586,6 +639,25 @@ void Server() {
                 ss>>index1;
                 ss>>index2;
                 BroadCast(inPktHdr, inMailHdr, index1, index2);
+                break;
+            case CreateMV_SF : 
+                ss>>index1;
+                CreateMV(inPktHdr, inMailHdr, index1);
+                break;
+            case GetMV_SF :
+                ss>>index1;
+                ss>>index2;
+                GetMV(inPktHdr, inMailHdr, index1, index2);
+                break;
+            case SetMV_SF : 
+                ss>>index1;
+                ss>>index2;
+                ss>>index3;
+                SetMV(inPktHdr, inMailHdr, index1, index2, index3);
+                break;
+            case DestroyMV_SF :
+                ss>>index1;
+                DestroyMV(inPktHdr, inMailHdr, index1);
                 break;
     	}
     }
