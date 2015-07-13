@@ -79,8 +79,9 @@ extern void ClientSim(); // Project 3
 //  
 //----------------------------------------------------------------------
 
-Lock* SLock = new Lock("SLock");
-Lock* CVLock = new Lock("CVLock");
+Lock* SLock;
+Lock* MVLock;
+Lock* CVLock;
 
 enum state {
     AVAIL, BUSY
@@ -545,7 +546,7 @@ void GetMV(
     const int mv, 
     const int index) 
 {
-    SLock->Acquire();
+    MVLock->Acquire();
     std::stringstream ss;
     if (mv >= 0 && mv < MonitorVars.size()) {
         printf("Invalid MV: %d in GetMV\n", mv);
@@ -559,7 +560,7 @@ void GetMV(
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
-    SLock->Release();
+    MVLock->Release();
 }
 
 void SetMV(
@@ -569,7 +570,7 @@ void SetMV(
     const int index, 
     const int value) 
 {
-    SLock->Acquire();
+    MVLock->Acquire();
     //
     std::stringstream ss;
     if ( mv >= 0 && mv < MonitorVars.size() ) {
@@ -587,7 +588,7 @@ void SetMV(
     MailHeader outMailHdr;
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
     //
-    SLock->Release();
+    MVLock->Release();
 }
 
 void DestroyMV(
@@ -595,7 +596,7 @@ void DestroyMV(
     const MailHeader &inMailHdr, 
     const int mv) 
 {
-    SLock->Acquire();
+    MVLock->Acquire();
     //
     std::stringstream ss;
     if (mv >= 0 && mv < MonitorVars.size()) {
@@ -612,7 +613,7 @@ void DestroyMV(
     MailHeader outMailHdr;
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
     //
-    SLock->Release();
+    MVLock->Release();
 }
 
 //----------------------------------------------------------------------
@@ -624,6 +625,8 @@ void Server() {
 
 	// initialized global data
 	SLock = new Lock("ServerLock");
+    MVLock = new Lock("MVLock");
+    CVLock = new Lock("CVLock");
 
 	// instantiate Network Data
 	PacketHeader outPktHdr, inPktHdr;
@@ -711,6 +714,8 @@ void Server() {
     }
 
     delete SLock;
+    delete MVLock;
+    delete CVLock;
 
     // Then we're done!
     interrupt->Halt();
