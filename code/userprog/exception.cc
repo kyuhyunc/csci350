@@ -1730,7 +1730,7 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
     return CVIndex;
 }
 
-int CreateMV_Syscall(int size) {
+int CreateMV_Syscall(int vaddr, int nameLength, int size) {
 
 	//**********************************************************************
 	//				Project 3 Code
@@ -1746,6 +1746,21 @@ int CreateMV_Syscall(int size) {
 	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
 		ss << CreateMV_SF;
+		ss << " ";
+		// Add lock name to stream
+		char *name = new char[nameLength+1]; // buffer to put the lock name in
+		if(copyin(vaddr, nameLength, name) == -1) {
+			//check if the pointer is valid one. if pointer is not valid, then return.
+			printf("error: Pointer is invalid(CreateLock)\n");
+			return -1;
+		}
+		ss << name;
+	    delete[] name;
+		ss << " ";
+		// Add data size to stream
+		ss << nameLength;
+
+		// array size
 		ss << " ";
 		ss << size;
 
@@ -2116,7 +2131,7 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_CreateMV:
 				DEBUG('a', "Broadcast syscall.\n");
-				rv = CreateMV_Syscall(machine->ReadRegister(4));
+				rv = CreateMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
 				break;
 			case SC_GetMV:
 				DEBUG('a', "Broadcast syscall.\n");

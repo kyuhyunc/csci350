@@ -123,9 +123,27 @@ public:
     int CVCounter;
 };
 
+class MonitorVariable {
+public:
+    MonitorVariable(const int &vectSize, const std::string &n) 
+    :   vector(vectSize, 0),
+        name(n) 
+    {}
+    int size() {
+        return vector.size();
+    }
+    int& at(const int &index) {
+        return vector.at(index);
+    }
+public: 
+    std::string name;
+    std::vector<int> vector;
+};
+
+
 std::vector<ServerLock*> ServerLockVector;
 std::vector<ServerCV*> ServerCVVector;
-std::vector< std::vector<int>* > MonitorVars;
+std::vector< MonitorVariable* > MonitorVars;
 
 void initializeNetworkMessageHeaders(
 		const PacketHeader &inPktHdr, 
@@ -523,16 +541,29 @@ void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
 void CreateMV(
     const PacketHeader &inPktHdr, 
     const MailHeader &inMailHdr, 
-    const int size) 
-{
+    const int &size,
+    const std::string &name
+) {
     SLock->Acquire();
     std::stringstream ss;
-    if (size < 1) {
-        printf("Invalid monitor variable size of %d in CreateMV\n", size);
-        ss << -1;
-    } else {
-        MonitorVars.push_back(new std::vector<int>(size, 0));
-        ss << MonitorVars.size() - 1;
+    int index = -1;
+    for(unsigned int i = 0; i < MonitorVars.size(); i++) {
+        if (MonitorVars[i] != NULL) {
+            if(MonitorVars[i]->name == name && MonitorVars[i]->size() == size) {
+                index = i;   
+                ss << i;
+                break;
+            }
+        }
+    }
+    if(index == -1) {
+        if (size < 1) {
+            printf("Invalid monitor variable size of %d in CreateMV\n", size);
+            ss << -1;
+        } else {
+            MonitorVars.push_back(new MonitorVariable(size, name));
+            ss << MonitorVars.size() - 1;
+        } 
     }
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
@@ -603,9 +634,9 @@ void DestroyMV(
         printf("Invalid MV: %d in GetMV\n", mv);
         ss << -1;
     } else {
-        std::vector<int> *monArray = MonitorVars.at(mv);
+        MonitorVariable *monVar = MonitorVars.at(mv);
         MonitorVars.at(mv) = NULL;
-        delete monArray;
+        delete monVar;
         ss << mv;
     }
     //
@@ -693,7 +724,8 @@ void Server() {
                 break;
             case CreateMV_SF : 
                 ss>>index1;
-                CreateMV(inPktHdr, inMailHdr, index1);
+                ss>>name;
+                CreateMV(inPktHdr, inMailHdr, index1, name);
                 break;
             case GetMV_SF :
                 ss>>index1;

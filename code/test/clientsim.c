@@ -218,7 +218,8 @@ bool test6_waitAndSignal() {
 	/* Init Values */
 	lock_t6 = CreateLock("lock_t6", sizeof("lock_t6"));
 	cv_t6 = CreateCV("cv_t6", sizeof("cv_t6"));
-	waitState_t6 = CreateMV(1);
+	waitState_t6 = CreateMV("waitState_t6", sizeof("waitState_t6"), 1);
+	std::cout << "    ****    " << waitState_t6 << std::endl;
 	SetMV(waitState_t6, 0, AVAIL);
 
 	/* Start test */
@@ -244,12 +245,7 @@ int main() {
 	/*test3_releaseAndDestroy();*/
 	/*test4_createCV();*/
 	/*test5_destroyCV();*/
-	/*test6_waitAndSignal();*/
-	int mv = CreateMV(1);
-	int r = SetMV(mv, 0, 69);
-	int mv_value = GetMV(mv, 0);
-	int w = DestroyMV(mv);
-
+	test6_waitAndSignal();
 
 /*	if (
 		test0_createLock() &&

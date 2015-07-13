@@ -164,7 +164,7 @@ int Broadcast(int lockIndex, int CVIndex);
 *	Monitor Variable 
 * 		All monitor variables are arrays of ints.
 */
-int CreateMV(int size);
+int CreateMV(char* name, int nameLength, int size);
 int SetMV(int mv, int index, int value);
 int GetMV(int mv, int index);
 
