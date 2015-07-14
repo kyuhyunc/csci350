@@ -185,16 +185,23 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
     int index = -1;
     for(unsigned int i = 0; i < ServerLockVector.size(); i++) {
         if (ServerLockVector[i] != NULL) {
-	        if(ServerLockVector[i]->toBeDeleted) {
-	            if(ServerLockVector[i]->name == name) {
+	        if(!ServerLockVector[i]->toBeDeleted) {
+	            if(ServerLockVector[i]->name.compare(name) == 0) {
 		            index = i;   
+                    std::cout << "    ****   FOUND AN OLD LOCK " << index << std::endl;
 		            break;
-	            }
-	        }
-	    }
+	            } else {
+                    std::cout << "    ****    names don't match!" << std::endl;
+                }
+	        } else {
+                std::cout << "    ****    isToBeDeleted!" << std::endl;
+            }
+	    } else {
+            std::cout << "    ****    it's null!" << std::endl;
+        }
     }
     if(index == -1) {
-
+        std::cout << "    ****   HAVE TO MAKE A NEW LOCK " << ServerLockVector.size() << std::endl;
         index = ServerLockVector.size();
 
         ServerLock * sLock = new ServerLock(AVAIL, inPktHdr.from, name);
@@ -379,6 +386,8 @@ void ReleaseFromWaitQ(	const PacketHeader &inPktHdr,
 	    waitMailHdr.from = nextClient;
 
 	    sendMessage(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
+    } else {
+        ServerLockVector[lockIndex]->state = AVAIL;
     }
 
 	

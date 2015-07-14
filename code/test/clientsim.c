@@ -8,8 +8,8 @@
 #define true 1
 #define false 0
 typedef char bool;
-#define BUSY 0
-#define AVAIL 1
+#define BUSY 1
+#define AVAIL 0
 
 /* Test 2 - Acquire Lock */
 int lock_t2;
@@ -217,10 +217,14 @@ bool test6_waitAndSignal() {
 	
 	/* Init Values */
 	lock_t6 = CreateLock("lock_t6", sizeof("lock_t6"));
+	Printf1("lock_t6 %d\n", sizeof("lock_t6 %d\n"), lock_t6);
 	cv_t6 = CreateCV("cv_t6", sizeof("cv_t6"));
+	Printf1("cv_t6 %d\n", sizeof("cv_t6 %d\n"), cv_t6);
 	waitState_t6 = CreateMV("waitState_t6", sizeof("waitState_t6"), 1);
+	Printf1("waitState_t6 %d\n", sizeof("waitState_t6 %d\n"), waitState_t6);
 
-	SetMV(waitState_t6, 0, AVAIL);
+	/* This is implied since AVAIL = 0, and MVs are initialized to 0 */
+	/*SetMV(waitState_t6, 0, AVAIL);*/
 
 	/* Start test */
 	Fork(test6_thread, "test6_thread_0", sizeof("test6_thread_0"));
@@ -245,7 +249,12 @@ bool test7_createMV() {
 	mv2 = CreateMV("mv0", sizeof("mv0"), mv0_size);
 	mv3 = CreateMV("mv2", sizeof("mv2"), 0);
 
-	if(mv0 == 0 && mv1 == 1 && mv2 == 0 && mv3 == -1) {
+	if(
+		mv0 == 0
+		&& mv1 == 1
+		&& mv2 == 0 
+		&& mv3 == -1
+	) {
 		Printf0("test7_createMV passed!\n", sizeof("test7_createMV passed!\n"));
 		return true;
 	}else{
@@ -363,10 +372,10 @@ int main() {
 	/*test3_releaseAndDestroy();*/
 	/*test4_createCV();*/
 	/*test5_destroyCV();*/
-	/*test6_waitAndSignal();*/
+	test6_waitAndSignal();
 	/*test7_createMV();*/
 	/*test8_setAndGetMV();*/
-	test9_deleteMV();
+	/*test9_deleteMV();*/
 
 /*	if (
 		test0_createLock() &&
