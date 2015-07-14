@@ -579,10 +579,13 @@ void GetMV(
 {
     MVLock->Acquire();
     std::stringstream ss;
-    if (mv >= 0 && mv < MonitorVars.size()) {
-        printf("Invalid MV: %d in GetMV\n", mv);
+    if (mv < 0 || mv >= MonitorVars.size()) {
+        printf("Invalid MV: %d in GetMV, array size: %d \n", mv, MonitorVars.size());
         ss << -1;
-    } else if (index >= 0 && index < MonitorVars.at(mv)->size()) {
+    } else if (MonitorVars.at(mv) == NULL) {
+        printf("Monitor Variable: %d is null inGetMV\n", mv);
+        ss << -1;
+    } else if (index < 0 || index >= MonitorVars.at(mv)->size()) {
         printf("Invalid index: %d in GetMV\n", index);
         ss << -1;
     } else {
@@ -604,11 +607,14 @@ void SetMV(
     MVLock->Acquire();
     //
     std::stringstream ss;
-    if ( mv >= 0 && mv < MonitorVars.size() ) {
-        printf("Invalid MV: %d in GetMV\n", mv);
+    if ( mv < 0 || mv >= MonitorVars.size() ) {
+        printf("Invalid MV: %d in SetMV , array size: %d \n", mv, MonitorVars.size());
         ss << -1;
-    } else if ( index >= 0 && index < MonitorVars.at(mv)->size() ) {
-        printf("Invalid index: %d in GetMV\n", index);
+    }else if (MonitorVars.at(mv) == NULL) {
+        printf("Monitor Variable: %d is null inGetMV\n", mv);
+        ss << -1;
+    } else if ( index < 0 || index >= MonitorVars.at(mv)->size() ) {
+        printf("Invalid index: %d in SetMV\n", index);
         ss << -1;
     } else {
         MonitorVars.at(mv)->at(index) = value;
@@ -630,7 +636,7 @@ void DestroyMV(
     MVLock->Acquire();
     //
     std::stringstream ss;
-    if (mv >= 0 && mv < MonitorVars.size()) {
+    if (mv < 0 || mv >= MonitorVars.size()) {
         printf("Invalid MV: %d in GetMV\n", mv);
         ss << -1;
     } else {
@@ -666,10 +672,7 @@ void Server() {
 
     while (true) {
     	// Receive the next message
-    	DEBUG('o', "Server about to receive a message\n");
     	postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);	
-    	// printf("Got \"%s\" from %d, box %d\n",buffer,inPktHdr.from,inMailHdr.from);
-    	DEBUG('o', "Server received a message\n");
     	fflush(stdout);
 
     	// Decode the message
@@ -725,7 +728,8 @@ void Server() {
             case CreateMV_SF : 
                 ss>>name;
                 ss>>index1;
-                CreateMV(inPktHdr, inMailHdr, index1, name);
+                ss>>index2;
+                CreateMV(inPktHdr, inMailHdr, index2, name);
                 break;
             case GetMV_SF :
                 ss>>index1;

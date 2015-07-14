@@ -235,7 +235,7 @@ bool test6_waitAndSignal() {
 *	Test 7 - Create MV
 */
 bool test7_createMV() {
-	int mv0, mv1, mv2;
+	int mv0, mv1, mv2, mv3;
 	int mv0_size = 3, mv1_size = 1;
 
 	Printf0("Running test7_createMV\n", sizeof("Running test7_createMV\n"));
@@ -243,20 +243,110 @@ bool test7_createMV() {
 	mv0 = CreateMV("mv0", sizeof("mv0"), mv0_size);
 	mv1 = CreateMV("mv1", sizeof("mv1"), mv1_size);
 	mv2 = CreateMV("mv0", sizeof("mv0"), mv0_size);
+	mv3 = CreateMV("mv2", sizeof("mv2"), 0);
 
-	if(mv0 == 0 && mv1 == 1 && mv2 == 0) {
+	if(mv0 == 0 && mv1 == 1 && mv2 == 0 && mv3 == -1) {
 		Printf0("test7_createMV passed!\n", sizeof("test7_createMV passed!\n"));
 		return true;
 	}else{
-		Printf1(
-			"test7_createMV failed! %d, %d, %d\n", 
-			sizeof("test7_createMV failed! %d, %d, %d\n\n"),
-			100*100*mv0 + 100*mv1 + mv2
-			);
+		Printf0(
+			"test7_createMV failed!\n", 
+			sizeof("test7_createMV failed!\n"));
+		return false;
+	}
+}
+
+/*
+*	Test 8 - SetMV
+*		This will test whether get and set methods work
+*/
+bool test8_setAndGetMV() {
+	int mv0, mv1, mv2;
+	int mv0_size = 1, mv1_size = 3;
+	int rn_negSetIndex, rn_bigSetIndex, rp_validSetIndex, rn_negIndex, rn_bigIndex;
+	int rn_negGetIndex, rn_bigGetIndex, rn_negMVIndex, rn_bigMVIndex; /* r stands for result. p = pos, n = neg */
+	int value = 23;
+
+	Printf0("Running test7_createMV\n", sizeof("Running test7_createMV\n"));
+
+	mv0 = CreateMV("mv0", sizeof("mv0"), mv0_size);
+	mv1 = CreateMV("mv1", sizeof("mv1"), mv1_size);
+	mv2 = CreateMV("mv0", sizeof("mv0"), mv0_size);
+
+	/* Invalid Set */
+	rn_negSetIndex = SetMV(mv1, -1, value);
+	rn_bigSetIndex = SetMV(mv1, mv1_size, value);
+	rn_negIndex = SetMV(-1, 0, 0);
+	rn_bigIndex = SetMV(2, 0, 0);
+	/* Valid Set */
+	rp_validSetIndex = SetMV(mv1, mv1_size - 1, value);
+
+	/* Invalid Get */
+	rn_negGetIndex = GetMV(mv1, -1);
+	rn_bigGetIndex = GetMV(mv1, mv1_size);
+	rn_negMVIndex = GetMV(-1, 0);
+	rn_bigMVIndex = GetMV(2, 0);
+
+	if(
+		GetMV(mv1, mv1_size - 1) == value /* Valid Get */
+		&& rn_negSetIndex == -1
+		&& rn_bigSetIndex == -1
+		&& rn_negIndex == -1
+		&& rn_bigIndex == -1
+		&& rn_negGetIndex == -1
+		&& rn_bigGetIndex == -1
+		&& rn_negMVIndex == -1
+		&& rn_bigMVIndex == -1
+	) {
+		Printf0("test7_createMV passed!\n", sizeof("test7_createMV passed!\n"));
+		return true;
+	}else{
+		Printf0(
+			"test7_createMV failed!\n", 
+			sizeof("test7_createMV failed!\n"));
 		return false;
 	}
 
 	return false;
+}
+
+/*
+*	Test 9 - Destroy Monitor Variable
+*/
+bool test9_deleteMV() {
+	int mv0, mv1, mv2;
+	int mv0_size = 3, mv1_size = 1;
+	int rp_goodDelete, rn_deletedIndex, rn_negIndex, rn_bigIndex;
+
+	Printf0("Running test9_deleteMV\n", sizeof("Running test9_deleteMV\n"));
+
+	/* Check DEstroy functionality */
+	mv0 = CreateMV("mv0", sizeof("mv0"), mv0_size);
+	mv1 = CreateMV("mv1", sizeof("mv1"), mv1_size);
+	rp_goodDelete = DestroyMV(mv1);
+	mv2 = CreateMV("mv2", sizeof("mv2"), 23);
+	rn_deletedIndex = GetMV(mv1, 0);
+
+	/* Check Destroy boundaries */
+	rn_negIndex = DestroyMV(-1);
+	rn_bigIndex = DestroyMV(3);
+
+	if(
+		rp_goodDelete == mv1
+		&& rn_negIndex == -1
+		&& rn_bigIndex == -1
+		&& rn_deletedIndex == -1
+		&& mv2 == 2
+		) {
+		Printf0("test9_deleteMV passed!\n", sizeof("test9_deleteMV passed!\n"));
+		return true;
+	}else{
+		Printf1(
+			"test9_deleteMV failed! %d %d %d %d\n", 
+			sizeof("test9_deleteMV failed! %d %d %d\n"),
+			1000000*rp_goodDelete + 1000*rn_negIndex + rn_bigIndex);
+		return false;
+	}
 }
 
 /*
@@ -274,7 +364,9 @@ int main() {
 	/*test4_createCV();*/
 	/*test5_destroyCV();*/
 	/*test6_waitAndSignal();*/
-	test7_createMV();
+	/*test7_createMV();*/
+	/*test8_setAndGetMV();*/
+	test9_deleteMV();
 
 /*	if (
 		test0_createLock() &&
