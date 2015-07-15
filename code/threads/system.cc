@@ -203,7 +203,7 @@ printf("evict_type = FIFO\n");
 	ipt = new IPTentry[NumPhysPages];	// initialize IPT
 	iptFIFOqueue = new List();			// IPT eviction
 
-	swapfile = fileSystem->Open(".swapfile");
+	swapfile = fileSystem->Open("../vm/.swapfile");
 	if (swapfile == NULL) {
 		printf("Unable to open swapfile\n");
 	}
