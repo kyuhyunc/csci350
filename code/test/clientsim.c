@@ -351,9 +351,30 @@ bool test9_deleteMV() {
 
 /*
 *	Test 10 - Broadcast 
+* 		4 clientsims are necessary. 
+*			3 clients will Wait 
+*			1 Client will Broadcast
+* 		1 server is needed
 */
 bool test10_broadcast() {
-	
+	int mv0, cv0, lock;
+
+	/* Init Test Environment */
+	mv0 = CreateMV("mv0_t10", sizeof("mv0_t10"), 1);
+	cv0 = CreateCV("cv0_t10", sizeof("cv0_t10"));
+	lock = CreateLock("lock_t10", sizeof("lock_t10"));
+
+	Acquire(lock);
+	/* Start Testing */
+	if ( GetMV(mv0, 0) < 3 ) { /* 3 Threads will wait */
+		SetMV( mv0, 0, GetMV(mv0, 0) + 1 );
+		Wait(lock, cv0);
+	} else {
+		Broadcast(lock, cv0);
+	}
+	Release(lock);
+
+	return true; /* Must check output to make sure it worked. All threads should end */
 }
 
 /*

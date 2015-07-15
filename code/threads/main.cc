@@ -112,6 +112,7 @@ public:
         name = n;
         toBeDeleted = false;
         waitQ = new List();
+        waitingLock = NULL;
     }
 public:
     int state;
@@ -188,20 +189,13 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
 	        if(!ServerLockVector[i]->toBeDeleted) {
 	            if(ServerLockVector[i]->name.compare(name) == 0) {
 		            index = i;   
-                    std::cout << "    ****   FOUND AN OLD LOCK " << index << std::endl;
 		            break;
-	            } else {
-                    std::cout << "    ****    names don't match!" << std::endl;
-                }
-	        } else {
-                std::cout << "    ****    isToBeDeleted!" << std::endl;
-            }
-	    } else {
-            std::cout << "    ****    it's null!" << std::endl;
-        }
+	            }
+	        } 
+	    } 
     }
     if(index == -1) {
-        std::cout << "    ****   HAVE TO MAKE A NEW LOCK " << ServerLockVector.size() << std::endl;
+
         index = ServerLockVector.size();
 
         ServerLock * sLock = new ServerLock(AVAIL, inPktHdr.from, name);
@@ -383,7 +377,7 @@ void ReleaseFromWaitQ(	const PacketHeader &inPktHdr,
 
 	    MailHeader waitMailHdr;
 	    waitMailHdr.to = inMailHdr.to;
-	    waitMailHdr.from = nextClient;
+	    waitMailHdr.from = 1; // TODO - Project 4
 
 	    sendMessage(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
     } else {
@@ -408,9 +402,7 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         printf("Lock you try to release is already deleted. Can't Acquire Lock(Release)\n ");
         ss << -1;
     }else {
-        printf("    ****    1\n");
         if(!ServerLockVector[index]->waitQ->IsEmpty()) {
-        	printf("    ****    2\n");
             ReleaseFromWaitQ(inPktHdr, outPktHdr, inMailHdr, outMailHdr, index);
         } else if (ServerLockVector[index]->toBeDeleted) {
         	DEBUG('o', "Lock->Release() -- deleted isToBeDeleted lock\n");
@@ -418,7 +410,6 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         	ServerLockVector[index] = NULL;
         	delete sl;
         } else {
-        	printf("    ****    3, %d\n", inPktHdr.from);
         	DEBUG('o', "Lock->Release -- Lock is now available\n");
             ServerLockVector[index]->state = AVAIL;
         }
@@ -456,6 +447,7 @@ void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &
         }
         // If this is not the first thread to call wait, AND they passed in the incorrect lock, send error
         if(ServerCVVector[CVIndex]->waitingLock != ServerLockVector[LockIndex]) {
+            printf("Parameter lock does not match the waitingLock\n ");
             ss << -1;
         }else{
         	// everything is good to go! Thread will wait until Signal is called
@@ -469,9 +461,14 @@ void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &
 	sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
     CVLock->Release();
 }
-void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex) {
-    CVLock->Acquire();
 
+std::string SignalFunctionality(
+    const PacketHeader &inPktHdr, 
+    const MailHeader &inMailHdr, 
+    const int &LockIndex, 
+    const int &CVIndex
+) {
+    CVLock->Acquire();
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
     std::stringstream ss;
@@ -512,7 +509,7 @@ void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int
 
             MailHeader waitMailHdr;
             waitMailHdr.to = inMailHdr.to;
-            waitMailHdr.from = nextClient;
+            waitMailHdr.from = 1; // TODO - Project 4
 
             sendMessage(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
             
@@ -529,17 +526,27 @@ void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int
         }
 
     }
-    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
     CVLock->Release();
-	
+    return ss.str();
+}
+
+void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex) {
+    std::string ss = SignalFunctionality(inPktHdr, inMailHdr, LockIndex, CVIndex);
+
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+	sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss); // send error message
 }
 void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex) {
-    CVLock->Acquire();
-    
     while(ServerCVVector[CVIndex]->CVCounter != 0) {
-        Signal(inPktHdr, inMailHdr, LockIndex, CVIndex);
+        SignalFunctionality(inPktHdr, inMailHdr, LockIndex, CVIndex);
     }
-	CVLock->Release();
+    std::stringstream ss;
+    ss << LockIndex;
+
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
 }
 
 /*

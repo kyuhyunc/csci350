@@ -1648,86 +1648,120 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
 }
 
 int Broadcast_Syscall(int lockIndex, int CVIndex) {
-	cvtablelock->Acquire();
 
-    //if you can't call Broadcast properly, then it returns -1 so we know if there is something wrong.
-    //Otherwise, it returns CV index number
-    DEBUG('c', "lock index %d and CVIndex %d in Broadcasts\n", lockIndex, CVIndex);
+	#ifdef NETWORK 
 
-	//**********************************************************************
-	//				ERROR CHECKING
-	//**********************************************************************
+		DEBUG('o', "Client called Broadcast\n");
 
-	// validate lock index
-	if (lockIndex == -1) {
-		printf("ERROR: Lock not created properly. Broadcast not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
-	if (lockIndex < 0 || lockIndex > NumLocks) {
-		// index out of range
-		printf("ERROR: Invalid Lock index passed in. Broadcast not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	    PacketHeader outPktHdr, inPktHdr;
+	    MailHeader outMailHdr, inMailHdr;
 
-	// validate lock
-	kernelLock* kl = (kernelLock*) locktable->Get(lockIndex);
-	if (kl == NULL || kl->lock == NULL) {
-		// lock does not exist. Return -1 since it can't be acquired
-		printf("ERROR: Target Lock does not exist. Broadcast not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	    // Create StringStream -- put in function ID 
+		std::stringstream ss;
+		ss << BroadCast_SF;
+		ss << " ";
+		ss << lockIndex;
+		ss << " ";
+		ss << CVIndex;
 
-	// validate lock's process
-	if (kl->adds != currentThread->space) {
-		printf("ERROR: Permission denied! Target Lock belongs to a different process. Broadcast not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	// validate cv index
-	if (CVIndex == -1) {
-		printf("ERROR: Condition not created properly. Broadcast not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
-	if (CVIndex < 0 || CVIndex > NumCVs) {
-		// index out of range
-		printf("ERROR: Invalid Condition index passed in. Broadcast not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
-	
-	// validate condition
-	kernelCV* kc = (kernelCV*) cvtable->Get(CVIndex);
-	if (kc == NULL || kc->condition == NULL) {
-		// cv does not exist. Return -1 since it can't be acquired
-		printf("ERROR: Target Condition does not exist. Broadcast not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+	    int result = -1; // -1 is error
+	    ss >> result;
 
-	// validate condition's process
-	if (kc->adds != currentThread->space) {
-		printf("ERROR: Permission denied! Target Condition belongs to a different process. Broadcast not called.\n");
-		cvtablelock->Release();
-		return -1;
-	}
+	    DEBUG('o', "Client Broadcasted #%d\n", result);
+
+	    return result;
 
 	//**********************************************************************
-	//				BROADCAST
+	//				END Project 3 Code
 	//**********************************************************************
 
-	// it call signal syscall by the number of CV counter so that we can keep track of counter efficiently.
-	int count = kc->counter;
-	for (int i=0; i < count; i++) {
-		Signal_Syscall(lockIndex, CVIndex);
-	}
+	#else 
 
-	cvtablelock->Release();
-    return CVIndex;
+		cvtablelock->Acquire();
+
+	    //if you can't call Broadcast properly, then it returns -1 so we know if there is something wrong.
+	    //Otherwise, it returns CV index number
+	    DEBUG('c', "lock index %d and CVIndex %d in Broadcasts\n", lockIndex, CVIndex);
+
+		//**********************************************************************
+		//				ERROR CHECKING
+		//**********************************************************************
+
+		// validate lock index
+		if (lockIndex == -1) {
+			printf("ERROR: Lock not created properly. Broadcast not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+		if (lockIndex < 0 || lockIndex > NumLocks) {
+			// index out of range
+			printf("ERROR: Invalid Lock index passed in. Broadcast not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		// validate lock
+		kernelLock* kl = (kernelLock*) locktable->Get(lockIndex);
+		if (kl == NULL || kl->lock == NULL) {
+			// lock does not exist. Return -1 since it can't be acquired
+			printf("ERROR: Target Lock does not exist. Broadcast not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		// validate lock's process
+		if (kl->adds != currentThread->space) {
+			printf("ERROR: Permission denied! Target Lock belongs to a different process. Broadcast not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		// validate cv index
+		if (CVIndex == -1) {
+			printf("ERROR: Condition not created properly. Broadcast not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+		if (CVIndex < 0 || CVIndex > NumCVs) {
+			// index out of range
+			printf("ERROR: Invalid Condition index passed in. Broadcast not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+		
+		// validate condition
+		kernelCV* kc = (kernelCV*) cvtable->Get(CVIndex);
+		if (kc == NULL || kc->condition == NULL) {
+			// cv does not exist. Return -1 since it can't be acquired
+			printf("ERROR: Target Condition does not exist. Broadcast not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		// validate condition's process
+		if (kc->adds != currentThread->space) {
+			printf("ERROR: Permission denied! Target Condition belongs to a different process. Broadcast not called.\n");
+			cvtablelock->Release();
+			return -1;
+		}
+
+		//**********************************************************************
+		//				BROADCAST
+		//**********************************************************************
+
+		// it call signal syscall by the number of CV counter so that we can keep track of counter efficiently.
+		int count = kc->counter;
+		for (int i=0; i < count; i++) {
+			Signal_Syscall(lockIndex, CVIndex);
+		}
+
+		cvtablelock->Release();
+	    return CVIndex;
+
+    #endif
 }
 
 int CreateMV_Syscall(int vaddr, int nameLength, int size) {
