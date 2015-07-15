@@ -497,6 +497,11 @@ std::string SignalFunctionality(
 
             // everything is good to go! Waiting thread will be signaled
             int nextClient = (int)ServerCVVector[CVIndex]->waitQ->Remove();
+
+            SLock->Acquire();
+            ServerLockVector[LockIndex]->waitQ->Append((void*)nextClient);
+            SLock->Release();
+
             ss << nextClient;
 
             PacketHeader waitPktHdr;
@@ -508,8 +513,6 @@ std::string SignalFunctionality(
             waitMailHdr.from = 1; // TODO - Project 4
 
             sendMessage(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
-            
-            ServerLockVector[LockIndex]->state = AVAIL; // Release the lock
 
             ServerCVVector[CVIndex]->CVCounter--;
 
