@@ -188,9 +188,21 @@ bool test5_destroyCV() {
 }
 
 /*
-* 	Test 6 - See if Wait works
+* 	Test 6 - See if Wait and Signal
 */
-void test6_thread() {
+
+bool test6_waitAndSignal() {
+	Printf0("Running test6_waitAndSignal\n", sizeof("Running test6_waitAndSignal\n"));
+	
+	/* Init Values */
+	lock_t6 = CreateLock("lock_t6", sizeof("lock_t6"));
+	Printf1("lock_t6 %d\n", sizeof("lock_t6 %d\n"), lock_t6);
+	cv_t6 = CreateCV("cv_t6", sizeof("cv_t6"));
+	Printf1("cv_t6 %d\n", sizeof("cv_t6 %d\n"), cv_t6);
+	waitState_t6 = CreateMV("waitState_t6", sizeof("waitState_t6"), 1);
+	Printf1("waitState_t6 %d\n", sizeof("waitState_t6 %d\n"), waitState_t6);
+
+	/* Start test */
 	Acquire(lock_t6);
 	if ( GetMV(waitState_t6, 0) == AVAIL ) {
 		SetMV(waitState_t6, 0, BUSY);
@@ -208,27 +220,6 @@ void test6_thread() {
 		sizeof("TEST 6 - Thread %d is about to Release\n"), 
 		0);	
 	Release(lock_t6);
-
-	Exit(0);
-}
-
-bool test6_waitAndSignal() {
-	Printf0("Running test6_waitAndSignal\n", sizeof("Running test6_waitAndSignal\n"));
-	
-	/* Init Values */
-	lock_t6 = CreateLock("lock_t6", sizeof("lock_t6"));
-	Printf1("lock_t6 %d\n", sizeof("lock_t6 %d\n"), lock_t6);
-	cv_t6 = CreateCV("cv_t6", sizeof("cv_t6"));
-	Printf1("cv_t6 %d\n", sizeof("cv_t6 %d\n"), cv_t6);
-	waitState_t6 = CreateMV("waitState_t6", sizeof("waitState_t6"), 1);
-	Printf1("waitState_t6 %d\n", sizeof("waitState_t6 %d\n"), waitState_t6);
-
-	/* This is implied since AVAIL = 0, and MVs are initialized to 0 */
-	/*SetMV(waitState_t6, 0, AVAIL);*/
-
-	/* Start test */
-	Fork(test6_thread, "test6_thread_0", sizeof("test6_thread_0"));
-	/*Fork(test6_thread, "test6_thread_1", sizeof("test6_thread_1"));*/
 
 	/* TODO add long while loop of yields that checks values, return true here if conditions are met. */
 
@@ -359,6 +350,13 @@ bool test9_deleteMV() {
 }
 
 /*
+*	Test 10 - Broadcast 
+*/
+bool test10_broadcast() {
+	
+}
+
+/*
 *
 *
 *	"main"
@@ -372,10 +370,11 @@ int main() {
 	/*test3_releaseAndDestroy();*/
 	/*test4_createCV();*/
 	/*test5_destroyCV();*/
-	test6_waitAndSignal();
+	/*test6_waitAndSignal();*/
 	/*test7_createMV();*/
 	/*test8_setAndGetMV();*/
 	/*test9_deleteMV();*/
+	test10_broadcast();
 
 /*	if (
 		test0_createLock() &&

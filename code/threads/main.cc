@@ -515,7 +515,7 @@ void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int
             waitMailHdr.from = nextClient;
 
             sendMessage(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
-            ss.str("");
+            
             ServerLockVector[LockIndex]->state = AVAIL; // Release the lock
 
             ServerCVVector[CVIndex]->CVCounter--;
@@ -524,9 +524,8 @@ void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int
                 ServerCVVector[CVIndex]->waitingLock = NULL;
             }
 
-
-            CVLock->Release();
-            return; //don't send to error message
+            ss.str("");
+            ss << CVIndex;
         }
 
     }
