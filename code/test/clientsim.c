@@ -26,9 +26,9 @@ bool test0_createLock() {
 
 	Printf0("Running test0_createLock\n", sizeof("Running test0_createLock\n"));
 
-	lock0 = CreateLock("lock0", sizeof("lock0"));
-	lock1 = CreateLock("lock1", sizeof("lock1"));
-	lock2 = CreateLock("lock0", sizeof("lock0")); /* should return same index as lock0 */
+	lock0 = CreateLock("lock0_t0", sizeof("lock0_t0"));
+	lock1 = CreateLock("lock1_t0", sizeof("lock1_t0"));
+	lock2 = CreateLock("lock0_t0", sizeof("lock0_t0")); /* should return same index as lock0 */
 
 	if(lock0 == 0 && lock1 == 1 && lock2 == 0) {
 		Printf0("test0_createLock passed!\n", sizeof("test0_createLock passed!\n"));
@@ -47,10 +47,10 @@ bool test1_deleteLock() {
 	
 	Printf0("Running test1_deleteLock\n", sizeof("Running test1_deleteLock\n"));
 
-	lock0 = CreateLock("lock0", sizeof("lock0"));
+	lock0 = CreateLock("lock0_t1", sizeof("lock0_t1"));
 	destroyResult = DestroyLock(lock0);
 
-	lock1 = CreateLock("lock0", sizeof("lock0")); /* should not return same address */
+	lock1 = CreateLock("lock0_t1", sizeof("lock0_t1")); /* should not return same address */
 
 	if(destroyResult == lock0 && lock0 != lock1) {
 		Printf0("test1_deleteLock passed!\n", sizeof("test1_deleteLock passed!\n"));
@@ -152,9 +152,9 @@ bool test4_createCV() {
 
 	Printf0("Running test4_createCV\n", sizeof("Running test4_createCV\n"));
 
-	cv0 = CreateCV("cv0", sizeof("cv0"));
-	cv1 = CreateCV("cv1", sizeof("cv1"));
-	cv2 = CreateCV("cv0", sizeof("cv0")); /* should return same index as lock0 */
+	cv0 = CreateCV("cv0_t4", sizeof("cv0_t4"));
+	cv1 = CreateCV("cv1_t4", sizeof("cv1_t4"));
+	cv2 = CreateCV("cv0_t4", sizeof("cv0_t4")); /* should return same index as lock0 */
 
 	if(cv0 == 0 && cv1 == 1 && cv2 == 0) {
 		Printf0("test4_createCV passed!\n", sizeof("test4_createCV passed!\n"));
@@ -173,10 +173,10 @@ bool test5_destroyCV() {
 	
 	Printf0("Running test5_destroyCV\n", sizeof("Running test5_destroyCV\n"));
 
-	cv0 = CreateCV("cv0", sizeof("cv0"));
+	cv0 = CreateCV("cv0_t5", sizeof("cv0_t5"));
 	destroyResult = DestroyCV(cv0);
 
-	cv1 = CreateCV("cv0", sizeof("cv0")); /* should not return same address */
+	cv1 = CreateCV("cv0_t5", sizeof("cv0_t5")); /* should not return same address */
 
 	if(destroyResult == cv0 && cv0 != cv1) {
 		Printf0("test5_destroyCV passed!\n", sizeof("test5_destroyCV passed!\n"));
@@ -235,10 +235,10 @@ bool test7_createMV() {
 
 	Printf0("Running test7_createMV\n", sizeof("Running test7_createMV\n"));
 
-	mv0 = CreateMV("mv0", sizeof("mv0"), mv0_size);
-	mv1 = CreateMV("mv1", sizeof("mv1"), mv1_size);
-	mv2 = CreateMV("mv0", sizeof("mv0"), mv0_size);
-	mv3 = CreateMV("mv2", sizeof("mv2"), 0);
+	mv0 = CreateMV("mv0_t7", sizeof("mv0_t7"), mv0_size);
+	mv1 = CreateMV("mv1_t7", sizeof("mv1_t7"), mv1_size);
+	mv2 = CreateMV("mv0_t7", sizeof("mv0_t7"), mv0_size);
+	mv3 = CreateMV("mv2_t7", sizeof("mv2_t7"), 0);
 
 	if(
 		mv0 == 0
@@ -269,9 +269,9 @@ bool test8_setAndGetMV() {
 
 	Printf0("Running test7_createMV\n", sizeof("Running test7_createMV\n"));
 
-	mv0 = CreateMV("mv0", sizeof("mv0"), mv0_size);
-	mv1 = CreateMV("mv1", sizeof("mv1"), mv1_size);
-	mv2 = CreateMV("mv0", sizeof("mv0"), mv0_size);
+	mv0 = CreateMV("mv0_t8", sizeof("mv0_t8"), mv0_size);
+	mv1 = CreateMV("mv1_t8", sizeof("mv1_t8"), mv1_size);
+	mv2 = CreateMV("mv0_t8", sizeof("mv0_t8"), mv0_size);
 
 	/* Invalid Set */
 	rn_negSetIndex = SetMV(mv1, -1, value);
@@ -321,30 +321,32 @@ bool test9_deleteMV() {
 	Printf0("Running test9_deleteMV\n", sizeof("Running test9_deleteMV\n"));
 
 	/* Check DEstroy functionality */
-	mv0 = CreateMV("mv0", sizeof("mv0"), mv0_size);
-	mv1 = CreateMV("mv1", sizeof("mv1"), mv1_size);
+	mv0 = CreateMV("mv0_t9", sizeof("mv0_t9"), mv0_size);
+	mv1 = CreateMV("mv1_t9", sizeof("mv1_t9"), mv1_size);
 	rp_goodDelete = DestroyMV(mv1);
-	mv2 = CreateMV("mv2", sizeof("mv2"), 23);
+	mv2 = CreateMV("mv2_t9", sizeof("mv2_t9"), 23);
 	rn_deletedIndex = GetMV(mv1, 0);
 
 	/* Check Destroy boundaries */
 	rn_negIndex = DestroyMV(-1);
-	rn_bigIndex = DestroyMV(3);
 
 	if(
 		rp_goodDelete == mv1
 		&& rn_negIndex == -1
-		&& rn_bigIndex == -1
 		&& rn_deletedIndex == -1
-		&& mv2 == 2
+		&& mv2 == mv0 + 2
 		) {
 		Printf0("test9_deleteMV passed!\n", sizeof("test9_deleteMV passed!\n"));
 		return true;
 	}else{
 		Printf1(
-			"test9_deleteMV failed! %d %d %d %d\n", 
+			"test9_deleteMV failed! %d %d %d\n", 
 			sizeof("test9_deleteMV failed! %d %d %d\n"),
-			1000000*rp_goodDelete + 1000*rn_negIndex + rn_bigIndex);
+			1000000*(rp_goodDelete == mv1) + 1000*(mv2 == mv0 + 2) + (mv2));
+		Printf1(
+			"test9_1111 %d %d %d\n", 
+			sizeof("test9_1111 %d %d %d\n"),
+			1000000*(rn_deletedIndex == -1) + 1000*(rn_bigIndex == -1) + (rn_negIndex == -1));
 		return false;
 	}
 }
@@ -396,10 +398,7 @@ int main() {
 		test4_createCV() &&
 		test5_destroyCV() &&
 		test7_createMV() &&
-		test9_deleteMV() &&
-		test0_createLock() &&
-		test1_deleteLock() &&
-		test2_acquireLock()
+		test9_deleteMV() 
 	) {
 		Printf0("All tests passed!\n", sizeof("All tests passed!\n"));
 	} else {
