@@ -33,6 +33,7 @@
 void
 MailTest(int farAddr)
 {
+    printf("MailTest\n");
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
     char *data = "Hello there!";

@@ -40,6 +40,11 @@
 #define SC_Signal		18
 #define SC_Broadcast	19
 
+#define SC_CreateMV		20
+#define SC_GetMV		21
+#define SC_SetMV		22
+ #define SC_DestroyMV	23
+
 #define SC_Printf0	30
 #define SC_Printf1	31
 #define SC_Printf2	32
@@ -154,6 +159,14 @@ int DestroyCV(int index);
 int Wait(int lockIndex, int CVIndex);
 int Signal(int lockIndex, int CVIndex);
 int Broadcast(int lockIndex, int CVIndex);
+
+/*
+*	Monitor Variable 
+* 		All monitor variables are arrays of ints.
+*/
+int CreateMV(char* name, int nameLength, int size);
+int SetMV(int mv, int index, int value);
+int GetMV(int mv, int index);
 
 /*	Printf statements
  */
