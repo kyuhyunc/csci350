@@ -29,17 +29,25 @@ SynchDisk   *synchDisk;
 
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
-Lock* memlock;
-BitMap* memMap;
 
+Lock* memlock;		// other kernel data structures
+BitMap* memMap;
 Table* locktable;
 Lock* locktablelock;
-
 Table* cvtable;
 Lock* cvtablelock;
-
 Table* processTable;
 Lock* processLock;
+
+int currentTLB;		// TLB tracker
+IPTentry* ipt;		// Inverted Page Table
+List* iptFIFOqueue;	// IPT eviction
+Lock* iptLock;      // IPT race condition prevention
+
+OpenFile* swapfile;		// SWAP file
+BitMap* swapMap;		// SWAP bitmap
+
+evict_alg evict_type;
 #endif
 
 #ifdef NETWORK
@@ -94,6 +102,9 @@ Initialize(int argc, char **argv)
 
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
+
+    evict_type = FIFO; // default evicting algorithm is FIFO
+    srand(time(NULL));
 #endif
 #ifdef FILESYS_NEEDED
     bool format = FALSE;	// format disk
@@ -122,6 +133,24 @@ Initialize(int argc, char **argv)
 #ifdef USER_PROGRAM
 	if (!strcmp(*argv, "-s"))
 	    debugUserProg = TRUE;
+    else if (!strcmp(*argv, "-P")) {
+        ASSERT(argc > 1);
+        char* type = *(argv + 1);
+        if (!strcmp(type, "RAND")) {
+            evict_type = RAND;
+printf("evict_type = RAND\n");
+        }
+        else if (!strcmp(type, "FIFO")) {
+            evict_type = FIFO;
+printf("evict_type = FIFO\n");
+        }
+        else {
+            printf("ERROR: -P can only take RAND or FIFO as arguments. Exiting now.\n");
+            ASSERT(false);
+        }
+        argCount = 2;
+    }
+
 #endif
 #ifdef FILESYS_NEEDED
 	if (!strcmp(*argv, "-f"))
@@ -160,17 +189,26 @@ Initialize(int argc, char **argv)
     
 #ifdef USER_PROGRAM
     machine = new Machine(debugUserProg);	// this must come first
-	memlock = new Lock("MemoryLock");
-	memMap = new BitMap(NumPhysPages);
 
+	memlock = new Lock("MemoryLock");		// initialize kernel data trackers
+	memMap = new BitMap(NumPhysPages);
 	locktable = new Table(NumLocks);
 	locktablelock = new Lock("LockTableLock");
-
 	cvtable = new Table(NumCVs);
 	cvtablelock = new Lock("CVTableLock");
-
 	processTable = new Table(NumProcesses);
 	processLock = new Lock("ProcessLock");
+
+	currentTLB = 0;					// initialize TLB
+	ipt = new IPTentry[NumPhysPages];	// initialize IPT
+	iptFIFOqueue = new List();			// IPT eviction
+
+	swapfile = fileSystem->Open(".swapfile");
+	if (swapfile == NULL) {
+		printf("Unable to open swapfile\n");
+	}
+	swapMap = new BitMap(SwapSize);
+    iptLock = new Lock("IPTLock");
 #endif
 
 #ifdef FILESYS

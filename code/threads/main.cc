@@ -94,13 +94,14 @@ public:
         state = s;
         owner = o;
         name = n;
+        clientCounter = 1;
     }
 public:
     int state;
     int owner;
     std::string name;
     List * waitQ;
-    bool toBeDeleted;
+    int clientCounter;
 };
 
 class ServerCV {
@@ -186,20 +187,18 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
     int index = -1;
     for(unsigned int i = 0; i < ServerLockVector.size(); i++) {
         if (ServerLockVector[i] != NULL) {
-	        if(!ServerLockVector[i]->toBeDeleted) {
-	            if(ServerLockVector[i]->name.compare(name) == 0) {
-		            index = i;   
-		            break;
-	            }
-	        } 
-	    } 
+            if(ServerLockVector[i]->name.compare(name) == 0) {
+	            index = i;
+                ServerLockVector[i]->clientCounter++;
+	            break;
+            }
+	    }
     }
     if(index == -1) {
 
         index = ServerLockVector.size();
 
         ServerLock * sLock = new ServerLock(AVAIL, inPktHdr.from, name);
-        sLock->toBeDeleted = false;
         sLock->waitQ = new List();
         ServerLockVector.push_back(sLock);
     }
@@ -240,16 +239,13 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
 
     } else {
         ss << index;
-        
-        if(ServerLockVector[index]->state == AVAIL) {
+        ServerLockVector[index]->clientCounter--;
+        if(ServerLockVector[index]->state == AVAIL && ServerLockVector[index]->clientCounter == 0) {
         	DEBUG('o', "SERVER is deleting lock %d\n", index);
         	ServerLock * sl = ServerLockVector[index];
             ServerLockVector[index] = NULL; /* TODO - this probably isn't necessary */
             delete sl;
-        } else {
-        	DEBUG('o', "SERVER is setting lock %d toBeDeleted\n", index);
-            ServerLockVector[index]->toBeDeleted = true;
-        }
+        } 
     } 
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     SLock->Release();
@@ -404,7 +400,7 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
     }else {
         if(!ServerLockVector[index]->waitQ->IsEmpty()) {
             ReleaseFromWaitQ(inPktHdr, outPktHdr, inMailHdr, outMailHdr, index);
-        } else if (ServerLockVector[index]->toBeDeleted) {
+        } else if (ServerLockVector[index]->clientCounter == 0) {
         	DEBUG('o', "Lock->Release() -- deleted isToBeDeleted lock\n");
         	ServerLock* sl = ServerLockVector[index];
         	ServerLockVector[index] = NULL;
@@ -844,7 +840,8 @@ main(int argc, char **argv)
 	    interrupt->Halt();		// once we start the console, then 
 					// Nachos will loop forever waiting 
 					// for console input
-	}
+    }
+
 #endif // USER_PROGRAM
 #ifdef FILESYS
 	if (!strcmp(*argv, "-cp")) { 		// copy from UNIX to Nachos
@@ -890,9 +887,4 @@ main(int argc, char **argv)
 				// it from returning.
     return(0);			// Not reached...
 }
-
-
-
-
-
 

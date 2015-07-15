@@ -42,7 +42,7 @@ DEBUG('b', "Initialized stackVP = %d\n", space->numPages - 1);
     currentThread->space = space;
 //	currentThread->threadtype = MAIN;
 
-    delete executable;			// close file
+//    delete executable;			// close file
 
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register

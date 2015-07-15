@@ -145,6 +145,8 @@ SwapHeader (NoffHeader *noffH)
 
 AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 //printf("In address constructor...\n");
+	this->executable = executable;
+
     NoffHeader noffH;
     unsigned int i, size;
 
@@ -164,7 +166,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 						// to leave room for the stack
     size = numPages * PageSize;
 
-    ASSERT(numPages <= NumPhysPages);		// check we're not trying
+//    ASSERT(numPages <= NumPhysPages);		// check we're not trying
 						// to run anything too big --
 						// at least until we have
 						// virtual memory
@@ -172,21 +174,51 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
 					numPages, size);
 // first, set up the translation 
-	pageTable = new TranslationEntry[numPages];
-	for (i = 0; i < numPages; i++) {
+	int ppn;
+//	pageTable = new TranslationEntry[numPages];
+	pageTable = new PTentry[numPages];
+	for (i = 0; i < (numPages - 8); i++) {
+//		ppn = memMap->Find(); // get available physical page
+
 		pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
 /*				int* index = new int;
 			*index = i;
 			currentThread->pages->Append((void*)index);
 */
-		pageTable[i].physicalPage = memMap->Find();
+//		pageTable[i].physicalPage = ppn;
 //printf("pageTable[%d]=%d\n", i, pageTable[i].physicalPage);
-		pageTable[i].valid = TRUE;
+//		pageTable[i].valid = TRUE;
+		pageTable[i].valid = FALSE;
 		pageTable[i].use = FALSE;
 		pageTable[i].dirty = FALSE;
 		pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
 						// a separate page, we could set its 
 						// pages to be read-only
+		pageTable[i].type = EXECUTABLE;
+		pageTable[i].byteoffset = noffH.code.inFileAddr + i*PageSize;
+		pageTable[i].location = executable;
+        pageTable[i].type = EXECUTABLE;
+
+		// add ITP info
+/*		ipt[ppn].virtualPage = i;
+		ipt[ppn].physicalPage = ppn;
+		ipt[ppn].valid = TRUE;
+		ipt[ppn].use = FALSE;
+		ipt[ppn].dirty = FALSE;
+		ipt[ppn].readOnly = FALSE;
+		ipt[ppn].space = this;*/
+	}
+
+	for (i; i < numPages; i++) {
+		pageTable[i].virtualPage = i;
+		pageTable[i].valid = FALSE;
+		pageTable[i].use = FALSE;
+		pageTable[i].dirty = FALSE;
+		pageTable[i].readOnly = FALSE;
+		pageTable[i].type = NEITHER;
+		pageTable[i].byteoffset = -1;
+		pageTable[i].location = NULL;
+        pageTable[i].type = NEITHER;
 	}
 	
 // zero out the entire address space, to zero the unitialized data segment 
@@ -196,14 +228,14 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 // then, copy in the code and data segments into memory
 
 
-	for (i=0; i < numPages; i++) {
+/*	for (i=0; i < numPages; i++) {
 		DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			pageTable[i].physicalPage*PageSize, PageSize);
 		executable->ReadAt(
 			&(machine->mainMemory[pageTable[i].physicalPage * PageSize]),
 			PageSize, noffH.code.inFileAddr + i*PageSize);
 	}
-
+*/
 
 /*
     if (noffH.code.size > 0) {
@@ -275,7 +307,27 @@ AddrSpace::InitRegisters()
 //----------------------------------------------------------------------
 
 void AddrSpace::SaveState() 
-{}
+{
+	// Invalidate all TLB pages
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+
+	for (int i=0; i < TLBSize; i++) {
+		// propogate dirty bit
+		if (machine->tlb[i].valid) {
+			ipt[machine->tlb[i].physicalPage].dirty = machine->tlb[i].dirty;
+            ipt[machine->tlb[i].physicalPage].space->pageTable[machine->tlb[i].virtualPage].valid = false;
+		}
+		machine->tlb[i].valid = false;
+
+        // must also invalidate proper AddrSpace->pageTable
+//        int ppn = machine->tlb[i].physicalPage;
+//        int vpn = machine->tlb[i].virtualPage;
+//        ipt[ppn].space->pageTable[ipt[ppn].virtualPage].valid = false;
+//        ipt[machine->tlb[i].physicalPage].space->pageTable[ipt[machine->tlb[i].virtualPage]].valid = false;
+	}
+
+	(void) interrupt->SetLevel(oldLevel);
+}
 
 //----------------------------------------------------------------------
 // AddrSpace::RestoreState
@@ -287,8 +339,28 @@ void AddrSpace::SaveState()
 
 void AddrSpace::RestoreState() 
 {
-    machine->pageTable = pageTable;
-    machine->pageTableSize = numPages;
+//    machine->pageTable = pageTable;
+//    machine->pageTableSize = numPages;
+
+	// Invalidate all TLB pages
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+
+	for (int i=0; i < TLBSize; i++) {
+		// propogate dirty bit
+		if (machine->tlb[i].valid) {
+			ipt[machine->tlb[i].physicalPage].dirty = machine->tlb[i].dirty;
+            ipt[machine->tlb[i].physicalPage].space->pageTable[machine->tlb[i].virtualPage].valid = false;
+		}
+		machine->tlb[i].valid = false;
+
+        // must also invalidate proper AddrSpace->pageTable
+//        int ppn = machine->tlb[i].physicalPage;
+//        int vpn = machine->tlb[i].virtualPage;
+//        ipt[ppn].space->pageTable[ipt[ppn].virtualPage].valid = false;
+//        ipt[machine->tlb[i].physicalPage].space->pageTable[ipt[machine->tlb[i].virtualPage]].valid = false;
+	}
+
+	(void) interrupt->SetLevel(oldLevel);
 }
 
 void AddrSpace::Dump()
@@ -320,37 +392,42 @@ int* AddrSpace::AddStack()
 		// copy all old pages to new pages
 		// allocate 8 new pages
 		// deallocate old one
-		TranslationEntry* oldPT = pageTable;
-		pageTable = new TranslationEntry[numPages + 8];
+
+		PTentry* oldPT = pageTable;
+		pageTable = new PTentry[numPages + 8];
 		unsigned int i;
+
 		for (i=0; i < numPages; i++) {
 			pageTable[i].virtualPage = oldPT[i].virtualPage;
-			pageTable[i].physicalPage = oldPT[i].physicalPage;
 			pageTable[i].valid = oldPT[i].valid;
 			pageTable[i].use = oldPT[i].use;
 			pageTable[i].dirty = oldPT[i].dirty;
 			pageTable[i].readOnly = oldPT[i].readOnly;
+			pageTable[i].byteoffset = oldPT[i].byteoffset;
+			pageTable[i].type = oldPT[i].type;
+			pageTable[i].location = oldPT[i].location;
+            pageTable[i].type = oldPT[i].type;
 		}
 
 		// update page table size (increase it by 8)
 		numPages += 8;
 
+		int ppn;
 		for (i; i < numPages; i++) {
-	//printf("i=%d\n", i);
+			ppn = memMap->Find();
+
 			pageTable[i].virtualPage = i;
-	/*			int* index = new int;
-				*index = i;
-				currentThread->pages->Append((void*)index);
-	*/
-			pageTable[i].physicalPage = memMap->Find();
-	//printf("pageTable[%d]=%d\n", i, pageTable[i].physicalPage);
-			pageTable[i].valid = TRUE;
+			pageTable[i].valid = FALSE;
 			pageTable[i].use = FALSE;
 			pageTable[i].dirty = FALSE;
 			pageTable[i].readOnly = FALSE;
+			pageTable[i].byteoffset = -1;
+			pageTable[i].type = NEITHER;
+			pageTable[i].location = NULL;
+            pageTable[i].type = NEITHER;
 		}
 
-		machine->pageTable = pageTable;
+//		machine->pageTable = pageTable; // using TLB instead of pageTable from now on
 
 		delete oldPT;
 
