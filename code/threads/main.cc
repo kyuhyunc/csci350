@@ -107,22 +107,22 @@ public:
 class ServerCV {
     
 public:
-    ServerCV(int s, int o, std::string n) {
-        state = s;
+    ServerCV(int o, std::string n) {
         owner = o;
         name = n;
         toBeDeleted = false;
         waitQ = new List();
         waitingLock = NULL;
+        clientCounter = 1;
     }
 public:
-    int state;
     int owner;
     std::string name;
     List * waitQ;
     bool toBeDeleted;
     ServerLock * waitingLock;
     int CVCounter;
+    int clientCounter;
 };
 
 class MonitorVariable {
@@ -259,6 +259,7 @@ void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const s
     for(unsigned int i = 0; i < ServerCVVector.size(); i++) {
         if(ServerCVVector[i] != NULL) {
             if(ServerCVVector[i]->name == name) {
+                ServerCVVector[i]->clientCounter++;
             	index = i;   
             break;
             }
@@ -267,7 +268,7 @@ void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const s
 
     if(index == -1) {
         index = ServerCVVector.size();
-        ServerCV * sCV = new ServerCV(AVAIL, inPktHdr.from, name);
+        ServerCV * sCV = new ServerCV(inPktHdr.from, name);
         sCV->waitQ = new List();
         sCV->CVCounter = 0;
         ServerCVVector.push_back(sCV);
@@ -308,12 +309,12 @@ void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
         ss << -1;
     } else {
         ss << index;
-        if(ServerCVVector[index]->state == AVAIL) {
+        //if all clients that create CV try to destroy CV, then server delete CV
+        ServerCVVector[index]->clientCounter--;
+        if(ServerCVVector[index]->clientCounter == 0) {
             ServerCV* sCV = ServerCVVector[index];
             ServerCVVector[index] = NULL;
             delete sCV;
-        }else{
-            ServerCVVector[index]->toBeDeleted = true;
         }
     } 
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
@@ -516,7 +517,12 @@ std::string SignalFunctionality(
             if(ServerCVVector[CVIndex]->waitQ->IsEmpty()) {
                 ServerCVVector[CVIndex]->waitingLock = NULL;
             }
-
+            //if all clients that create CV try to destroy CV, then server delete CV 
+            if(ServerCVVector[CVIndex]->clientCounter == 0) {
+                ServerCV* sCV = ServerCVVector[CVIndex];
+                ServerCVVector[CVIndex] = NULL;
+                delete sCV;
+            }
             ss.str("");
             ss << CVIndex;
         }
