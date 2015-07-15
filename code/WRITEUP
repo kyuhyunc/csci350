@@ -1,0 +1,346 @@
+Title:  Writeup for Project 3, Summer 2015
+Date:  07/15/2015
+Greg Berger                grberger@usc.edu        4180-9551-49
+Kyu Chang                kyuhyunc@usc.edu        5668-6984-00
+Taegyum Kim                taegyumk@usc.edu        3726-2416-03
+Jerry Zhang                jerryzha@usc.edu        1699-6550-17
+Richard Fu                fur@usc.edu        7753-2687-42
+
+I. Requirements:
+        + Part 1)                Implement software-management of the TLB(10 pt).
+                Implement software page translation for handling TLB misses
+                Set up TLB state properly on context switch
+                Make sure a single program that fits in the main memory runs to completion
++ Part 2)                Implement virtual memory(10 pt).
+        Implement a swap file for all Nachos processes and threads.
+        Implement inverted page table to keep track of all of the pages which are in use.
+        Implement Random page replacement and FIFO page replacement policies.
++ Part 3)          Implement remote procedure calls for the Lock and Condition Variable system call(15 pt).
+                Implement Handling Monitor Variables system call
+Implement those Lock/Condition Variable/Monitor Variable so that 
+1) System calls are made by clients(multiple instance of nachos) and are sent to server. As a result, server performs system call for client
+2) After system calls are made and sent to server, each client can share the Lock/CV/Monitor variable.
+
+
+
+
+
+II. Assumptions:
+        + Part 1) - Preload pages from the executable
++ Part 2) - There are only 32 pages of main memory
+        - Do not preload pages from the executable
++ Part 3)        - Multiple instance of nachos(multiple clients) can be run simultaneously with the server. 
+- Multiple instance of nachos(multiple clients) can share Locks/CVs with other clients so one client can have an effect on other clients. 
+-  Multiple instance of nachos(multiple clients) can share data with each other by sharing Monitor Variables that are placed in server.
+- There is only one mailbox for each instance of Nachos.  
+
+III. Design:
+        + Part 1) and Part 2)
+        + Data Structures
+                + Translation Lookaside Buffer (TLB)
+                        The TLB is a software simulation of hardware that stores page entries of the most recently used pages in physical memory.
+        + Inverted Page Table (IPT)
+                The IPT maps each page in physical memory to the appropriate virtual memory page and process.
+        + Handling Page Fault Exceptions
+                When the operating system attempts to execute an instruction living at a certain address, if the TLB does not contain an entry in physical memory of the virtual page containing that instruction, a Page Fault Exception is generated. The Exception Handler then looks in the IPT for the proper page and loads it into the TLB. Interrupts are disabled when the TLB is modified to prevent context switching from corrupting the TLB data.
+        + Handling IPT Misses
+                If the Exception Handler does not find the proper page in the IPT, then the virtual page has not been loaded into physical memory yet. The Exception Handler then allocates a physical page (that was either free to begin with or free after an eviction) and loads the proper virtual page into the physical page, then finally loads it into the TLB from the IPT (which now has the desired virtual page).
+        + Handling Evictions
+                If the IPT is full at the time the Exception Handler wants to load a virtual page into the IPT, the Exception Handler will evict a page currently in physical memory before proceeding to load the virtual page into physical memory and then into the TLB. We support two eviction algorithms:
+                + First in First Out (FIFO)
+                        The first page to be loaded into physical memory will be the first page to be evicted.
+                + Random (RAND)
+                        A random page will be selected to be evicted.
++ Part 3)
+* New syscalls 
+   * Locks
+      * Client Side Syscall implementation 
+         * Each syscall from the client side is implemented in a very similar way.
+            * Send a message to the Server with the following info:
+               * ID for which function the server should run
+               * the parameters for that function
+      * ServerLock
+         * ServerLock is a class defined and used in main.cc.
+         * It isn’t actually a lock, it just stores information about the lock, such as name and who owns it.
+      * Server Side Implementation of syscalls
+         * CreateLock
+            * If a lock with the same name exists, return the index of that lock.
+            * Otherwise, create a new lock, and return the index of that lock
+         * DestroyLock
+            * Keep count of how many owners there are, once all owners call destroyLock, then the server is free to destroy this lock
+         * Acquire
+            * If the lock is available, then the lock owner can be set to the requesting client.
+            * If the lock is not available, put the requesting client on a wait queue
+         * Release
+            * The client who called this release will release the lock, assuming they are the owner
+            * If there is anyone of the waitQ, then give this lock to the next client in the waitQ
+            * If the lock is ready to be deleted, then destroy the lock here.
+   * Condition Variables
+      * CreateCV
+         * Much like CreateLock, see description there. 
+      * DestroyCV
+         * Much like DestroyCV, see description there.
+      * Wait
+         * Assuming the error checks are valid, release the lock
+         * Then to simulate the equivalent of currentThread->Sleep(), we simply leave the client in postOffice->Receive() by not sending them a message. 
+      * Signal        
+         * Wake up the waiting client by putting them on the end of the lock’s waiting queue.
+      * Broadcast
+         * The server needs to call Signal for each client in the waiting queue.
+            * Although, we don’t want ALL of the functionality of signal. In particular, we do not want to send a message back to the caller of signal.
+            * Solution: We put the core functionalit of signal inside of a function. We called it signalfunctionality(). Broadcast calls this for every client in the waitQ. Also, Signal calls this function, then sends a message to the client who called this server function. 
+   * Monitor Variables
+      * class MonitorVariable
+         * All monitor variables are arrays of integers
+      * CreateMV
+         * Much like CreateLock, see description there. 
+      * DestroyMV
+         * Much like DestroyLock, see description there. 
+      * GetMV
+         * Parameters are the index of the MV and the index of the integer within that MV
+      * SetMV
+         * Parameters are the index of the MV, the index of the integer within that MV, and the value which the integer will be set to. 
+
+
+
+
+IV. Implementation:
++ Part 1) and Part 2)
+        + Files Modified:
+        userprog/execption.cc
+        userprog/addrspace.cc
+        userprog/addrspace.h
+        thread/system.cc
+        thread/system.h
+        
+        + Files added:
+        test/matmult2exec.c
+        test/matmult2fork.c
+        test/sort2exec.c
+        test/sort2for.c
+        vm/swapfile
+
+
+        + Data structure added:
+        class IPTentry {
+                int virtualPage;
+                int physicalPage;
+                bool valid;
+                bool readOnly;
+                bool use;
+                bool dirty;
+                AddrSpace * space;
+        };
+        enum evict_alg {
+                FIFO, RAND
+        };
+
+
+        + Data structures modified: 
+        class AddrSpace {
+                friend void PFEhandle(unsigned int badvaddr);
+friend int IPTMissHandle(int vpn);
+friend int MemFullHandle(int vpn);
+}
+        
+        + Functions modified:
+        void ExceptionHandler(ExceptionType which)    -- in file exception.cc
+        AddrSpace::AddrSpace(OpenFile *executable)  -- in file addrspace.cc
+        Initialize(int argc, char **argv)                                  -- in file system.cc
+
+
+        + Functions added:
+        void DumpTLB()                                               -- in file exception.cc
+void DumpIPT()                                                 -- in file exception.cc
+int MemFullHandle(int vpn)                            -- in file exception.cc
+int IPTMissHandle(int vpn)                              -- in file exception.cc
+void PFEhandle(unsigned int badvaddr)      -- in file exception.cc
+
+
+
+
++ Part 3)
+        + Files Modified
+            -  ../code/threads/main.cc
+            - ../code/userprog/exception.cc
+            - ../code/test/start.s
+            - ../code/userprog/syscall.h
+        
++ Files added - N/A
+
+
+
+                + Data Structures added, and the file they were added to.
+        class ServerLock {                    -- ../code/threads/main.cc
+    
+public:
+    ServerLock(int s, int o, std::string n) {
+        state = s;
+        owner = o;
+        name = n;
+        clientCounter = 1;
+    }
+public:
+    int state;
+    int owner;
+    std::string name;
+    List * waitQ;
+    int clientCounter;
+};
+
+
+       class ServerCV {                         -- ../code/threads/main.cc
+    
+public:
+    ServerCV(int o, std::string n) {
+        owner = o;
+        name = n;
+        toBeDeleted = false;
+        waitQ = new List();
+        waitingLock = NULL;
+        clientCounter = 1;
+    }
+public:
+    int owner;
+    std::string name;
+    List * waitQ;
+    bool toBeDeleted;
+    ServerLock * waitingLock;
+    int CVCounter;
+    int clientCounter;
+};
+
+
+        class MonitorVariable {              -- ../code/threads/main.cc
+public:
+    MonitorVariable(const int &vectSize, const std::string &n) 
+    :   vector(vectSize, 0),
+        name(n) 
+    {}
+    int size() {
+        return vector.size();
+    }
+    int& at(const int &index) {
+        return vector.at(index);
+    }
+public: 
+    std::string name;
+    std::vector<int> vector;
+};
+
+                + Data Structures modified, and the file they were added to -N/A
+                + Functions added and in which file.
+                        ----------->>> -- ../code/threads/main.cc
+                - void initializeNetworkMessageHeaders(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr,         MailHeader &outMailHdr, int dataLength)
+                - void sendMessage(const PacketHeader &inPktHdr, PacketHeader &outPktHdr,         const MailHeader &inMailHdr, MailHeader &outMailHdr, const std::string msg)
+                - void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name)
+                - void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index)
+                - void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name)
+                - void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index)
+                - void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index)
+                - void ReleaseFromWaitQ(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr, MailHeader &outMailHdr, const int &lockIndex)
+                - void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index)
+                - void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex)
+                - std::string SignalFunctionality( const PacketHeader &inPktHdr,  const MailHeader &inMailHdr, const int &LockIndex,  const int &CVIndex)
+                - void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex)
+                - void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex)
+                - void CreateMV( const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &size, Const std::string &name)
+                - void GetMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv, const int index)
+                - void SetMV( const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv, const int index, const int value) 
+                - void DestroyMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv) 
+                - void Server()
+                ----------->>> -- ../code/threads/main.cc
+----------->>> ../code/userprog/exception.cc
+                        - int CreateMV_Syscall(int vaddr, int nameLength, int size)
+                        - int GetMV_Syscall(int mv, int index)
+                        - int SetMV_Syscall(int mv, int index, int value)
+                - int DestroyMV_Syscall(int mv)
+        ----------->>> ../code/userprog/exception.cc
+
+
+----------->>> ../code/test/start.s
+        - CreateMV:
+        - GetMV:
+        - SetMV:
+        - DestroyMV:
+----------->>> ../code/test/start.s
+
+
+
+
+
+
+
+        + Functions modified and in which file.
+      ----------->>> ../code/userprog/exception.cc
+        - int CreateLock_Syscall(int vaddr, int size)
+        - int DestroyLock_Syscall(int index)
+        - int Acquire_Syscall(int index)
+        - int Release_Syscall(int index)
+        - int CreateCV_Syscall(int vaddr, int size)
+        - int DestroyCV_Syscall(int index) 
+        - int Wait_Syscall(int lockIndex, int CVIndex)
+        - int Signal_Syscall(int lockIndex, int CVIndex)
+        - int Broadcast_Syscall(int lockIndex, int CVIndex)
+        - void ExceptionHandler(ExceptionType which)
+     ----------->>> ../code/userprog/exception.cc
+
+
+V. Testing:  (For each test case, you must show)
+        + How to test
+                + Part 1) and Part 2)
+                        From the code/vm directory, run:
+                                nachos -x ../test/matmult2fork -P RAND -rs ___
+                                nachos -x ../test/matmult2fork -P FIFO -rs ___
+                                nachos -x ../test/matmult2exec -P RAND -rs ___
+                                nachos -x ../test/matmult2exec -P FIFO -rs ___
+                                nachos -x ../test/sort2fork -P RAND -rs ___
+                                nachos -x ../test/sort2fork -P FIFO -rs ___
+                                nachos -x ../test/sort2exec -P RAND -rs ___
+                                nachos -x ../test/sort2exec -P FIFO -rs ___
+                        For “___” after -rs, insert your own random numbers to test the robustness of nachos against context switching.
+                        If no “-P RAND|FIFO” argument is specified, the default IPT eviction algorithm will be FIFO.
+        + Part 3)
+                
+        + Test Output
+                + Part 1) and Part 2)
+                        For the matmult tests, the expected output will be:
+                                evict_type = “RAND|FIFO”
+                                Exit Value = 0
+                                Exit Value = 7220
+                                Exit Value = 7220
+                        For the sort tests, the expected output will be:
+                                evict_type = “RAND|FIFO”
+                                Exit Value = 0
+                                Exit Value = 1023
+                                Exit Value = 1023
+                        Note: when running without the “-P RAND|FIFO” argument, it will not print the evict_type.
+                        Note: the “Exit Value = 0” is from the main function that called the Exec or Fork Syscalls.
+        + Part 3)
+* There are several tests written in main() in the file: .../code/test/clientsim.c
+* 2 types of tests
+   * Automatically determined tests
+      * These are the default tests that will run
+      * There will be a print statement at the end of each test that determines whether a test passes or not
+      * There will also be a print statement at the very end that will let you know whether all tests pass or not.
+      * How to run
+         * start one instance of Nachos as a server
+            * nachos -m 0 -s
+   * Manually determined tests
+      * There are several commented out function calls in the top of main
+      * For these, we recommend uncommenting one test at a time because you will have to determine whether or not a test passed by looking at the print statements
+
+
+VI. Discussion:
+        + Experiment expectation.  (What you hope will happen.)
+        We were hoping to learn more about virtual memory and basic networking through this assignment. We also hoped that we would spend less time debugging.
+        + Experiment result.  (What actually happens.)
+        We spent less time on this project than in project 1 and project 2.
+        + Explanation
+                We developed a good understanding of the overall design before typing up any code. We made sure to ask a lot of questions to clarify any potential confusions on the assignment and on the nachos code.
+
+VIII. Miscellaneous:
+The code that is the hardest to debug is the code that you know cannot possibly be wrong.
+My software never has bugs. It just develops random features.
+        Bugs come in through open Windows.
+I’m not anti-social; I’m just not user friendly.
