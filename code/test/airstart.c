@@ -1,4 +1,4 @@
-/* testexit.c
+/* airstart.c
  */
 
 #include "syscall.h"

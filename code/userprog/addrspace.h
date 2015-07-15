@@ -22,6 +22,33 @@
 #define MaxOpenFiles 256
 #define MaxChildSpaces 256
 
+enum FileLocType {
+	EXECUTABLE,
+	SWAP,
+	NEITHER
+};
+
+class PTentry {
+  public:
+    int virtualPage;
+    bool valid;	// initialized to false
+					// when loaded into physical memory,
+						// set to true
+					// when evicted,
+						// set to false
+    bool readOnly;
+    bool use;
+    bool dirty; // Not gonna be used
+	int byteoffset;	// only applies to virutal pages that are in
+						// executable or swap
+	FileLocType type;
+	OpenFile* location; // location of the virtual page
+							// either in 1 of 3 places:
+								// 1) executable
+								// 2) swap
+								// 3) neither (stack space)
+};
+
 class AddrSpace {
   public:
     AddrSpace(OpenFile *executable);	// Create an address space,
@@ -38,15 +65,20 @@ class AddrSpace {
 
 
  private:
-    TranslationEntry *pageTable;	// Assume linear page table translation
-					// for now!
+	PTentry* pageTable;
+
     unsigned int numPages;		// Number of pages in the virtual 
 					// address space
 	
+	OpenFile* executable;
+
 	friend void StartProcess(char* filename);
 	friend void Fork_Syscall(int pc, unsigned int vaddr, int size);
 	friend void Exec_Syscall(unsigned int vaddr, int size);
 	friend void Exit_Syscall(int status);
+	friend void PFEhandle(unsigned int badvaddr);
+	friend int IPTMissHandle(int vpn);
+	friend int MemFullHandle(int vpn);
 
 	void Dump(); // debugging
 	int* AddStack(); // called by Fork_Syscall

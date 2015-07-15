@@ -355,6 +355,7 @@ void Fork_Syscall(int pc, unsigned int vaddr, int len) {
 }
 
 void kernel_exec(int pc) {
+//printf("In kernel_exec\n");
 	currentThread->space->InitRegisters();
 	currentThread->space->RestoreState();
 	machine->Run();
@@ -395,6 +396,8 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 	t->space = space;
 	//  t->threadtype = MAIN;
 	//  t->stackreg = currentThread->space->AddStack();
+//printf("AddrSpace = %x\n", space);
+//printf("Executable = %x\n", executable);
 
 	// add process to processTable
 	kernelProcess* kp = new kernelProcess();
@@ -410,12 +413,12 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 
 	t->Fork((VoidFunctionPtr)kernel_exec, 0);
 
-	delete executable;
+//	delete executable;
 	delete [] filename;
 }
 
 void Exit_Syscall(int status) {
-//printf("In Exit\n");
+printf("Exit Value = %d\n", status);
 	processLock->Acquire();
 
 	// check if this is the last process
@@ -451,21 +454,30 @@ void Exit_Syscall(int status) {
 		DEBUG('b', "last process and last thread\n");
 		// reclaim all pages
 		memlock->Acquire();
+        iptLock->Acquire();
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
-			for (unsigned int i=0; i < currentThread->space->numPages; i++) {
-				if (currentThread->space->pageTable[i].valid) {
-					memMap->Clear(currentThread->space->pageTable[i].physicalPage);
-					currentThread->space->pageTable[i].valid = FALSE;
+			for (int vpn=0; vpn < currentThread->space->numPages; vpn++) {
+				if (currentThread->space->pageTable[vpn].valid) {
+					int ppn = -1;
+					for (int j=0; j < NumPhysPages; j++) {
+						if (ipt[j].valid
+								&& ipt[j].virtualPage == vpn
+									&& ipt[j].space == currentThread->space) {
+							ppn = j;
+							break;
+						}
+					}
+					memMap->Clear(ppn);
+					ipt[ppn].valid = FALSE;
+					currentThread->space->pageTable[vpn].valid = FALSE;
 				}
 			}
 			currentThread->space->Dump();
-			/*int pageIndex = currentThread->stackVP;
-			for (unsigned int i=0; i < currentThread->space->numPages; i++) {
-				memMap->Clear(currentThread->space->pageTable[pageIndex].physicalPage);
-				currentThread->space->pageTable[pageIndex].valid = FALSE;
-				pageIndex--;
-			}*/
+        iptLock->Release();
 		memlock->Release();
+
+		// delete executable
+		delete currentThread->space->executable;
 
 		// reclaim all locks
 		DEBUG('b', "Deleted the following locks:\n");
@@ -514,14 +526,34 @@ void Exit_Syscall(int status) {
 	else if (kp->threadCount > 1) {
 		// reclaim pages
 		memlock->Acquire();
+        iptLock->Acquire();
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
-			int pageIndex = currentThread->stackVP;
+			int vpn = currentThread->stackVP;
 			for (int i=0; i < 8; i++) {
-				memMap->Clear(currentThread->space->pageTable[pageIndex].physicalPage);
-				currentThread->space->pageTable[pageIndex].valid = FALSE;
-				pageIndex--;
+				if (currentThread->space->pageTable[vpn].valid) {
+					int ppn = -1;
+					for (int j=0; j < NumPhysPages; j++) {
+						if (ipt[j].valid
+								&& ipt[j].virtualPage == vpn
+									&& ipt[j].space == currentThread->space
+                                        && ipt[j].use == false) {   // must check use bit for false
+                                                                // because it is possible that this
+                                                                // page is selected to be evicted
+                                                        // ** only need to do this for Case 2
+                                                        // because in Case 1 and 3, the entire program
+                                                        // is done running anyway
+							ppn = j;
+							break;
+						}
+					}
+					memMap->Clear(ppn);
+					ipt[ppn].valid = FALSE;
+					currentThread->space->pageTable[vpn].valid = FALSE;
+					vpn--;
+				}
 			}
 			currentThread->space->Dump();
+        iptLock->Release();
 		memlock->Release();
 
 		// decrement
@@ -538,15 +570,30 @@ void Exit_Syscall(int status) {
 		// reclaim pages
 		DEBUG('b', "not last process and 1 thread left\n");
 		memlock->Acquire();
+        iptLock->Acquire();
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
-			for (unsigned int i=0; i < currentThread->space->numPages; i++) {
-				if (currentThread->space->pageTable[i].valid) {
-					memMap->Clear(currentThread->space->pageTable[i].physicalPage);
-					currentThread->space->pageTable[i].valid = FALSE;
+			for (int vpn=0; vpn < currentThread->space->numPages; vpn++) {
+				if (currentThread->space->pageTable[vpn].valid) {
+					int ppn = -1;
+					for (int j=0; j < NumPhysPages; j++) {
+						if (ipt[j].valid
+								&& ipt[j].virtualPage == vpn
+									&& ipt[j].space == currentThread->space) {
+							ppn = j;
+							break;
+						}
+					}
+					memMap->Clear(ppn);
+					ipt[ppn].valid = FALSE;
+					currentThread->space->pageTable[vpn].valid = FALSE;
 				}
 			}
 			currentThread->space->Dump();
+        iptLock->Release();
 		memlock->Release();
+
+		// delete executable
+		delete currentThread->space->executable;
 
 		// reclaim all locks
 		DEBUG('b', "Deleted the following locks:\n");
@@ -2043,6 +2090,216 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
   delete [] buf;
 }
 
+void DumpTLB() {
+	printf("\t******TLB INFO******\n");
+
+	for (int i=0; i < TLBSize; i++) {
+		printf("\tTLB page %d: ppn = %d, vpn = %d, valid = %d, dirty = %d\n", i, machine->tlb[i].physicalPage, machine->tlb[i].virtualPage, machine->tlb[i].valid, machine->tlb[i].dirty);
+	}
+
+	printf("\t****END TLB INFO****\n");
+}
+
+void DumpIPT() {
+	printf("\t\t======IPT INFO======\n");
+
+	for (int i=0; i < NumPhysPages; i++) {
+		printf("\t\tIPT page %d: ppn = %d, vpn = %d, valid = %d, dirty = %d\n", i, ipt[i].physicalPage, ipt[i].virtualPage, ipt[i].valid, ipt[i].dirty);
+	}
+
+	printf("\t\t====END IPT INFO====\n");
+}
+
+/*
+	Evicts a page from memory (FIFO or RAND)
+	And returns evicted page number
+*/
+int MemFullHandle(int vpn) {
+    // Evict a page and save it to SWAP if necessary
+	int ppn = -1;
+	
+    iptLock->Acquire();
+	//**************
+	// FIFO eviction
+	//**************
+    if (evict_type == FIFO) {
+        int* temp = (int*) iptFIFOqueue->Remove();
+        ppn = *temp;
+        delete temp;
+    }
+	//**************
+	// RAND eviction
+	//**************
+    else if (evict_type == RAND) {
+//        ppn = rand() % NumPhysPages;
+        do {
+            ppn = rand() % NumPhysPages;
+        } while (ipt[ppn].use);
+        ipt[ppn].use = true;
+    }
+    iptLock->Release();
+
+//printf("Evicting ppn = %d, previously vpn = %d to make room for new vpn = %d\n", ppn, ipt[ppn].virtualPage, vpn);
+	
+	// check if ppn is in TLB
+	// if it is, must propogate dirty bit and invalidate it
+	for (int i=0; i < TLBSize; i++) {
+		if (ppn == machine->tlb[i].physicalPage && machine->tlb[i].valid) {
+			ipt[ppn].dirty = machine->tlb[i].dirty;
+			machine->tlb[i].valid = FALSE;
+			break;
+		}
+	}
+
+	// check if bit is dirty
+	// if it is, then write to SWAP file
+	if (ipt[ppn].valid && ipt[ppn].dirty) {
+
+		// find available SWAP bit
+		int swapbit = swapMap->Find();
+		if (swapbit == -1) {
+			printf("Make SwapMap bigger\n");
+			return -1;
+		}
+
+
+		// write to SWAP file
+//printf("Writing to swap file where swap bit = %d, vpn = %d\n", swapbit, ipt[ppn].virtualPage);
+		swapfile->WriteAt(
+			&(machine->mainMemory[ppn*PageSize]),
+			PageSize,
+			swapbit*PageSize);
+
+		// modify pageTable info
+		ipt[ppn].space->pageTable[ipt[ppn].virtualPage].byteoffset = swapbit*PageSize;
+		ipt[ppn].space->pageTable[ipt[ppn].virtualPage].type = SWAP;
+		ipt[ppn].space->pageTable[ipt[ppn].virtualPage].location = swapfile;
+		
+	}
+    
+    if (ipt[ppn].valid) {
+        ipt[ppn].space->pageTable[ipt[ppn].virtualPage].valid = FALSE;
+    }
+	
+
+	return ppn;
+}
+
+int IPTMissHandle(int vpn) {
+//printf("\t\tBefore updating IPT\n");
+//DumpIPT();
+	// find available physical page number
+	// (in step 3, we assume there is always space)
+    memlock->Acquire();
+        int ppn = memMap->Find();
+    memlock->Release();
+
+	if (ppn == -1) {
+		// if physical memory is full, handle it
+		// by evicting a page
+		ppn = MemFullHandle(vpn);
+	}
+
+	// populate IPT
+	ipt[ppn].virtualPage = vpn;
+	ipt[ppn].physicalPage = ppn;
+	ipt[ppn].valid = TRUE;
+	ipt[ppn].use = FALSE;
+	ipt[ppn].dirty = FALSE;
+	ipt[ppn].readOnly = FALSE;
+	ipt[ppn].space = currentThread->space;
+
+	// add ppn to IPT FIFO queue
+    if (evict_type == FIFO) {
+        int* ppntemp = new int;
+        *ppntemp = ppn;
+        iptFIFOqueue->Append((void*) ppntemp);
+    }
+
+	// load physical memory from executable or swap if necessary
+	if (currentThread->space->pageTable[vpn].byteoffset != -1) {
+		currentThread->space->pageTable[vpn].location->ReadAt(
+			&(machine->mainMemory[ppn*PageSize]),
+			PageSize,
+			currentThread->space->pageTable[vpn].byteoffset);
+		if (currentThread->space->pageTable[vpn].type == SWAP) {
+//printf("Reading from swap file where swap bit = %d, vpn = %d\n", currentThread->space->pageTable[vpn].byteoffset/PageSize, vpn);
+			swapMap->Clear(currentThread->space->pageTable[vpn].byteoffset/PageSize);
+            ipt[ppn].dirty = TRUE;
+		}
+	}
+	// load from swap file						***********************
+
+	
+	// update pageTable's valid bit
+	// (to synchronize with IPT)
+	currentThread->space->pageTable[vpn].valid = TRUE;
+
+//printf("\t\tAfter updating IPT\n");
+//DumpIPT();
+	return ppn;
+}
+
+void PFEhandle(unsigned int badvaddr) {
+//printf("\tBefore updating tlb:\n");
+//DumpTLB();
+
+	// calculate pageTable index
+	int vpn = badvaddr / PageSize;
+
+	int ppn = -1;
+
+	// find ppn in IPT
+//    iptLock->Acquire();
+    // since the use-bit is our "lock", technically the iptLock
+    // is not required here
+    for (int i=0; i < NumPhysPages; i++) {
+        // must meet these three conditions:
+        // 1) valid bit is true
+        // 2) matching virtual page number
+        // 3) matching AddrSpace *
+        if (ipt[i].valid
+                && ipt[i].virtualPage == vpn
+                    && ipt[i].space == currentThread->space) {
+            ppn = i;
+            break;
+        }
+    }
+//    iptLock->Release();
+
+	// if ppn is not found in IPT, it's an IPT-miss, so handle it
+	// by finding an available physical page
+	// and loading physical memory from proper location
+	if (ppn == -1) {
+		ppn = IPTMissHandle(vpn);
+	}
+
+	// disable interrupts
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+    
+        ipt[ppn].use = false;
+
+        // propogate dirty bit
+        // copy data from pageTable into TLB
+        if (machine->tlb[currentTLB].valid) {
+            ipt[machine->tlb[currentTLB].physicalPage].dirty = machine->tlb[currentTLB].dirty;
+        }
+        machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage;
+        machine->tlb[currentTLB].physicalPage = ipt[ppn].physicalPage;
+        machine->tlb[currentTLB].valid = ipt[ppn].valid;
+        machine->tlb[currentTLB].use = ipt[ppn].use;
+        machine->tlb[currentTLB].dirty = ipt[ppn].dirty;
+        machine->tlb[currentTLB].readOnly = ipt[ppn].readOnly;
+//printf("\tAfter updating tlb:\n");
+//DumpTLB();
+
+        // increment TLB pointer
+        currentTLB = (++currentTLB) % TLBSize;
+
+	// restore interrupts
+	(void) interrupt->SetLevel(oldLevel);
+}
+
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
     int rv=0;   // the return value from a syscall
@@ -2163,7 +2420,12 @@ void ExceptionHandler(ExceptionType which) {
 		machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
 		machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
 		return;
-    } else {
+    }
+	else if ( which == PageFaultException ) {
+		PFEhandle(machine->ReadRegister(39));
+		return;
+	}
+	else {
 		cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
 		interrupt->Halt();
     }
