@@ -2419,19 +2419,19 @@ void ExceptionHandler(ExceptionType which) {
 				rv = Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
 			case SC_CreateMV:
-				DEBUG('a', "Broadcast syscall.\n");
+				DEBUG('a', "SC_CreateMV syscall.\n");
 				rv = CreateMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
 				break;
 			case SC_GetMV:
-				DEBUG('a', "Broadcast syscall.\n");
+				DEBUG('a', "SC_GetMV syscall.\n");
 				rv = GetMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
 			case SC_SetMV:
-				DEBUG('a', "Broadcast syscall.\n");
+				DEBUG('a', "SC_SetMV syscall.\n");
 				rv = SetMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
 				break;
 			case SC_DestroyMV:
-				DEBUG('a', "Broadcast syscall.\n");
+				DEBUG('a', "SC_DestroyMV syscall.\n");
 				rv = DestroyMV_Syscall(machine->ReadRegister(4));
 				break;
 			case SC_Printf0:
