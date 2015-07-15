@@ -100,7 +100,7 @@ public:
     int owner;
     std::string name;
     List * waitQ;
-    bool toBeDeleted;
+    int clientCounter;
 };
 
 class ServerCV {
@@ -187,7 +187,8 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
         if (ServerLockVector[i] != NULL) {
 	        if(!ServerLockVector[i]->toBeDeleted) {
 	            if(ServerLockVector[i]->name.compare(name) == 0) {
-		            index = i;   
+		            index = i;
+                    ServerLockVector[i]->clientCounter++;   
                     std::cout << "    ****   FOUND AN OLD LOCK " << index << std::endl;
 		            break;
 	            } else {
@@ -205,8 +206,8 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
         index = ServerLockVector.size();
 
         ServerLock * sLock = new ServerLock(AVAIL, inPktHdr.from, name);
-        sLock->toBeDeleted = false;
         sLock->waitQ = new List();
+        clientCounter = 1;
         ServerLockVector.push_back(sLock);
     }
     PacketHeader outPktHdr;
@@ -246,16 +247,13 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
 
     } else {
         ss << index;
-        
-        if(ServerLockVector[index]->state == AVAIL) {
+        ServerLockVector[index]->clientCounter--;
+        if(ServerLockVector[index]->state == AVAIL && ServerLockVector[index]->clientCounter == 0) {
         	DEBUG('o', "SERVER is deleting lock %d\n", index);
         	ServerLock * sl = ServerLockVector[index];
             ServerLockVector[index] = NULL; /* TODO - this probably isn't necessary */
             delete sl;
-        } else {
-        	DEBUG('o', "SERVER is setting lock %d toBeDeleted\n", index);
-            ServerLockVector[index]->toBeDeleted = true;
-        }
+        } 
     } 
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     SLock->Release();
@@ -412,7 +410,7 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         if(!ServerLockVector[index]->waitQ->IsEmpty()) {
         	printf("    ****    2\n");
             ReleaseFromWaitQ(inPktHdr, outPktHdr, inMailHdr, outMailHdr, index);
-        } else if (ServerLockVector[index]->toBeDeleted) {
+        } else if (ServerLockVector[index]->clientCounter == 0) {
         	DEBUG('o', "Lock->Release() -- deleted isToBeDeleted lock\n");
         	ServerLock* sl = ServerLockVector[index];
         	ServerLockVector[index] = NULL;
