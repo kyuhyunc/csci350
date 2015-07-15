@@ -385,19 +385,18 @@ bool test10_broadcast() {
 *
 */
 int main() {
-	/*test0_createLock();*/
-	/*test1_deleteLock();*/
-	/*test2_acquireLock();*/
-	/*test3_releaseAndDestroy();*/
-	/*test4_createCV();*/
-	/*test5_destroyCV();*/
 	/*test6_waitAndSignal();*/
-	/*test7_createMV();*/
 	/*test8_setAndGetMV();*/
-	/*test9_deleteMV();*/
-	test10_broadcast();
-
-/*	if (
+	/*test10_broadcast();*/
+	if (
+		test0_createLock() &&
+		test1_deleteLock() &&
+		test2_acquireLock() &&
+		test3_releaseAndDestroy() &&
+		test4_createCV() &&
+		test5_destroyCV() &&
+		test7_createMV() &&
+		test9_deleteMV() &&
 		test0_createLock() &&
 		test1_deleteLock() &&
 		test2_acquireLock()
@@ -405,5 +404,5 @@ int main() {
 		Printf0("All tests passed!\n", sizeof("All tests passed!\n"));
 	} else {
 		Printf0("Not all tests passed...\n", sizeof("Not all tests passed...\n"));
-	}*/
+	}
 }
