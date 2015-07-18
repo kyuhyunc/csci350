@@ -420,7 +420,10 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 }
 
 void Exit_Syscall(int status) {
-printf("Exit Value = %d\n", status);
+#ifdef USE_TLB
+    // checks memory correctness for matmult and sort
+    printf("Exit Value = %d\n", status);
+#endif
 	processLock->Acquire();
 
 	// check if this is the last process
@@ -601,7 +604,7 @@ printf("Exit Value = %d\n", status);
         iptLock->Acquire();
 #endif // USE_TLB
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
-			for (int vpn=0; vpn < currentThread->space->numPages; vpn++) {
+			for (unsigned int vpn=0; vpn < currentThread->space->numPages; vpn++) {
 				if (currentThread->space->pageTable[vpn].valid) {
 #ifdef USE_TLB
 					int ppn = -1;
@@ -1848,173 +1851,136 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
     #endif
 }
 
+#ifdef NETWORK
+
+//**********************************************************************
+//				Project 3 Code
+//**********************************************************************
+
 int CreateMV_Syscall(int vaddr, int nameLength, int size) {
 
-	//**********************************************************************
-	//				Project 3 Code
-	//**********************************************************************
+    DEBUG('o', "Client called CreateMV\n");
 
-	#ifdef NETWORK 
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
 
-		DEBUG('o', "Client called CreateMV\n");
+    // Create StringStream -- put in function ID 
+    std::stringstream ss;
+    ss << CreateMV_SF;
+    ss << " ";
+    // Add lock name to stream
+    char *name = new char[nameLength+1]; // buffer to put the lock name in
+    if(copyin(vaddr, nameLength, name) == -1) {
+        //check if the pointer is valid one. if pointer is not valid, then return.
+        printf("error: Pointer is invalid(CreateLock)\n");
+        return -1;
+    }
+    ss << name;
+    delete[] name;
+    ss << " ";
+    // Add data size to stream
+    ss << nameLength;
 
-	    PacketHeader outPktHdr, inPktHdr;
-	    MailHeader outMailHdr, inMailHdr;
+    // array size
+    ss << " ";
+    ss << size;
 
-	    // Create StringStream -- put in function ID 
-		std::stringstream ss;
-		ss << CreateMV_SF;
-		ss << " ";
-		// Add lock name to stream
-		char *name = new char[nameLength+1]; // buffer to put the lock name in
-		if(copyin(vaddr, nameLength, name) == -1) {
-			//check if the pointer is valid one. if pointer is not valid, then return.
-			printf("error: Pointer is invalid(CreateLock)\n");
-			return -1;
-		}
-		ss << name;
-	    delete[] name;
-		ss << " ";
-		// Add data size to stream
-		ss << nameLength;
+    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-		// array size
-		ss << " ";
-		ss << size;
+    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+    int result = -1; // -1 is error
+    ss >> result;
 
-	    sendMessage(outPktHdr, outMailHdr, ss.str());
+    return result;
 
-	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
-	    int result = -1; // -1 is error
-	    ss >> result;
-
-	    return result;
-
-	//**********************************************************************
-	//				END Project 3 Code
-	//**********************************************************************
-
-	#else
-	    return -1;
-    #endif
 }
 
 int GetMV_Syscall(int mv, int index) {
-	//**********************************************************************
-	//				Project 3 Code
-	//**********************************************************************
 
-	#ifdef NETWORK 
+    DEBUG('o', "Client called GetMV\n");
 
-		DEBUG('o', "Client called GetMV\n");
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
 
-	    PacketHeader outPktHdr, inPktHdr;
-	    MailHeader outMailHdr, inMailHdr;
+    // Create StringStream -- put in function ID 
+    std::stringstream ss;
+    ss << GetMV_SF;
+    ss << " ";
+    ss << mv;
+    ss << " ";
+    ss << index;
 
-	    // Create StringStream -- put in function ID 
-		std::stringstream ss;
-		ss << GetMV_SF;
-		ss << " ";
-		ss << mv;
-		ss << " ";
-		ss << index;
+    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	    sendMessage(outPktHdr, outMailHdr, ss.str());
+    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+    int result = -1; // -1 is error
+    ss >> result;
 
-	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
-	    int result = -1; // -1 is error
-	    ss >> result;
+    DEBUG('o', "Client GotMV #%d\n", result);
 
-	    DEBUG('o', "Client GotMV #%d\n", result);
+    return result;
 
-	    return result;
-
-	//**********************************************************************
-	//				END Project 3 Code
-	//**********************************************************************
-
-	#else
-	    return -1;
-    #endif
 }
 
 int SetMV_Syscall(int mv, int index, int value) {
-	//**********************************************************************
-	//				Project 3 Code
-	//**********************************************************************
 
-	#ifdef NETWORK 
+    DEBUG('o', "Client called SetMV\n");
 
-		DEBUG('o', "Client called SetMV\n");
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
 
-	    PacketHeader outPktHdr, inPktHdr;
-	    MailHeader outMailHdr, inMailHdr;
+    // Create StringStream -- put in function ID 
+    std::stringstream ss;
+    ss << SetMV_SF;
+    ss << " ";
+    ss << mv;
+    ss << " ";
+    ss << index;
+    ss << " ";
+    ss << value;
 
-	    // Create StringStream -- put in function ID 
-		std::stringstream ss;
-		ss << SetMV_SF;
-		ss << " ";
-		ss << mv;
-		ss << " ";
-		ss << index;
-		ss << " ";
-		ss << value;
+    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	    sendMessage(outPktHdr, outMailHdr, ss.str());
+    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+    int result = -1; // -1 is error
+    ss >> result;
 
-	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
-	    int result = -1; // -1 is error
-	    ss >> result;
+    DEBUG('o', "Client SetMV #%d\n", result);
 
-	    DEBUG('o', "Client SetMV #%d\n", result);
+    return result;
 
-	    return result;
-
-	//**********************************************************************
-	//				END Project 3 Code
-	//**********************************************************************
-
-	#else
-	    return -1;
-    #endif
 }
 
 int DestroyMV_Syscall(int mv) {
-	//**********************************************************************
-	//				Project 3 Code
-	//**********************************************************************
 
-	#ifdef NETWORK 
+    DEBUG('o', "Client called DestroyMV\n");
 
-		DEBUG('o', "Client called DestroyMV\n");
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
 
-	    PacketHeader outPktHdr, inPktHdr;
-	    MailHeader outMailHdr, inMailHdr;
+    // Create StringStream -- put in function ID 
+    std::stringstream ss;
+    ss << DestroyMV_SF;
+    ss << " ";
+    ss << mv;
 
-	    // Create StringStream -- put in function ID 
-		std::stringstream ss;
-		ss << DestroyMV_SF;
-		ss << " ";
-		ss << mv;
+    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	    sendMessage(outPktHdr, outMailHdr, ss.str());
+    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+    int result = -1; // -1 is error
+    ss >> result;
 
-	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
-	    int result = -1; // -1 is error
-	    ss >> result;
+    DEBUG('o', "Client DestroyEDMV #%d\n", result);
 
-	    DEBUG('o', "Client DestroyEDMV #%d\n", result);
+    return result;
 
-	    return result;
-
-	//**********************************************************************
-	//				END Project 3 Code
-	//**********************************************************************
-
-	#else
-	    return -1;
-    #endif
 }
+
+#endif // NETWORK
+
+//**********************************************************************
+//				END Project 3 Code
+//**********************************************************************
 
 void Printf0_Syscall(unsigned int vaddr, int len) {
 	// Supposed to work similarly to a standard C printf function
@@ -2459,6 +2425,7 @@ void ExceptionHandler(ExceptionType which) {
 				DEBUG('a', "Broadcast syscall.\n");
 				rv = Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
+#ifdef NETWORK 
 			case SC_CreateMV:
 				DEBUG('a', "SC_CreateMV syscall.\n");
 				rv = CreateMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
@@ -2475,6 +2442,7 @@ void ExceptionHandler(ExceptionType which) {
 				DEBUG('a', "SC_DestroyMV syscall.\n");
 				rv = DestroyMV_Syscall(machine->ReadRegister(4));
 				break;
+#endif // NETWORK
 			case SC_Printf0:
 				DEBUG('a', "Printf0 syscall.\n");
 				Printf0_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));

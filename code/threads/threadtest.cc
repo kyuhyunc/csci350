@@ -2198,7 +2198,7 @@ void TEST5() {
 void AirTest() {
 
     while(true) {
-        int i;
+        int choice;
         std::cout<<"Select TESTING Menu"<<std::endl;
         std::cout<<"1.  Test 1  : Passenger selects the shortest line for the aiport liaison"<<std::endl;
         std::cout<<"2.  Test 2  : Passenger is directed by the Liaison to the correct airline counters"<<std::endl;
@@ -2212,8 +2212,8 @@ void AirTest() {
         std::cout<<"10. Test 10 : Handing over of boarding pass by the passenger to the security inspector"<<std::endl;
         std::cout<<"11. QUIT "<<std::endl;
 
-        std::cin>>i;
-        if(i == 1) {
+        std::cin>>choice;
+        if(choice == 1) {
             std::cout<<"TESTING 1"<<std::endl;
             semaBool = true;
             stopSIM1 = true;
@@ -2242,9 +2242,9 @@ void AirTest() {
             NUM_PASSENGERS = 0;
             NUM_LIASONS = 0;
             liaisons[0]->_lineSize = 0;
-            Semaphore t1("t1",0);
+//            Semaphore t1("t1",0);
             continue;
-        }else if(i == 2) {
+        }else if(choice == 2) {
             std::cout<<"TESTING 2"<<std::endl;
             semaBool = true;
             stopSIM1 = true;
@@ -2280,10 +2280,10 @@ void AirTest() {
             NUM_LIASONS = 0;
             NUM_AIRLINES = 0;
             NUM_CIS_PER_AIRLINE = 0;
-            Semaphore t1("t1",0);
+//            Semaphore t1("t1",0);
             temp2 = 0;
             continue;
-        }else if(i == 3) {
+        }else if(choice == 3) {
           std::cout<<"TESTING 3"<<std::endl;
             semaBool = true;
             stopSIM1 = true;
@@ -2311,9 +2311,9 @@ void AirTest() {
             NUM_PASSENGERS = 0;
             NUM_LIASONS = 0;
             liaisons[0]->_lineSize = 0;
-            Semaphore t1("t1",0);
+//            Semaphore t1("t1",0);
             continue;
-        }else if(i == 4) {
+        }else if(choice == 4) {
             std::cout<<"TESTING 4"<<std::endl;
             semaExe = true; 
             printf("Test4 : Executive class passengers are given priority over the economy class passengers at the check-in kiosks\n");
@@ -2346,11 +2346,11 @@ void AirTest() {
             NUM_CIS_PER_AIRLINE = 0;
             semaExe = false;
             semaExe1 = false; 
-            Semaphore t4("t4",0);
-            Semaphore t1("t1",0);
-            Semaphore t4_1("t4_1",0);     
+//            Semaphore t4("t4",0);
+//            Semaphore t1("t1",0);
+//            Semaphore t4_1("t4_1",0);     
             continue;
-        }else if(i == 5) {
+        }else if(choice == 5) {
             std::cout<<"TESTING 5"<<std::endl;
             semaBool = true;
             stopSIM1 = true;
@@ -2386,30 +2386,30 @@ void AirTest() {
             NUM_LIASONS = 0;
             NUM_AIRLINES = 0;
             NUM_CIS_PER_AIRLINE = 0;
-            Semaphore t1("t1",0);
+//            Semaphore t1("t1",0);
             temp2 = 0;
             continue;
-        }else if(i == 6) {
+        }else if(choice == 6) {
             std::cout<<"TESTING 6"<<std::endl;  
             //put function  
             continue;
-        }else if(i == 7) {
+        }else if(choice == 7) {
             std::cout<<"TESTING 7"<<std::endl;  
             //put function  
             continue;
-        }else if(i == 8) {
+        }else if(choice == 8) {
             std::cout<<"TESTING 8"<<std::endl;  
             //put function  
             continue;
-        }else if(i == 9) {
+        }else if(choice == 9) {
             std::cout<<"TESTING 9"<<std::endl;
             //put function      
             continue;
-        }else if(i == 10) {
+        }else if(choice == 10) {
             std::cout<<"TESTING 10"<<std::endl; 
             //put function  
             continue;
-        }else if(i == 11) {
+        }else if(choice == 11) {
             std::cout<<"QUIT"<<std::endl;   
             break;
         }else{
