@@ -36,20 +36,19 @@ extern Machine* machine;	// user program memory and registers
 extern Lock* memlock;		// prevent race condition b/c memory is shared among processes
 #include "bitmap.h"
 extern BitMap* memMap;		// keeps track of pages in pageTable
-
 #include "table.h"			// keep track of kernel data structures
 #define NumLocks	1000
-#define NumCVs		1000
-#define NumProcesses	10
 extern Table* locktable;
 extern Lock* locktablelock;
+#define NumCVs		1000
 extern Table* cvtable;
 extern Lock* cvtablelock;
-extern Lock* processLock;
+#define NumProcesses	10
 extern Table* processTable;
+extern Lock* processLock;
 
 struct kernelLock {			// kernel data structures
-Lock * lock;
+    Lock * lock;
 	AddrSpace * adds;
 	bool isToBeDeleted;
 	int counter;
@@ -83,9 +82,7 @@ struct kernelProcess {
 	bool* cvs;
 };
 
-
-extern int currentTLB;				// TLB tracker
-
+#ifdef USE_TLB
 class IPTentry {			// for IPT
   public:
 	int virtualPage;
@@ -97,6 +94,7 @@ class IPTentry {			// for IPT
 	AddrSpace * space;
 };
 
+extern int currentTLB;				// TLB tracker
 extern IPTentry* ipt;		// for IPT
 extern List* iptFIFOqueue;	// for IPT eviction
 extern Lock* iptLock;       // IPT race condition prevention
@@ -109,10 +107,11 @@ extern BitMap* swapMap;			// for checking SWAP file availability
 enum evict_alg {
     FIFO, RAND
 };
-
 extern evict_alg evict_type;
 
-#endif
+#endif // USE_TLB
+
+#endif // USER_PROGRAM
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 
 #include "filesys.h"

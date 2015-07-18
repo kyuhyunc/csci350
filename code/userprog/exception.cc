@@ -394,10 +394,6 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 		t->stackVP = space->numPages - 1;
 	memlock->Release();
 	t->space = space;
-	//  t->threadtype = MAIN;
-	//  t->stackreg = currentThread->space->AddStack();
-//printf("AddrSpace = %x\n", space);
-//printf("Executable = %x\n", executable);
 
 	// add process to processTable
 	kernelProcess* kp = new kernelProcess();
@@ -413,7 +409,13 @@ void Exec_Syscall(unsigned int vaddr, int len) {
 
 	t->Fork((VoidFunctionPtr)kernel_exec, 0);
 
-//	delete executable;
+#ifdef USE_TLB
+    // do NOT delete executable
+    // an evicted page may reside in executable,
+    // so we must wait until Exit before we delete it
+#else // use pageTable
+	delete executable;
+#endif // USE_TLB
 	delete [] filename;
 }
 
@@ -441,7 +443,7 @@ printf("Exit Value = %d\n", status);
 		}
 	}
 	if (PID == -1) {
-		printf("Error: invalid process identifier (Fork_Syscall)\n");
+		printf("Error: invalid process identifier (Exec_Syscall)\n");
 		processLock->Release();
 		return;
 	}
@@ -454,8 +456,11 @@ printf("Exit Value = %d\n", status);
 		DEBUG('b', "last process and last thread\n");
 		// reclaim all pages
 		memlock->Acquire();
+#ifdef USE_TLB
         iptLock->Acquire();
+#endif // USE_TLB
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
+#ifdef USE_TLB
 			for (int vpn=0; vpn < currentThread->space->numPages; vpn++) {
 				if (currentThread->space->pageTable[vpn].valid) {
 					int ppn = -1;
@@ -472,12 +477,24 @@ printf("Exit Value = %d\n", status);
 					currentThread->space->pageTable[vpn].valid = FALSE;
 				}
 			}
+#else // use pageTable
+            for (unsigned int i=0; i < currentThread->space->numPages; i++) {
+                if (currentThread->space->pageTable[i].valid) {
+                    memMap->Clear(currentThread->space->pageTable[i].physicalPage);
+                    currentThread->space->pageTable[i].valid = FALSE;
+                }
+            }
+#endif // USE_TLb
 			currentThread->space->Dump();
+#ifdef USE_TLB
         iptLock->Release();
+#endif // USE_TLB
 		memlock->Release();
 
+#ifdef USE_TLB
 		// delete executable
 		delete currentThread->space->executable;
+#endif // USE_TLB
 
 		// reclaim all locks
 		DEBUG('b', "Deleted the following locks:\n");
@@ -503,6 +520,7 @@ printf("Exit Value = %d\n", status);
 		}
 		DEBUG('b', "\n");
 
+/*
 		// delete process
 		processTable->Remove(PID);
 		delete kp;
@@ -515,6 +533,7 @@ printf("Exit Value = %d\n", status);
 		delete cvtable;
 		delete processTable;
 		delete processLock;
+*/
 
 		// terminate program
 		interrupt->Halt();
@@ -526,11 +545,14 @@ printf("Exit Value = %d\n", status);
 	else if (kp->threadCount > 1) {
 		// reclaim pages
 		memlock->Acquire();
+#ifdef USE_TLB
         iptLock->Acquire();
+#endif // USE_TLB
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
 			int vpn = currentThread->stackVP;
 			for (int i=0; i < 8; i++) {
 				if (currentThread->space->pageTable[vpn].valid) {
+#ifdef USE_TLB
 					int ppn = -1;
 					for (int j=0; j < NumPhysPages; j++) {
 						if (ipt[j].valid
@@ -548,12 +570,17 @@ printf("Exit Value = %d\n", status);
 					}
 					memMap->Clear(ppn);
 					ipt[ppn].valid = FALSE;
+#else // use pageTable
+                    memMap->Clear(currentThread->space->pageTable[vpn].physicalPage);
+#endif // USE_TLB
 					currentThread->space->pageTable[vpn].valid = FALSE;
 					vpn--;
 				}
 			}
 			currentThread->space->Dump();
+#ifdef USE_TLB
         iptLock->Release();
+#endif // USE_TLB
 		memlock->Release();
 
 		// decrement
@@ -570,10 +597,13 @@ printf("Exit Value = %d\n", status);
 		// reclaim pages
 		DEBUG('b', "not last process and 1 thread left\n");
 		memlock->Acquire();
+#ifdef USE_TLB
         iptLock->Acquire();
+#endif // USE_TLB
 			DEBUG('b', "stackVP = %d\n", currentThread->stackVP);
 			for (int vpn=0; vpn < currentThread->space->numPages; vpn++) {
 				if (currentThread->space->pageTable[vpn].valid) {
+#ifdef USE_TLB
 					int ppn = -1;
 					for (int j=0; j < NumPhysPages; j++) {
 						if (ipt[j].valid
@@ -585,15 +615,22 @@ printf("Exit Value = %d\n", status);
 					}
 					memMap->Clear(ppn);
 					ipt[ppn].valid = FALSE;
+#else // use pageTable
+                    memMap->Clear(currentThread->space->pageTable[vpn].physicalPage);
+#endif // USE_TLB
 					currentThread->space->pageTable[vpn].valid = FALSE;
 				}
 			}
 			currentThread->space->Dump();
+#ifdef USE_TLB
         iptLock->Release();
+#endif // USE_TLB
 		memlock->Release();
 
 		// delete executable
+#ifdef USE_TLB
 		delete currentThread->space->executable;
+#endif // USE TLB
 
 		// reclaim all locks
 		DEBUG('b', "Deleted the following locks:\n");
@@ -2124,6 +2161,8 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
   delete [] buf;
 }
 
+#ifdef USE_TLB
+
 void DumpTLB() {
 	printf("\t******TLB INFO******\n");
 
@@ -2334,6 +2373,8 @@ void PFEhandle(unsigned int badvaddr) {
 	(void) interrupt->SetLevel(oldLevel);
 }
 
+#endif // USE_TLB
+
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
     int rv=0;   // the return value from a syscall
@@ -2455,10 +2496,12 @@ void ExceptionHandler(ExceptionType which) {
 		machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
 		return;
     }
+#ifdef USE_TLB
 	else if ( which == PageFaultException ) {
 		PFEhandle(machine->ReadRegister(39));
 		return;
 	}
+#endif // USE_TLB
 	else {
 		cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
 		interrupt->Halt();

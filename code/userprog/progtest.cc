@@ -42,7 +42,13 @@ DEBUG('b', "Initialized stackVP = %d\n", space->numPages - 1);
     currentThread->space = space;
 //	currentThread->threadtype = MAIN;
 
-//    delete executable;			// close file
+#ifdef USE_TLB
+    // do NOT delete executable
+    // on IPT-miss, the page might be loaded from executable
+    // must save executable until the process calls Exit
+#else // use pageTable
+    delete executable;			// close file
+#endif // USE_TLb
 
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register

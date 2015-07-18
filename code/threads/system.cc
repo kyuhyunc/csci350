@@ -29,26 +29,26 @@ SynchDisk   *synchDisk;
 
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
-
-Lock* memlock;		// other kernel data structures
+Lock* memlock;      // available physical memory
 BitMap* memMap;
-Table* locktable;
+Table* locktable;		// other kernel data structures
 Lock* locktablelock;
 Table* cvtable;
 Lock* cvtablelock;
 Table* processTable;
 Lock* processLock;
 
+#ifdef USE_TLB
 int currentTLB;		// TLB tracker
 IPTentry* ipt;		// Inverted Page Table
 List* iptFIFOqueue;	// IPT eviction
 Lock* iptLock;      // IPT race condition prevention
-
 OpenFile* swapfile;		// SWAP file
 BitMap* swapMap;		// SWAP bitmap
-
 evict_alg evict_type;
-#endif
+#endif // USE_TLB
+
+#endif // USER_PROGRAM
 
 #ifdef NETWORK
 PostOffice *postOffice;
@@ -103,9 +103,12 @@ Initialize(int argc, char **argv)
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
 
+#ifdef USE_TLB
     evict_type = FIFO; // default evicting algorithm is FIFO
     srand(time(NULL));
-#endif
+#endif // USE_TLB
+
+#endif // USER_PROGRAM
 #ifdef FILESYS_NEEDED
     bool format = FALSE;	// format disk
 #endif
@@ -133,6 +136,7 @@ Initialize(int argc, char **argv)
 #ifdef USER_PROGRAM
 	if (!strcmp(*argv, "-s"))
 	    debugUserProg = TRUE;
+#ifdef USE_TLB
     else if (!strcmp(*argv, "-P")) {
         ASSERT(argc > 1);
         char* type = *(argv + 1);
@@ -150,8 +154,8 @@ printf("evict_type = FIFO\n");
         }
         argCount = 2;
     }
-
-#endif
+#endif // USE_TLB
+#endif // USER_PROGRAM
 #ifdef FILESYS_NEEDED
 	if (!strcmp(*argv, "-f"))
 	    format = TRUE;
@@ -189,7 +193,6 @@ printf("evict_type = FIFO\n");
     
 #ifdef USER_PROGRAM
     machine = new Machine(debugUserProg);	// this must come first
-
 	memlock = new Lock("MemoryLock");		// initialize kernel data trackers
 	memMap = new BitMap(NumPhysPages);
 	locktable = new Table(NumLocks);
@@ -199,17 +202,18 @@ printf("evict_type = FIFO\n");
 	processTable = new Table(NumProcesses);
 	processLock = new Lock("ProcessLock");
 
+#ifdef USE_TLB
 	currentTLB = 0;					// initialize TLB
 	ipt = new IPTentry[NumPhysPages];	// initialize IPT
 	iptFIFOqueue = new List();			// IPT eviction
-
 	swapfile = fileSystem->Open("../vm/.swapfile");
 	if (swapfile == NULL) {
 		printf("Unable to open swapfile\n");
 	}
 	swapMap = new BitMap(SwapSize);
     iptLock = new Lock("IPTLock");
-#endif
+#endif // USE_TLB
+#endif // USER_PROGRAM
 
 #ifdef FILESYS
     synchDisk = new SynchDisk("DISK");
@@ -238,6 +242,12 @@ Cleanup()
     
 #ifdef USER_PROGRAM
     delete machine;
+    delete memlock;
+    delete memMap;
+    delete locktable;
+    delete cvtable;
+    delete processTable;
+    delete processLock;
 #endif
 
 #ifdef FILESYS_NEEDED
