@@ -67,16 +67,13 @@ extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
 
-extern void AirportSim();
-extern void AirTest();
-extern void ClientSim(); // Project 3
-
+extern void AirportSim();   // Project 1 Airport Simulation
+extern void AirTest();      // Project 1 Airport Testing
+extern void ClientSim();    // Project 3 Networking
 
 #ifdef NETWORK
 //----------------------------------------------------------------------
-//
-//  Server Lock/CV implementation starts
-//  
+//  Server Lock/CV Global Variables and Function Prototypes
 //----------------------------------------------------------------------
 
 Lock* SLock;
@@ -88,7 +85,6 @@ enum state {
 };
 
 class ServerLock {
-    
 public:
     ServerLock(int s, int o, std::string n) {
         state = s;
@@ -105,7 +101,6 @@ public:
 };
 
 class ServerCV {
-    
 public:
     ServerCV(int o, std::string n) {
         owner = o;
@@ -131,21 +126,166 @@ public:
     :   vector(vectSize, 0),
         name(n) 
     {}
-    int size() {
-        return vector.size();
-    }
-    int& at(const int &index) {
-        return vector.at(index);
-    }
+    int size() { return vector.size(); }
+    int& at(const int &index) { return vector.at(index); }
 public: 
-    std::string name;
     std::vector<int> vector;
+    std::string name;
 };
 
 
 std::vector<ServerLock*> ServerLockVector;
 std::vector<ServerCV*> ServerCVVector;
 std::vector< MonitorVariable* > MonitorVars;
+
+// Function Prototypes
+void initializeNetworkMessageHeaders(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr, MailHeader &outMailHdr, int dataLength);
+void sendMessage(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr, MailHeader &outMailHdr, const std::string msg);
+void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name);
+void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index);
+void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name);
+void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index);
+void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index);
+void ReleaseFromWaitQ(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr, MailHeader &outMailHdr, const int &lockIndex);
+void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index);
+void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex);
+std::string SignalFunctionality(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex);
+void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex);
+void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex);
+void CreateMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &size,const std::string &name);
+void GetMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv, const int index);
+void SetMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv, const int index, const int value);
+void DestroyMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv);
+void Server();
+
+
+#endif // NETWORK
+
+
+
+//----------------------------------------------------------------------
+// main
+// 	Bootstrap the operating system kernel.  
+//	
+//	Check command line arguments
+//	Initialize data structures
+//	(optionally) Call test procedure
+//
+//	"argc" is the number of command line arguments (including the name
+//		of the command) -- ex: "nachos -d +" -> argc = 3 
+//	"argv" is an array of strings, one for each command line argument
+//		ex: "nachos -d +" -> argv = {"nachos", "-d", "+"}
+//----------------------------------------------------------------------
+
+int
+main(int argc, char **argv)
+{
+    int argCount;			// the number of arguments 
+					// for a particular command
+
+    DEBUG('t', "Entering main\n");
+    (void) Initialize(argc, argv);
+    
+#ifdef THREADS
+//    ThreadTest();
+	while(true) {
+		int i;
+		std::cout<<"Select Menu"<<std::endl;
+
+		std::cout<<"1. TESTING "<<std::endl;
+		std::cout<<"2. SIMULATION"<<std::endl;
+		std::cin>>i;
+		if(i == 1) {
+			std::cout<<"You chose TESTING"<<std::endl;
+			AirTest();
+			break;
+		}else if(i == 2) {
+			std::cout<<"You chose SIMUATION"<<std::endl;
+			AirportSim();
+			break;
+		}else{
+			std::cout<<"You select wrong number try again."<<std::endl;
+			continue;
+		}
+	}
+
+#endif // THREADS
+
+    for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
+	argCount = 1;
+        if (!strcmp(*argv, "-z"))               // print copyright
+            printf (copyright);
+#ifdef USER_PROGRAM
+        if (!strcmp(*argv, "-x")) {        	// run a user program
+	    ASSERT(argc > 1);
+            StartProcess(*(argv + 1));
+            argCount = 2;
+        } else if (!strcmp(*argv, "-c")) {      // test the console
+	    if (argc == 1)
+	        ConsoleTest(NULL, NULL);
+	    else {
+		ASSERT(argc > 2);
+	        ConsoleTest(*(argv + 1), *(argv + 2));
+	        argCount = 3;
+	    }
+	    interrupt->Halt();		// once we start the console, then 
+					// Nachos will loop forever waiting 
+					// for console input
+    }
+
+#endif // USER_PROGRAM
+#ifdef FILESYS
+	if (!strcmp(*argv, "-cp")) { 		// copy from UNIX to Nachos
+	    ASSERT(argc > 2);
+	    Copy(*(argv + 1), *(argv + 2));
+	    argCount = 3;
+	} else if (!strcmp(*argv, "-p")) {	// print a Nachos file
+	    ASSERT(argc > 1);
+	    Print(*(argv + 1));
+	    argCount = 2;
+	} else if (!strcmp(*argv, "-r")) {	// remove Nachos file
+	    ASSERT(argc > 1);
+	    fileSystem->Remove(*(argv + 1));
+	    argCount = 2;
+	} else if (!strcmp(*argv, "-l")) {	// list Nachos directory
+            fileSystem->List();
+	} else if (!strcmp(*argv, "-D")) {	// print entire filesystem
+            fileSystem->Print();
+	} else if (!strcmp(*argv, "-t")) {	// performance test
+            PerformanceTest();
+	}
+#endif // FILESYS
+#ifdef NETWORK
+        if (!strcmp(*argv, "-o")) {
+	    ASSERT(argc > 1);
+            Delay(2); 				// delay for 2 seconds
+						// to give the user time to 
+						// start up another nachos
+            MailTest(atoi(*(argv + 1)));
+            argCount = 2;
+        } else if (!strcmp(*argv, "-s")) {
+        	Server();
+        }
+#endif // NETWORK
+    }
+    currentThread->Finish();	// NOTE: if the procedure "main" 
+				// returns, then the program "nachos"
+				// will exit (as any other normal program
+				// would).  But there may be other
+				// threads on the ready list.  We switch
+				// to those threads by saying that the
+				// "main" thread is finished, preventing
+				// it from returning.
+    return(0);			// Not reached...
+}
+
+#ifdef NETWORK
+//----------------------------------------------------------------------
+//
+//  Server Lock/CV implementation starts
+//  
+//----------------------------------------------------------------------
+
 
 void initializeNetworkMessageHeaders(
 		const PacketHeader &inPktHdr, 
@@ -226,7 +366,7 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
     MailHeader outMailHdr;
 
     std::stringstream ss;
-    if(index < 0 || index >= ServerLockVector.size()) {
+    if(index < 0 || static_cast<unsigned int>(index) >= ServerLockVector.size()) {
         //if invalid index is passed in, then you need to 
         printf("Lock does not exist in vector.(Destory)\n.");
         //send -1 to client so client know they can't properly destroy lock.
@@ -297,7 +437,7 @@ void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
     MailHeader outMailHdr;
 
     std::stringstream ss;
-    if(index < 0 || index >= ServerCVVector.size()) {
+    if(index < 0 || static_cast<unsigned int>(index) >= ServerCVVector.size()) {
         //if invalid index is passed in, then you need to 
         printf("CV does not exist in vector.(DestoryCV)\n.");
         //send -1 to client so client know they can't properly destroy lock.
@@ -328,7 +468,7 @@ void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
     MailHeader outMailHdr;
     std::stringstream ss;
     //check if the lock is null or in the vector. Issue error message if client can't properly acquire the lock
-    if(index < 0 || index >= ServerLockVector.size()) {
+    if(index < 0 || static_cast<unsigned int>(index) >= ServerLockVector.size()) {
         printf("Invalid index is passed in. Can't Acquire Lock.(Acquire)\n.");
         ss << -1;
 
@@ -391,7 +531,7 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
     std::stringstream ss;
     //check if invalid pointer is passed and Lock is NULL
     //if so, server needs to send -1 to client so client know there's something wrong 
-    if(index < 0 || index >= ServerLockVector.size()) {
+    if(index < 0 || static_cast<unsigned int>(index) >= ServerLockVector.size()) {
         printf("Invalid index is passed in. Can't Acquire Lock.(Acquire)\n.");
         ss << -1;
 
@@ -423,11 +563,11 @@ void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &
     MailHeader outMailHdr;
     std::stringstream ss;
     //check if the lock/CV is null or in the vector. Issue error message if client can't properly wait
-    if(LockIndex < 0 || LockIndex >= ServerLockVector.size()) {
+    if(LockIndex < 0 || static_cast<unsigned int>(LockIndex) >= ServerLockVector.size()) {
         printf("Invalid Lock index is passed in. Can't process wait.(Wait)\n.");
         ss << -1;
 
-    }else if(CVIndex < 0 || CVIndex >= ServerCVVector.size()) {
+    }else if(CVIndex < 0 || static_cast<unsigned int>(CVIndex) >= ServerCVVector.size()) {
         printf("Invalid CV index is passed in. Can't process wait.(Wait)\n.");
         ss << -1;
 
@@ -470,11 +610,11 @@ std::string SignalFunctionality(
     MailHeader outMailHdr;
     std::stringstream ss;
     //check if the lock/CV is null or in the vector. Issue error message if client can't properly signal
-    if(LockIndex < 0 || LockIndex >= ServerLockVector.size()) {
+    if(LockIndex < 0 || static_cast<unsigned int>(LockIndex) >= ServerLockVector.size()) {
         printf("Invalid Lock index is passed in. Can't process Signal.(Signal)\n.");
         ss << -1;
 
-    }else if(CVIndex < 0 || CVIndex >= ServerCVVector.size()) {
+    }else if(CVIndex < 0 || static_cast<unsigned int>(CVIndex) >= ServerCVVector.size()) {
         printf("Invalid CV index is passed in. Can't process Signal.(Signal)\n.");
         ss << -1;
 
@@ -599,7 +739,7 @@ void GetMV(
 {
     MVLock->Acquire();
     std::stringstream ss;
-    if (mv < 0 || mv >= MonitorVars.size()) {
+    if (mv < 0 || static_cast<unsigned int>(mv) >= MonitorVars.size()) {
         printf("Invalid MV: %d in GetMV, array size: %d \n", mv, MonitorVars.size());
         ss << -1;
     } else if (MonitorVars.at(mv) == NULL) {
@@ -627,7 +767,7 @@ void SetMV(
     MVLock->Acquire();
     //
     std::stringstream ss;
-    if ( mv < 0 || mv >= MonitorVars.size() ) {
+    if ( mv < 0 || static_cast<unsigned int>(mv) >= MonitorVars.size() ) {
         printf("Invalid MV: %d in SetMV , array size: %d \n", mv, MonitorVars.size());
         ss << -1;
     }else if (MonitorVars.at(mv) == NULL) {
@@ -656,7 +796,7 @@ void DestroyMV(
     MVLock->Acquire();
     //
     std::stringstream ss;
-    if (mv < 0 || mv >= MonitorVars.size()) {
+    if (mv < 0 || static_cast<unsigned int>(mv) >= MonitorVars.size()) {
         printf("Invalid MV: %d in GetMV\n", mv);
         ss << -1;
     } else {
@@ -777,123 +917,5 @@ void Server() {
     interrupt->Halt();
 }
 
-#endif
-/* end Server */
-
-
-//----------------------------------------------------------------------
-// main
-// 	Bootstrap the operating system kernel.  
-//	
-//	Check command line arguments
-//	Initialize data structures
-//	(optionally) Call test procedure
-//
-//	"argc" is the number of command line arguments (including the name
-//		of the command) -- ex: "nachos -d +" -> argc = 3 
-//	"argv" is an array of strings, one for each command line argument
-//		ex: "nachos -d +" -> argv = {"nachos", "-d", "+"}
-//----------------------------------------------------------------------
-
-int
-main(int argc, char **argv)
-{
-    int argCount;			// the number of arguments 
-					// for a particular command
-
-    DEBUG('t', "Entering main\n");
-    (void) Initialize(argc, argv);
-    
-#ifdef THREADS
-//    ThreadTest();
-	while(true) {
-		int i;
-		std::cout<<"Select Menu"<<std::endl;
-
-		std::cout<<"1. TESTING "<<std::endl;
-		std::cout<<"2. SIMULATION"<<std::endl;
-		std::cin>>i;
-		if(i == 1) {
-			std::cout<<"You chose TESTING"<<std::endl;
-			AirTest();
-			break;
-		}else if(i == 2) {
-			std::cout<<"You chose SIMUATION"<<std::endl;
-			AirportSim();
-			break;
-		}else{
-			std::cout<<"You select wrong number try again."<<std::endl;
-			continue;
-		}
-	}
-
-#endif
-
-    for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
-	argCount = 1;
-        if (!strcmp(*argv, "-z"))               // print copyright
-            printf (copyright);
-#ifdef USER_PROGRAM
-        if (!strcmp(*argv, "-x")) {        	// run a user program
-	    ASSERT(argc > 1);
-            StartProcess(*(argv + 1));
-            argCount = 2;
-        } else if (!strcmp(*argv, "-c")) {      // test the console
-	    if (argc == 1)
-	        ConsoleTest(NULL, NULL);
-	    else {
-		ASSERT(argc > 2);
-	        ConsoleTest(*(argv + 1), *(argv + 2));
-	        argCount = 3;
-	    }
-	    interrupt->Halt();		// once we start the console, then 
-					// Nachos will loop forever waiting 
-					// for console input
-    }
-
-#endif // USER_PROGRAM
-#ifdef FILESYS
-	if (!strcmp(*argv, "-cp")) { 		// copy from UNIX to Nachos
-	    ASSERT(argc > 2);
-	    Copy(*(argv + 1), *(argv + 2));
-	    argCount = 3;
-	} else if (!strcmp(*argv, "-p")) {	// print a Nachos file
-	    ASSERT(argc > 1);
-	    Print(*(argv + 1));
-	    argCount = 2;
-	} else if (!strcmp(*argv, "-r")) {	// remove Nachos file
-	    ASSERT(argc > 1);
-	    fileSystem->Remove(*(argv + 1));
-	    argCount = 2;
-	} else if (!strcmp(*argv, "-l")) {	// list Nachos directory
-            fileSystem->List();
-	} else if (!strcmp(*argv, "-D")) {	// print entire filesystem
-            fileSystem->Print();
-	} else if (!strcmp(*argv, "-t")) {	// performance test
-            PerformanceTest();
-	}
-#endif // FILESYS
-#ifdef NETWORK
-        if (!strcmp(*argv, "-o")) {
-	    ASSERT(argc > 1);
-            Delay(2); 				// delay for 2 seconds
-						// to give the user time to 
-						// start up another nachos
-            MailTest(atoi(*(argv + 1)));
-            argCount = 2;
-        } else if (!strcmp(*argv, "-s")) {
-        	Server();
-        }
 #endif // NETWORK
-    }
-    currentThread->Finish();	// NOTE: if the procedure "main" 
-				// returns, then the program "nachos"
-				// will exit (as any other normal program
-				// would).  But there may be other
-				// threads on the ready list.  We switch
-				// to those threads by saying that the
-				// "main" thread is finished, preventing
-				// it from returning.
-    return(0);			// Not reached...
-}
-
+/* end Server */
