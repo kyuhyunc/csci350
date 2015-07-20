@@ -382,9 +382,7 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
         ServerLockVector[index]->clientCounter--;
         if(ServerLockVector[index]->state == AVAIL && ServerLockVector[index]->clientCounter == 0) {
         	DEBUG('o', "SERVER is deleting lock %d\n", index);
-        	ServerLock * sl = ServerLockVector[index];
-            ServerLockVector[index] = NULL; /* TODO - this probably isn't necessary */
-            delete sl;
+            delete ServerLockVector[index];
         } 
     } 
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
@@ -452,9 +450,8 @@ void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
         //if all clients that create CV try to destroy CV, then server delete CV
         ServerCVVector[index]->clientCounter--;
         if(ServerCVVector[index]->clientCounter == 0) {
-            ServerCV* sCV = ServerCVVector[index];
-            ServerCVVector[index] = NULL;
-            delete sCV;
+            DEBUG('o', "Server is deleting CV %d\n", index);
+            delete ServerCVVector[index];
         }
     } 
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
@@ -704,7 +701,7 @@ void CreateMV(
     const int &size,
     const std::string &name
 ) {
-    SLock->Acquire();
+    MVLock->Acquire();
     std::stringstream ss;
     int index = -1;
     for(unsigned int i = 0; i < MonitorVars.size(); i++) {
@@ -728,7 +725,7 @@ void CreateMV(
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
     sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
-    SLock->Release();
+    MVLock->Release();
 }
 
 void GetMV(
