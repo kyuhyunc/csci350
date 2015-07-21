@@ -197,10 +197,15 @@ bool SecurityFailResults[NUM_PASSENGERS];
 char concatString[100];
 char* concatNumToString(char* str, int length, int num) { /* TODO - Not working Properly */
 	int i;
-	for (i=0; i < length; i++) {
+	for (i=0; i < length - 1; i++) {
 		concatString[i] = str[i];
 	}
-	concatString[length] = (char)num;
+	if (num >= 10) {
+		concatString[length - 1] = '0' + num/10;
+	} else {
+		concatString[length - 1] = '0';
+	}
+	concatString[length] = '0' + num % 10;
 	return concatString;
 }
 
