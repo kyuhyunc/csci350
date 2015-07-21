@@ -52,6 +52,8 @@ evict_alg evict_type;
 
 #ifdef NETWORK
 PostOffice *postOffice;
+Lock* MailBoxInitNumLock;
+int MailBoxInitNum;
 #endif
 
 
@@ -225,6 +227,8 @@ printf("evict_type = FIFO\n");
 
 #ifdef NETWORK
     postOffice = new PostOffice(netname, rely, 10);
+    MailBoxInitNumLock = new Lock("MailBoxInitNumLock");
+    MailBoxInitNum = 0;
 #endif
 }
 

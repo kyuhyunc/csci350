@@ -32,7 +32,6 @@
 
 using namespace std;
 
-#define MAILBOX 1
 
 #ifdef NETWORK
 
@@ -46,7 +45,7 @@ void initNetworkMessageHeaders(PacketHeader &ph, MailHeader &mh, int dataLength)
     ph.to = SERVER_NETWORK_ID;
     // mh
     mh.to = SERVER_NETWORK_ID;
-    mh.from = MAILBOX; 
+    mh.from = currentThread->mailboxNum; 
     mh.length = dataLength + 1;
 }
 
@@ -710,7 +709,7 @@ int CreateLock_Syscall(int vaddr, int size) {
 
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+	    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );
 	    int lockID = -1; // -1 is error
 	    ss >> lockID;
 
@@ -837,7 +836,7 @@ int DestroyLock_Syscall(int index) {
 	DEBUG('o', "Client is about to Receive message in DestroyLock\n");
     char buffer[MaxMailSize];
     // Wait for message from server -- comes with lock ID
-    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+    postOffice->Receive(currentThread->mailboxNum, &inPktHdr, &inMailHdr, buffer);
     fflush(stdout);
     // Retrieve lock ID/index
     ss.str(""); // clear stringstream
@@ -973,7 +972,7 @@ int Acquire_Syscall(int index) {
 	DEBUG('o', "Client is about to Receive message in AcuireLOCK\n");
     char buffer[MaxMailSize];
     // Wait for message from server -- comes with lock ID
-    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+    postOffice->Receive(currentThread->mailboxNum, &inPktHdr, &inMailHdr, buffer);
     fflush(stdout);
 
     // Retrieve lock ID/index
@@ -1069,7 +1068,7 @@ int Release_Syscall(int index) {
 
     char buffer[MaxMailSize];
     // Wait for message from server -- comes with lock ID
-    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+    postOffice->Receive(currentThread->mailboxNum, &inPktHdr, &inMailHdr, buffer);
     fflush(stdout);
 
     // Retrieve lock ID/index
@@ -1214,7 +1213,7 @@ int CreateCV_Syscall(int vaddr, int size) {
 
 	    char buffer[MaxMailSize];
 	    // Wait for message from server -- comes with lock ID
-	    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+	    postOffice->Receive(currentThread->mailboxNum, &inPktHdr, &inMailHdr, buffer);
 	    fflush(stdout);
 
 	    // Retrieve lock ID/index
@@ -1346,7 +1345,7 @@ int DestroyCV_Syscall(int index) {
 		DEBUG('o', "Client is about to Receive message in DestroyCV\n");
 	    char buffer[MaxMailSize];
 	    // Wait for message from server -- comes with lock ID
-	    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+	    postOffice->Receive(currentThread->mailboxNum, &inPktHdr, &inMailHdr, buffer);
 	    fflush(stdout);
 	    // Retrieve lock ID/index
 	    ss.str(""); // clear stringstream
@@ -1479,7 +1478,7 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
 
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );	    
+	    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );	    
 	    int result = -1; // -1 is error
 	    ss >> result;
 
@@ -1639,7 +1638,7 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
 
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+	    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );
 	    int result = -1; // -1 is error
 	    ss >> result;
 
@@ -1753,7 +1752,7 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+	    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );
 	    int result = -1; // -1 is error
 	    ss >> result;
 
@@ -1887,7 +1886,7 @@ int CreateMV_Syscall(int vaddr, int nameLength, int size) {
 
     sendMessage(outPktHdr, outMailHdr, ss.str());
 
-    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );
     int result = -1; // -1 is error
     ss >> result;
 
@@ -1912,7 +1911,7 @@ int GetMV_Syscall(int mv, int index) {
 
     sendMessage(outPktHdr, outMailHdr, ss.str());
 
-    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );
     int result = -1; // -1 is error
     ss >> result;
 
@@ -1941,7 +1940,7 @@ int SetMV_Syscall(int mv, int index, int value) {
 
     sendMessage(outPktHdr, outMailHdr, ss.str());
 
-    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );
     int result = -1; // -1 is error
     ss >> result;
 
@@ -1966,7 +1965,7 @@ int DestroyMV_Syscall(int mv) {
 
     sendMessage(outPktHdr, outMailHdr, ss.str());
 
-    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );
     int result = -1; // -1 is error
     ss >> result;
 
@@ -2476,4 +2475,3 @@ void ExceptionHandler(ExceptionType which) {
     }
 }
 
-#undef MAILBOX

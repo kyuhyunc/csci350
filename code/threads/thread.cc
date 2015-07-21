@@ -47,6 +47,12 @@ Thread::Thread(char* threadName)
 	index = -1;
 	stackreg = -1;
 #endif
+#ifdef NETWORK
+    MailBoxInitNumLock->Acquire();
+    mailboxNum = MailBoxInitNum;
+    MailBoxInitNum++;
+    MailBoxInitNumLock->Release();
+#endif
 }
 
 //----------------------------------------------------------------------
