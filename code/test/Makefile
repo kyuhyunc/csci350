@@ -122,6 +122,11 @@ clientsim: clientsim.o start.o
 	$(LD) $(LDFLAGS) start.o clientsim.o -o clientsim.coff
 	../bin/coff2noff clientsim.coff clientsim
 
+create.o: create.h
+	$(CC) $(CFLAGS) -c create.h
+create: create.o start.o
+	$(LD) $(LDFLAGS) start.o create.o -o create.coff
+	../bin/coff2noff create.coff create
 
 clean:
 	rm -f *.o *.coff
