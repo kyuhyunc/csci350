@@ -31,7 +31,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
-all: halt matmult sort matmult2exec matmult2fork sort2exec sort2fork testfiles testprint testexit testexithelper airportsim airstart clientsim create
+all: halt matmult sort matmult2exec matmult2fork sort2exec sort2fork testfiles testprint testexit testexithelper airportsim airstart clientsim
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -104,7 +104,7 @@ testexithelper: testexithelper.o start.o
 	$(LD) $(LDFLAGS) start.o testexithelper.o -o testexithelper.coff
 	../bin/coff2noff testexithelper.coff testexithelper
 
-airportsim.o: airportsim.c
+airportsim.o: airportsim.c create.h
 	$(CC) $(CFLAGS) -c airportsim.c
 airportsim: airportsim.o start.o
 	$(LD) $(LDFLAGS) start.o airportsim.o -o airportsim.coff
@@ -122,13 +122,7 @@ clientsim: clientsim.o start.o
 	$(LD) $(LDFLAGS) start.o clientsim.o -o clientsim.coff
 	../bin/coff2noff clientsim.coff clientsim
 
-create.o: create.h
-	$(CC) $(CFLAGS) -c create.h
-create: create.o start.o
-	$(LD) $(LDFLAGS) start.o create.o -o create.coff
-	../bin/coff2noff create.coff create
-
 clean:
 	rm -f *.o *.coff
-	rm halt sort matmult sort2exec sort2fork matmult2exec matmult2fork testfiles testprint testexit testexithelper airportsim airstart clientsim create
+	rm halt sort matmult sort2exec sort2fork matmult2exec matmult2fork testfiles testprint testexit testexithelper airportsim airstart clientsim
 	rm *~
