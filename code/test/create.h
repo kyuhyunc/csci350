@@ -58,6 +58,18 @@
 #define ManAllSODone 3
 #define ManAllSIDone 4
 
+/* Security Inspectors */
+#define SIID 0
+#define SIRtnPassSize 1
+#define SIState 2
+#define SILock 3
+#define SICommCV 4
+#define SIRtnPassCV 5
+#define SINewPassCV 6
+#define SIRtnPassenger 7
+#define SINewPassenger 8
+#define SIPassCount 9
+
 /* States */
 #define AVAIL 0
 #define BUSY 1
@@ -67,6 +79,7 @@ int passengers;
 int airlines;
 int cargoHandlers;
 int manager;
+int securityInspectors;
 char concatString[100];
 
 /* Function Declarations */
@@ -75,6 +88,8 @@ void doCreates();
 void createAirlines();
 void createCIS(int airline);
 void createCargoHandlers();
+void createManager();
+void createSecurityInspectors();
 char* concatNumToString(char* str, int length, int num);
 
 /* Function Implementations */
@@ -86,6 +101,7 @@ void doCreates() {
 	createAirlines();
 	createCargoHandlers();
 	createManager();
+	createSecurityInspectors();
 
 
 	/* Passengers */
@@ -249,7 +265,7 @@ void createCIS(int airline) {
 }
 
 void createCargoHandlers() {
-	int i, ch, tempMV;
+	int i, ch, temp;
 	cargoHandlers = CreateMV(
 						"cargoHandlers",
 						sizeof("cargoHandlers"),
@@ -273,7 +289,7 @@ void createCargoHandlers() {
 		*	Init Cargo Handler 
 		*/
 		/* CHCommCV */
-		tempMV = CreateCV(
+		temp = CreateCV(
 					concatNumToString(
 						"CHCommCV",
 						sizeof("CHCommCV"),
@@ -281,13 +297,13 @@ void createCargoHandlers() {
 					),
 					sizeof("CHCommCV") + 2
 				);
-		SetMV(ch, CHCommCV, tempMV);
+		SetMV(ch, CHCommCV, temp);
 
 		/* CHState */
 		SetMV(ch, CHState, BUSY);
 
 		/* CHBagCount */
-		tempMV = CreateMV(
+		temp = CreateMV(
 					concatNumToString(
 						"CHBagCount"
 						sizeof("CHBagCount"),
@@ -299,7 +315,7 @@ void createCargoHandlers() {
 		SetMV(ch, CHBagCount, BUSY);
 
 		/* CHWeightCount */
-		tempMV = CreateMV(
+		temp = CreateMV(
 					concatNumToString(
 						"CHWeightCount"
 						sizeof("CHWeightCount"),
@@ -323,6 +339,91 @@ void createManager() {
 	SetMV(manager, ManAllCargoDone, 0);
 	SetMV(manager, ManAllSODone, 0);
 	SetMV(manager, ManAllSIDone, 0);
+}
+
+void createSecurityInspectors() {
+	int i, temp, si;
+
+	/* Init MV for all SIs */
+	securityInspectors = CreateMV(
+							"securityInspectors",
+							sizeof("securityInspectors"),
+							NUM_SECURITY_INSPECTORS
+						);
+
+	/* Create all SIs */
+	for (i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
+		/* 
+		*	Create SI 
+		*/
+		si = CreateMV(
+					concatNumToString(
+						"SI",
+						sizeof("SI"),
+						i
+					),
+					sizeof("SI") + 2,
+					10
+				);
+		/* Add SI to array of SIs */
+		SetMV(securityInspectors, i, si);
+		
+		/*
+		*	Init SI
+		*/
+		/* SIID */
+		SetMV(si, SIID, si); /* ID is MV ID */
+		/* SIRtnPassSize */
+		SetMV(si, SIRtnPassSize, 0);
+		/* SIState */
+		SetMV(si, SIState, BUSY);
+		/* SILock */
+		temp = CreateLock(
+					concatNumToString(
+						"SILock",
+						sizeof("SILock"),
+						i
+					),
+					sizeof("SILock") + 2
+				);
+		SetMV(si, SILock, temp);
+		/* SICommCV */
+		temp = CreateCV(
+					concatNumToString(
+						"SICommCV",
+						sizeof("SICommCV"),
+						i
+					),
+					sizeof("SICommCV") + 2
+				);
+		SetMV(si, SICommCV, temp);
+		/* SIRtnPassCV */
+		temp = CreateCV(
+					concatNumToString(
+						"SIRtnPassCV",
+						sizeof("SIRtnPassCV"),
+						i
+					),
+					sizeof("SIRtnPassCV") + 2
+				);
+		SetMV(si, SIRtnPassCV, temp);
+		/* SINewPassCV */
+		temp = CreateCV(
+					concatNumToString(
+						"SINewPassCV",
+						sizeof("SINewPassCV"),
+						i
+					),
+					sizeof("SINewPassCV") + 2
+				);
+		SetMV(si, SINewPassCV, temp);
+		/* SIRtnPassenger */
+		SetMV(si, SIRtnPassenger, -1);
+		/* SINewPassenger */
+		SetMV(si, SINewPassenger, -1);
+		/* SIPassCount */
+		SetMV(si, SIPassCount, 0);
+	}
 }
 
 char* concatNumToString(char* str, int length, int num) { /* TODO - Not working Properly */
