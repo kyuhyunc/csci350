@@ -4,17 +4,10 @@
 	Airport Simulation - User Program
  
  */
-#include "syscall.h"
+#include "create.h"
 
 #define NULL 0
 
-#define NUM_PASSENGERS 10
-#define	NUM_LIASONS 5
-#define	NUM_AIRLINES 2
-#define	NUM_CIS_PER_AIRLINE 3
-#define	NUM_CARGO_HANDLERS 9
-#define	NUM_SCREENING_OFFICERS 8
-#define	NUM_SECURITY_INSPECTORS 8
 
 typedef int bool;
 enum bool {false, true};
@@ -194,20 +187,6 @@ bool SecurityFailResults[NUM_PASSENGERS];
 /*
 	Utilities	
 */
-char concatString[100];
-char* concatNumToString(char* str, int length, int num) { /* TODO - Not working Properly */
-	int i;
-	for (i=0; i < length - 1; i++) {
-		concatString[i] = str[i];
-	}
-	if (num >= 10) {
-		concatString[length - 1] = '0' + num/10;
-	} else {
-		concatString[length - 1] = '0';
-	}
-	concatString[length] = '0' + num % 10;
-	return concatString;
-}
 
 int concat3Num(int i, int j, int k) {
 	return 1000000 * i + 1000 * j + k;
