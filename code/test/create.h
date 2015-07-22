@@ -639,11 +639,11 @@ void createPassengers() {
 		*/
 		pass = CreateMV(
 					concatNumToString(
-						"",
-						sizeof(),
+						"Passenger",
+						sizeof("Passenger"),
 						i
 					),
-					sizeof() + 3,
+					sizeof("Passenger") + 3,
 
 				);
 
@@ -723,21 +723,6 @@ void createPassengers() {
 				GetMV(airline, AirlineWeightCount) + bagWeight
 			);
 		}
-
-		/*  */
-		SetMV(pass, , );
-
-		/*  */
-		SetMV(pass, , );
-
-		/*  */
-		SetMV(pass, , );
-
-#define PassNumBaggages 6
-#define PassTicketExecutive 7
-#define PassTicketAirline 8
-#define PassTicketSeat 9
-
 	}
 
 
