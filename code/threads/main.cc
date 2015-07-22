@@ -267,10 +267,6 @@ main(int argc, char **argv)
             MailTest(atoi(*(argv + 1)));
             argCount = 2;
         } else if (!strcmp(*argv, "-s")) {
-            // read in number of servers
-            NumServers = atoi(*(argv + 1));
-            DEBUG('z', "NumServers = %d\n", NumServers);
-
             // For distributed servers,
             // Create 2 threads:
                 // 1 for receiving requests from clients
@@ -279,7 +275,6 @@ main(int argc, char **argv)
             sfc->Fork((VoidFunctionPtr)ServerFromClient, 0);
 /*            Thread* sfs = new Thread("ServerFromServer");
             sfs->Fork((VoidFunctionPtr)ServerFromServer, 1);*/
-            argCount = 2;
         }
 #endif // NETWORK
     }

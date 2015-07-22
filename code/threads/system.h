@@ -151,6 +151,7 @@ extern PostOffice* postOffice;
 extern Lock* MailBoxInitNumLock;
 extern int MailBoxInitNum;
 extern int NumServers;
+extern uint64_t* lastTimeStampReceived;
 
 
 #endif
