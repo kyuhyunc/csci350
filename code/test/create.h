@@ -45,6 +45,12 @@
 #define CISAirline 9
 #define CISDone 10
 
+/* CargoHandler */
+#define CHCommCV 0
+#define CHState 1
+#define CHBagCount 2
+#define CHWeightCount 3
+
 /* States */
 #define AVAIL 0
 #define BUSY 1
@@ -52,6 +58,7 @@
 
 int passengers;
 int airlines;
+int cargoHandlers;
 char concatString[100];
 
 /* Function Declarations */
@@ -59,6 +66,7 @@ char concatString[100];
 void doCreates();
 void createAirlines();
 void createCIS(int airline);
+void createCargoHandlers();
 char* concatNumToString(char* str, int length, int num);
 
 /* Function Implementations */
@@ -68,6 +76,8 @@ void doCreates() {
 	int passenger;
 
 	createAirlines();
+	createCargoHandlers();
+
 
 	/* Passengers */
 	passengers = CreateMV("passengers", sizeof("passengers"), NUM_PASSENGERS);
@@ -229,6 +239,65 @@ void createCIS(int airline) {
 	}
 }
 
+void createCargoHandlers() {
+	int i, ch, tempMV;
+	cargoHandlers = CreateMV(
+						"cargoHandlers",
+						sizeof("cargoHandlers"),
+						NUM_CARGO_HANDLERS
+					);
+	for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
+		/* 
+		*	Create Cargo Handler 
+		*/
+		ch = CreateMV(
+				concatNumToString(
+					"cargoHandler"
+					sizeof("cargoHandler"),
+					i),
+				sizeof("cargoHandler") + 2,
+				4
+			);
+		SetMV(cargoHandlers, i, ch);
+
+		/* 
+		*	Init Cargo Handler 
+		*/
+		tempMV = CreateCV(
+					concatNumToString(
+						"CHCommCV",
+						sizeof("CHCommCV"),
+						i
+					),
+					sizeof("CHCommCV") + 2
+				);
+		SetMV(ch, CHCommCV, tempMV);
+
+		SetMV(ch, CHState, BUSY);
+
+		tempMV = CreateMV(
+					concatNumToString(
+						"CHBagCount"
+						sizeof("CHBagCount"),
+						i
+					),
+					sizeof("CHBagCount") + 2,
+					NUM_AIRLINES
+				);
+		SetMV(ch, CHBagCount, BUSY);
+
+		tempMV = CreateMV(
+					concatNumToString(
+						"CHWeightCount"
+						sizeof("CHWeightCount"),
+						i
+					),
+					sizeof("CHWeightCount") + 2,
+					NUM_AIRLINES
+				);
+		SetMV(ch, CHWeightCount, BUSY);
+	}
+}
 
 char* concatNumToString(char* str, int length, int num) { /* TODO - Not working Properly */
 	int i;
