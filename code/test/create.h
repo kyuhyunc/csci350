@@ -79,6 +79,16 @@
 #define SOMyNum 5
 #define SODone 6
 
+/* Liaison */
+#define LiaisonLock 0
+#define LiaisonLineCV 1
+#define LiaisonCommCV 2
+#define LiaisonLineSize 3
+#define LiaisonState 4
+#define LiaisonPassCount 5
+#define LiaisonBagCount 6
+#define LiaisonCurrentPassenger 7
+
 /* States */
 #define AVAIL 0
 #define BUSY 1
@@ -90,6 +100,7 @@ int cargoHandlers;
 int manager;
 int securityInspectors;
 int screeningOfficers;
+int liaisons;
 char concatString[100];
 
 /* Function Declarations */
@@ -101,6 +112,7 @@ void createCargoHandlers();
 void createManager();
 void createSecurityInspectors();
 void createScreeningOfficers();
+void createLiaisons();
 char* concatNumToString(char* str, int length, int num);
 
 /* Function Implementations */
@@ -114,19 +126,7 @@ void doCreates() {
 	createManager();
 	createSecurityInspectors();
 	createScreeningOfficers();
-
-
-	/* Passengers */
-	passengers = CreateMV("passengers", sizeof("passengers"), NUM_PASSENGERS);
-	for (i = 0; i < NUM_PASSENGERS; ++i) {
-		passenger = CreateMV(
-						concatNumToString("passenger", sizeof("passenger"), i),
-						sizeof("passenger") + 2,
-						10
-						);
-		/*SetMV(passengers, i, passenger);*/
-
-	}
+	createLiaisons();
 }
 
 void createAirlines() {
@@ -503,6 +503,88 @@ void createScreeningOfficers() {
 
 		/* SODone */
 		SetMV(so, SODone, 0);
+	}
+}
+
+void createLiaisons() {
+	int i, liason, temp;
+
+	/* Create Array of Screening Officers (SO) */
+	liaisons = CreateMV(
+						"liaisons",
+						sizeof("liaisons"),
+						NUM_LIASONS
+					);
+
+	/* Create all Liaisons */
+	for (i = 0; i < NUM_LIASONS; ++i) {
+		/*
+		*	Create Liaison
+		*/
+		liason = CreateMV(
+					concatNumToString(
+						"liason",
+						sizeof("liason"),
+						i
+					),
+					sizeof("liason") + 2,
+					8
+				);
+		/* Add to Liaison array */
+		SetMV(liaisons, i, liason);
+
+		/*
+		*	Init Liaison
+		*/
+
+		/* LiaisonLock */
+		temp = CreateLock(
+					concatNumToString(
+						"LiaisonLock",
+						sizeof("LiaisonLock"),
+						i
+					),
+					sizeof("LiaisonLock") + 2
+				);
+		SetMV(liason, LiaisonLock, temp);
+
+		/* LiaisonLineCV */
+		temp = CreateCV(
+					concatNumToString(
+						"LiaisonLineCV",
+						sizeof("LiaisonLineCV"),
+						i
+					),
+					sizeof("LiaisonLineCV") + 2
+				);
+		SetMV(liason, LiaisonLineCV, temp);
+
+		/* LiaisonCommCV */
+		temp = CreateCV(
+					concatNumToString(
+						"LiaisonCommCV",
+						sizeof("LiaisonCommCV"),
+						i
+					),
+					sizeof("LiaisonCommCV") + 2
+				);
+		SetMV(liason, LiaisonCommCV, temp);
+
+		/* LiaisonLineSize */
+		SetMV(liason, LiaisonLineSize, 0);
+
+		/* LiaisonState */
+		SetMV(liason, LiaisonState, BUSY);
+
+		/* LiaisonPassCount */
+		SetMV(liason, LiaisonPassCount, 0);
+
+		/* LiaisonBagCount */
+		SetMV(liason, LiaisonBagCount, 0);
+
+		/* LiaisonCurrentPassenger */
+		SetMV(liason, LiaisonCurrentPassenger, -1);
+
 	}
 }
 
