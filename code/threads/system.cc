@@ -54,6 +54,7 @@ evict_alg evict_type;
 PostOffice *postOffice;
 Lock* MailBoxInitNumLock;
 int MailBoxInitNum;
+int NumServers;
 #endif
 
 
@@ -117,6 +118,8 @@ Initialize(int argc, char **argv)
 #ifdef NETWORK
     double rely = 1;		// network reliability
     int netname = 0;		// UNIX socket name
+    MailBoxInitNumLock = new Lock("MailBoxInitNumLock");
+    MailBoxInitNum = 0;
 #endif
     
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
@@ -227,8 +230,6 @@ printf("evict_type = FIFO\n");
 
 #ifdef NETWORK
     postOffice = new PostOffice(netname, rely, 10);
-    MailBoxInitNumLock = new Lock("MailBoxInitNumLock");
-    MailBoxInitNum = 0;
 #endif
 }
 

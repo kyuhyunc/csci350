@@ -140,7 +140,9 @@ std::vector< MonitorVariable* > MonitorVars;
 
 // Function Prototypes
 void initializeNetworkMessageHeaders(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr, MailHeader &outMailHdr, int dataLength);
-void sendMessage(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr, MailHeader &outMailHdr, const std::string msg);
+void sendMessageToClient(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr, MailHeader &outMailHdr, const std::string msg);
+uint64_t GetTimeStamp();
+void forwardMessageToAllServers();
 void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name);
 void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index);
 void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name);
@@ -156,7 +158,8 @@ void CreateMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const i
 void GetMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv, const int index);
 void SetMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv, const int index, const int value);
 void DestroyMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv);
-void Server();
+void ServerFromClient();
+void ServerFromServer();
 
 
 #endif // NETWORK
@@ -264,7 +267,19 @@ main(int argc, char **argv)
             MailTest(atoi(*(argv + 1)));
             argCount = 2;
         } else if (!strcmp(*argv, "-s")) {
-        	Server();
+            // read in number of servers
+            NumServers = atoi(*(argv + 1));
+            DEBUG('z', "NumServers = %d\n", NumServers);
+
+            // For distributed servers,
+            // Create 2 threads:
+                // 1 for receiving requests from clients
+                // 1 for receiving requests from servers (including itself)
+            Thread* sfc = new Thread("ServerFromClient");
+            sfc->Fork((VoidFunctionPtr)ServerFromClient, 0);
+/*            Thread* sfs = new Thread("ServerFromServer");
+            sfs->Fork((VoidFunctionPtr)ServerFromServer, 1);*/
+            argCount = 2;
         }
 #endif // NETWORK
     }
@@ -301,7 +316,7 @@ void initializeNetworkMessageHeaders(
     outMailHdr.length = dataLength + 1;
 }
 
-void sendMessage(
+void sendMessageToClient(
 		const PacketHeader &inPktHdr, 
 		PacketHeader &outPktHdr, 
     	const MailHeader &inMailHdr, 
@@ -316,6 +331,34 @@ void sendMessage(
         printf("Something bad happens in Server. Unable to send message \n");
     }
     /*delete[] data;*/
+}
+
+uint64_t GetTimeStamp() {
+    // Find # seconds from year 2000
+    time_t t;
+    time(&t);
+
+    // Find # microseconds
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    time_t microseconds = tv.tv_usec;
+
+//    printf("t = %ld\n", t);
+//    printf("usec = %ld\n", tv.tv_usec);
+    uint64_t a = *((uint64_t*)&t);
+//    printf("a = %llu\n", a);
+    uint64_t b = a * 1000000;
+//    printf("b = %llu\n", b);
+    uint64_t c = b + *((uint64_t*)&tv.tv_usec);
+//    printf("c = %llu\n", c);
+    uint64_t d = c * 10 + 0;
+
+    return d;
+}
+
+void forwardMessageToAllServers() {
+    // append timestamp to message
+    
 }
 
 void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name) {
@@ -348,7 +391,7 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
     std::stringstream ss;
     ss << index;
 
-    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
 
     DEBUG('o', "Server is returning a lock index of %d\n", index);
 
@@ -385,7 +428,7 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
             delete ServerLockVector[index];
         } 
     } 
-    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     SLock->Release();
 }
 void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name) {
@@ -418,7 +461,7 @@ void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const s
     std::stringstream ss;
     ss << index;
 
-    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
 
     DEBUG('o', "Server is returning a CV index of %d\n", index);
 
@@ -454,7 +497,7 @@ void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
             delete ServerCVVector[index];
         }
     } 
-    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
 
     CVLock->Release();
 }
@@ -487,7 +530,7 @@ void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         	ServerLockVector[index]->state = BUSY;
         }
     } 
-    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     SLock->Release();
     
 }
@@ -513,7 +556,7 @@ void ReleaseFromWaitQ(	const PacketHeader &inPktHdr,
 	    waitMailHdr.to = inMailHdr.to;
 	    waitMailHdr.from = 1; // TODO - Project 4
 
-	    sendMessage(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
+	    sendMessageToClient(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
     } else {
         ServerLockVector[lockIndex]->state = AVAIL;
     }
@@ -549,7 +592,7 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         }
         ss << index;
     }
-    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     SLock->Release();
     
 }
@@ -592,7 +635,7 @@ void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &
             return; // Don't send a message
         }
     }
-	sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
+	sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
     CVLock->Release();
 }
 
@@ -650,7 +693,7 @@ std::string SignalFunctionality(
             waitMailHdr.to = inMailHdr.to;
             waitMailHdr.from = 1; // TODO - Project 4
 
-            sendMessage(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
+            sendMessageToClient(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
 
             ServerCVVector[CVIndex]->CVCounter--;
 
@@ -677,7 +720,7 @@ void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int
 
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
-	sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss); // send error message
+	sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss); // send error message
 }
 void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex) {
     while(ServerCVVector[CVIndex]->CVCounter != 0) {
@@ -688,7 +731,7 @@ void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
 
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
-    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
+    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
 }
 
 /*
@@ -724,7 +767,7 @@ void CreateMV(
     }
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
-    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
     MVLock->Release();
 }
 
@@ -750,7 +793,7 @@ void GetMV(
     }
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
-    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
     MVLock->Release();
 }
 
@@ -780,7 +823,7 @@ void SetMV(
     //
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
-    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
     //
     MVLock->Release();
 }
@@ -805,7 +848,7 @@ void DestroyMV(
     //
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
-    sendMessage(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
     //
     MVLock->Release();
 }
@@ -815,7 +858,7 @@ void DestroyMV(
 //	Server implementation starts
 //	
 //----------------------------------------------------------------------
-void Server() {
+void ServerFromClient() {
 
 	// initialized global data
 	SLock = new Lock("ServerLock");
@@ -912,6 +955,10 @@ void Server() {
 
     // Then we're done!
     interrupt->Halt();
+}
+
+void ServerFromServer() {
+    
 }
 
 #endif // NETWORK
