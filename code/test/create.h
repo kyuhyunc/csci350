@@ -644,7 +644,7 @@ void createPassengers() {
 						i
 					),
 					sizeof("Passenger") + 3,
-
+					10
 				);
 
 		/*
