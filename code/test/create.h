@@ -70,6 +70,15 @@
 #define SINewPassenger 8
 #define SIPassCount 9
 
+/* Screening Officer */
+#define SOLock 0
+#define SOCommCV 1
+#define SOState 2
+#define SOPassCount 3
+#define SOCurrentPassenger 4
+#define SOMyNum 5
+#define SODone 6
+
 /* States */
 #define AVAIL 0
 #define BUSY 1
@@ -80,6 +89,7 @@ int airlines;
 int cargoHandlers;
 int manager;
 int securityInspectors;
+int screeningOfficers;
 char concatString[100];
 
 /* Function Declarations */
@@ -90,6 +100,7 @@ void createCIS(int airline);
 void createCargoHandlers();
 void createManager();
 void createSecurityInspectors();
+void createScreeningOfficers();
 char* concatNumToString(char* str, int length, int num);
 
 /* Function Implementations */
@@ -102,6 +113,7 @@ void doCreates() {
 	createCargoHandlers();
 	createManager();
 	createSecurityInspectors();
+	createScreeningOfficers();
 
 
 	/* Passengers */
@@ -423,6 +435,74 @@ void createSecurityInspectors() {
 		SetMV(si, SINewPassenger, -1);
 		/* SIPassCount */
 		SetMV(si, SIPassCount, 0);
+	}
+}
+
+void createScreeningOfficers() {
+	int i, so, temp;
+
+	/* Create Array of Screening Officers (SO) */
+	screeningOfficers = CreateMV(
+							"screeningOfficers",
+							sizeof("screeningOfficers"),
+							NUM_SCREENING_OFFICERS
+						);
+	/* Create all SO */
+	for (i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
+		/*
+		*	Create SO
+		*/
+		so = CreateMV(
+					concatNumToString(
+						"SO",
+						sizeof("SO"),
+						i
+					),
+					sizeof("SO") + 2,
+					7
+				);
+		/* Add SO to array of SIs */
+		SetMV(screeningOfficers, i, so);
+
+		/*
+		*	Init SO
+		*/
+		/* SOLock */
+		temp = CreateLock(
+					concatNumToString(
+						"SOLock",
+						sizeof("SOLock"),
+						i
+					),
+					sizeof("SOLock") + 2
+				);
+		SetMV(so, SOLock, temp);
+
+		/* SOCommCV */
+		temp = CreateCV(
+					concatNumToString(
+						"SOCommCV",
+						sizeof("SOCommCV"),
+						i
+					),
+					sizeof("SOCommCV") + 2
+				);
+		SetMV(so, SOCommCV, temp);
+
+		/* SOState */
+		SetMV(so, SOState, BUSY);
+
+		/* SOPassCount */
+		SetMV(so, SOPassCount, 0);
+
+		/* SOCurrentPassenger */
+		SetMV(so, SOCurrentPassenger, -1);
+
+		/* SOMyNum */
+		SetMV(so, SOMyNum, so);
+
+		/* SODone */
+		SetMV(so, SODone, 0);
 	}
 }
 
