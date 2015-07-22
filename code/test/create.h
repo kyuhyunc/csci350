@@ -101,6 +101,7 @@ int manager;
 int securityInspectors;
 int screeningOfficers;
 int liaisons;
+int baggages;
 char concatString[100];
 
 /* Function Declarations */
@@ -113,6 +114,7 @@ void createManager();
 void createSecurityInspectors();
 void createScreeningOfficers();
 void createLiaisons();
+void createBaggages();
 char* concatNumToString(char* str, int length, int num);
 
 /* Function Implementations */
@@ -127,6 +129,8 @@ void doCreates() {
 	createSecurityInspectors();
 	createScreeningOfficers();
 	createLiaisons();
+	createBaggages();
+
 }
 
 void createAirlines() {
@@ -585,6 +589,19 @@ void createLiaisons() {
 		/* LiaisonCurrentPassenger */
 		SetMV(liason, LiaisonCurrentPassenger, -1);
 
+	}
+}
+
+void createBaggages() {
+	int i;
+	/* Create array of baggages */
+	baggages = CreateMV(
+					"baggages",
+					sizeof("baggages"),
+					NUM_PASSENGERS * 3
+				);
+	for (i = 0; i < NUM_PASSENGERS * 3; ++i) {
+		SetMV(baggages, i, -1);
 	}
 }
 
