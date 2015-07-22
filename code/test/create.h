@@ -51,6 +51,13 @@
 #define CHBagCount 2
 #define CHWeightCount 3
 
+/* Manager */
+#define ManAllLiaisonDone 0
+#define ManAllCISDone 1
+#define ManAllCargoDone 2
+#define ManAllSODone 3
+#define ManAllSIDone 4
+
 /* States */
 #define AVAIL 0
 #define BUSY 1
@@ -59,6 +66,7 @@
 int passengers;
 int airlines;
 int cargoHandlers;
+int manager;
 char concatString[100];
 
 /* Function Declarations */
@@ -77,6 +85,7 @@ void doCreates() {
 
 	createAirlines();
 	createCargoHandlers();
+	createManager();
 
 
 	/* Passengers */
@@ -263,6 +272,7 @@ void createCargoHandlers() {
 		/* 
 		*	Init Cargo Handler 
 		*/
+		/* CHCommCV */
 		tempMV = CreateCV(
 					concatNumToString(
 						"CHCommCV",
@@ -273,8 +283,10 @@ void createCargoHandlers() {
 				);
 		SetMV(ch, CHCommCV, tempMV);
 
+		/* CHState */
 		SetMV(ch, CHState, BUSY);
 
+		/* CHBagCount */
 		tempMV = CreateMV(
 					concatNumToString(
 						"CHBagCount"
@@ -286,6 +298,7 @@ void createCargoHandlers() {
 				);
 		SetMV(ch, CHBagCount, BUSY);
 
+		/* CHWeightCount */
 		tempMV = CreateMV(
 					concatNumToString(
 						"CHWeightCount"
@@ -297,6 +310,19 @@ void createCargoHandlers() {
 				);
 		SetMV(ch, CHWeightCount, BUSY);
 	}
+}
+
+void createManager() {
+	manager = CreateMV(
+				"manager",
+				sizeof("manager"),
+				5
+			);
+	SetMV(manager, ManAllLiaisonDone, 0);
+	SetMV(manager, ManAllCISDone, 0);
+	SetMV(manager, ManAllCargoDone, 0);
+	SetMV(manager, ManAllSODone, 0);
+	SetMV(manager, ManAllSIDone, 0);
 }
 
 char* concatNumToString(char* str, int length, int num) { /* TODO - Not working Properly */
@@ -312,3 +338,7 @@ char* concatNumToString(char* str, int length, int num) { /* TODO - Not working 
 	concatString[length] = '0' + num % 10;
 	return concatString;
 }
+
+
+
+
