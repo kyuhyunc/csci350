@@ -73,7 +73,7 @@ void doCreates() {
 	passengers = CreateMV("passengers", sizeof("passengers"), NUM_PASSENGERS);
 	for (i = 0; i < NUM_PASSENGERS; ++i) {
 		passenger = CreateMV(
-						concatNumToString("passenger", sizeof("passenger"), i)
+						concatNumToString("passenger", sizeof("passenger"), i),
 						sizeof("passenger") + 2,
 						10
 						);
@@ -88,7 +88,7 @@ void createAirlines() {
 	airlines = CreateMV("airlines", sizeof("airlines"), NUM_AIRLINES);
 	for (i = 0; i < NUM_AIRLINES; ++i) {
 		airline = CreateMV(
-						concatNumToString("airline", sizeof("airline"), i)
+						concatNumToString("airline", sizeof("airline"), i),
 						sizeof("airline") + 2,
 						18
 						);
@@ -193,7 +193,7 @@ void createCIS(int airline) {
 						sizeof("CIS_lock_"), 
 						i
 					), 
-				sizeof("CIS_lock_") + 2)
+				sizeof("CIS_lock_") + 2
 			);
 		SetMV(cis, CISLock, temp);
 

@@ -13,11 +13,11 @@ typedef int bool;
 enum bool {false, true};
 
 /* States used by various employees */
-enum State {
+/*enum State {
     AVAIL,
     BUSY,
     ONBREAK
-};
+};*/
 
 /*
 	Structs
