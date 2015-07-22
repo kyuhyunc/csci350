@@ -289,7 +289,7 @@ void createCargoHandlers() {
 		*/
 		ch = CreateMV(
 				concatNumToString(
-					"cargoHandler"
+					"cargoHandler",
 					sizeof("cargoHandler"),
 					i),
 				sizeof("cargoHandler") + 2,
@@ -317,7 +317,7 @@ void createCargoHandlers() {
 		/* CHBagCount */
 		temp = CreateMV(
 					concatNumToString(
-						"CHBagCount"
+						"CHBagCount",
 						sizeof("CHBagCount"),
 						i
 					),
@@ -329,7 +329,7 @@ void createCargoHandlers() {
 		/* CHWeightCount */
 		temp = CreateMV(
 					concatNumToString(
-						"CHWeightCount"
+						"CHWeightCount",
 						sizeof("CHWeightCount"),
 						i
 					),
