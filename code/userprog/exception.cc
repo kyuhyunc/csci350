@@ -2130,7 +2130,7 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
 /*
 *	Appends a number to a string
 */
-char* ConcatNumToString_Syscall(unsigned int vaddr, int len, int num) {
+int ConcatNumToString_Syscall(unsigned int vaddr, int len, int num) {
 	char* buf;
 
 	if (!(buf = new char[len])) {
