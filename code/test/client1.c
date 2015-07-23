@@ -21,14 +21,12 @@ int main(){
 	*		Okay to Delete, once it's time to start simulating the airport
 	*/
 	/*doCreates();*/
-	test = 	(char*) (ConcatNumToString(
-							"Uhh",
-							sizeof("Uhh"),
-							30)
-					);
+	test = CreateLock(
+			ConcatNumToString(
+				"Lock",
+				sizeof("Lock"),
+				30),
+			sizeof("Lock") + 2
+			);
 	Printf1("%d\n", sizeof("%d\n"), test);
-	Printf0(
-			test,
-			30
-		);
 }

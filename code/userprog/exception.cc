@@ -708,6 +708,8 @@ int CreateLock_Syscall(int vaddr, int size) {
 		// Add data size to stream
 		ss << size;
 
+		std::cout << ss.str() << "__" << std:endl;
+
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
 	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
