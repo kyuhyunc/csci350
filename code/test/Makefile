@@ -152,47 +152,47 @@ client5: client5.o start.o
 	$(LD) $(LDFLAGS) start.o client1.o -o client5.coff
 	../bin/coff2noff client5.coff client5
 
-passenger.o: passenger.c
-	$(CC) $(CFLAGS) -c passenger.c
-passenger: passenger.o start.o
-	$(LD) $(LDFLAGS) start.o client1.o -o passenger.coff
-	../bin/coff2noff passenger.coff passenger
+# passenger.o: passenger.c
+# 	$(CC) $(CFLAGS) -c passenger.c
+# passenger: passenger.o start.o
+# 	$(LD) $(LDFLAGS) start.o client1.o -o passenger.coff
+# 	../bin/coff2noff passenger.coff passenger
 
-screeningofficer.o: screeningofficer.c
-	$(CC) $(CFLAGS) -c screeningofficer.c
-screeningofficer: screeningofficer.o start.o
-	$(LD) $(LDFLAGS) start.o client1.o -o screeningofficer.coff
-	../bin/coff2noff screeningofficer.coff screeningofficer
+# screeningofficer.o: screeningofficer.c
+# 	$(CC) $(CFLAGS) -c screeningofficer.c
+# screeningofficer: screeningofficer.o start.o
+# 	$(LD) $(LDFLAGS) start.o client1.o -o screeningofficer.coff
+# 	../bin/coff2noff screeningofficer.coff screeningofficer
 
-checkinstaff.o: checkinstaff.c
-	$(CC) $(CFLAGS) -c checkinstaff.c
-checkinstaff: checkinstaff.o start.o
-	$(LD) $(LDFLAGS) start.o client1.o -o checkinstaff.coff
-	../bin/coff2noff checkinstaff.coff checkinstaff
+# checkinstaff.o: checkinstaff.c
+# 	$(CC) $(CFLAGS) -c checkinstaff.c
+# checkinstaff: checkinstaff.o start.o
+# 	$(LD) $(LDFLAGS) start.o client1.o -o checkinstaff.coff
+# 	../bin/coff2noff checkinstaff.coff checkinstaff
 
-liaison.o: liaison.c
-	$(CC) $(CFLAGS) -c liaison.c
-liaison: liaison.o start.o
-	$(LD) $(LDFLAGS) start.o client1.o -o liaison.coff
-	../bin/coff2noff liaison.coff liaison
+# liaison.o: liaison.c
+# 	$(CC) $(CFLAGS) -c liaison.c
+# liaison: liaison.o start.o
+# 	$(LD) $(LDFLAGS) start.o client1.o -o liaison.coff
+# 	../bin/coff2noff liaison.coff liaison
 
-manager.o: manager.c
-	$(CC) $(CFLAGS) -c manager.c
-manager: manager.o start.o
-	$(LD) $(LDFLAGS) start.o client1.o -o manager.coff
-	../bin/coff2noff manager.coff manager
+# manager.o: manager.c
+# 	$(CC) $(CFLAGS) -c manager.c
+# manager: manager.o start.o
+# 	$(LD) $(LDFLAGS) start.o client1.o -o manager.coff
+# 	../bin/coff2noff manager.coff manager
 
-securityinspector.o: securityinspector.c
-	$(CC) $(CFLAGS) -c securityinspector.c
-securityinspector: securityinspector.o start.o
-	$(LD) $(LDFLAGS) start.o client1.o -o securityinspector.coff
-	../bin/coff2noff securityinspector.coff securityinspector
+# securityinspector.o: securityinspector.c
+# 	$(CC) $(CFLAGS) -c securityinspector.c
+# securityinspector: securityinspector.o start.o
+# 	$(LD) $(LDFLAGS) start.o client1.o -o securityinspector.coff
+# 	../bin/coff2noff securityinspector.coff securityinspector
 
-cargohandler.o: cargohandler.c
-	$(CC) $(CFLAGS) -c cargohandler.c
-cargohandler: cargohandler.o start.o
-	$(LD) $(LDFLAGS) start.o client1.o -o cargohandler.coff
-	../bin/coff2noff cargohandler.coff cargohandler
+# cargohandler.o: cargohandler.c
+# 	$(CC) $(CFLAGS) -c cargohandler.c
+# cargohandler: cargohandler.o start.o
+# 	$(LD) $(LDFLAGS) start.o client1.o -o cargohandler.coff
+# 	../bin/coff2noff cargohandler.coff cargohandler
 
 clean:
 	rm -f *.o *.coff
