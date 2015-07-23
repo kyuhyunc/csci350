@@ -20,12 +20,6 @@ int main(){
 					sizeof("Test"),
 					23
 				),
-			sizeof(
-					ConcatNumToString(
-						"Test",
-						sizeof("Test"),
-						23
-					)
-				)
+			6
 		);
 }
