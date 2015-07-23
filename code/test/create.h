@@ -753,6 +753,8 @@ char* concatNumToString(char* str, int length, int num) { /* TODO - Not working 
 	/* one's place */
 	concatString[length + 1] = '0' + num % 10;
 
+	concatString[length + 2] = '\0';
+
 	return concatString;
 }
 
