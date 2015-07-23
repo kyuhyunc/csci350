@@ -684,7 +684,7 @@ void createPassengers() {
 		SetMV( 
 			GetMV(airlines, airline), 
 			AirlineNumExpectedPassenger, 
-			GetMV(airline, AirlineNumExpectedPassenger) + 1 
+			GetMV(GetMV(airlines, airline), AirlineNumExpectedPassenger) + 1 
 		);
 		Printf1(
 			"%d and %d in 1\n",
