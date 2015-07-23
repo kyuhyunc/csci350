@@ -708,7 +708,7 @@ int CreateLock_Syscall(int vaddr, int size) {
 		// Add data size to stream
 		ss << size;
 
-		std::cout << ss.str() << "__" << std:endl;
+		std::cout << ss.str() << "__" << std::endl;
 
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
@@ -2150,7 +2150,7 @@ int ConcatNumToString_Syscall(unsigned int vaddr, unsigned int vaddr2, int len, 
 		} else {
 			buf[len + 1] = '0';
 		}
-		buf[len + 2] = num % 100
+		buf[len + 2] = num % 100;
 		
 		if (copyin(vaddr, len, buf) == -1) {
 			printf("Bad pointer passed to write: data not written\n");
