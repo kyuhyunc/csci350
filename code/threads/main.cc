@@ -84,6 +84,9 @@ Lock* SLock;
 Lock* MVLock;
 Lock* CVLock;
 
+int forwardedServer;
+int currentFS; // current forwarded server
+
 enum state {
     AVAIL, BUSY
 };
@@ -367,6 +370,7 @@ void forwardMessageToAllServers() {
 void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name) {
 
     SLock->Acquire();
+    DEBUG('o', "Server called CreateLock\n");
     //iterating through serverlockVector to check lock is already in vector
     //if other program already create lock with the same name, don't create new lock
     //just return(send the message) the index to user(Client)
@@ -394,7 +398,12 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
     std::stringstream ss;
     ss << index;
 
-    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    // everyone creates the lock, but only the server that received the request
+    // from the client sends a message back to the client
+    // this is to preserve global data alignment
+    if (currentFS == postOffice->getMachineID()) {
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    }
 
     DEBUG('o', "Server is returning a lock index of %d\n", index);
 
@@ -406,7 +415,7 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
     //otherwise, set boolean toBeDeleted true so it can be deleted when the lock is done using.
     SLock->Acquire();
     
-    DEBUG('o', "Server is destroying a lock\n");
+    DEBUG('o', "Server called DestroyLock\n");
 
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
@@ -431,11 +440,18 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
             delete ServerLockVector[index];
         } 
     } 
-    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    // everyone creates the lock, but only the server that received the request
+    // from the client sends a message back to the client
+    // this is to preserve global data alignment
+    if (currentFS == postOffice->getMachineID()) {
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    }
+
     SLock->Release();
 }
 void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name) {
     CVLock->Acquire();
+    DEBUG('o', "Server called CreateCV\n");
     //iterating through serverCVVector to check CV is already in vector
     //if other program already create CV with the same name, don't create new CV
     //just return(send the message) the index to user(Client)
@@ -464,7 +480,12 @@ void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const s
     std::stringstream ss;
     ss << index;
 
-    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    // everyone creates the lock, but only the server that received the request
+    // from the client sends a message back to the client
+    // this is to preserve global data alignment
+    if (currentFS == postOffice->getMachineID()) {
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    }
 
     DEBUG('o', "Server is returning a CV index of %d\n", index);
 
@@ -475,7 +496,7 @@ void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
     //otherwise, set boolean toBeDeleted true so it can be deleted when the lock is done using.
     CVLock->Acquire();
     
-    DEBUG('o', "Server is destroying a CV\n");
+    DEBUG('o', "Server called DestroyCV\n");
 
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
@@ -500,13 +521,18 @@ void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
             delete ServerCVVector[index];
         }
     } 
-    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    // everyone creates the lock, but only the server that received the request
+    // from the client sends a message back to the client
+    // this is to preserve global data alignment
+    if (currentFS == postOffice->getMachineID()) {
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    }
 
     CVLock->Release();
 }
 void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index) {
-    DEBUG('o', "Inside SERVERs Acquire!\n");
     SLock->Acquire();
+    DEBUG('o', "Server called Acquire\n");
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
     std::stringstream ss;
@@ -533,7 +559,13 @@ void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         	ServerLockVector[index]->state = BUSY;
         }
     } 
-    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    // everyone creates the lock, but only the server that received the request
+    // from the client sends a message back to the client
+    // this is to preserve global data alignment
+    if (currentFS == postOffice->getMachineID()) {
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    }
+
     SLock->Release();
     
 }
@@ -559,7 +591,13 @@ void ReleaseFromWaitQ(	const PacketHeader &inPktHdr,
 	    waitMailHdr.to = inMailHdr.to;
 	    waitMailHdr.from = 1; // TODO - Project 4
 
-	    sendMessageToClient(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
+        // everyone creates the lock, but only the server that received the request
+        // from the client sends a message back to the client
+        // this is to preserve global data alignment
+        if (currentFS == postOffice->getMachineID()) {
+            sendMessageToClient(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
+        }
+
     } else {
         ServerLockVector[lockIndex]->state = AVAIL;
     }
@@ -568,6 +606,7 @@ void ReleaseFromWaitQ(	const PacketHeader &inPktHdr,
 }
 void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index) {
     SLock->Acquire();
+    DEBUG('o', "Server called Release\n");
 
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
@@ -595,12 +634,19 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         }
         ss << index;
     }
-    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    // everyone creates the lock, but only the server that received the request
+    // from the client sends a message back to the client
+    // this is to preserve global data alignment
+    if (currentFS == postOffice->getMachineID()) {
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
+    }
+
     SLock->Release();
     
 }
 void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex) {
 	CVLock->Acquire();
+    DEBUG('o', "Server called Wait\n");
 
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
@@ -638,7 +684,13 @@ void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &
             return; // Don't send a message
         }
     }
-	sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
+    // everyone creates the lock, but only the server that received the request
+    // from the client sends a message back to the client
+    // this is to preserve global data alignment
+    if (currentFS == postOffice->getMachineID()) {
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
+    }
+
     CVLock->Release();
 }
 
@@ -696,7 +748,12 @@ std::string SignalFunctionality(
             waitMailHdr.to = inMailHdr.to;
             waitMailHdr.from = 1; // TODO - Project 4
 
-            sendMessageToClient(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
+            // everyone creates the lock, but only the server that received the request
+            // from the client sends a message back to the client
+            // this is to preserve global data alignment
+            if (currentFS == postOffice->getMachineID()) {
+                sendMessageToClient(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
+            }
 
             ServerCVVector[CVIndex]->CVCounter--;
 
@@ -719,13 +776,21 @@ std::string SignalFunctionality(
 }
 
 void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex) {
+    DEBUG('o', "Server called Signal\n");
     std::string ss = SignalFunctionality(inPktHdr, inMailHdr, LockIndex, CVIndex);
 
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
-	sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss); // send error message
+    // everyone creates the lock, but only the server that received the request
+    // from the client sends a message back to the client
+    // this is to preserve global data alignment
+    if (currentFS == postOffice->getMachineID()) {
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss); // send error message
+    }
+
 }
 void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex) {
+    DEBUG('o', "Server called BroadCast\n");
     while(ServerCVVector[CVIndex]->CVCounter != 0) {
         SignalFunctionality(inPktHdr, inMailHdr, LockIndex, CVIndex);
     }
@@ -734,7 +799,13 @@ void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
 
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
-    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
+    // everyone creates the lock, but only the server that received the request
+    // from the client sends a message back to the client
+    // this is to preserve global data alignment
+    if (currentFS == postOffice->getMachineID()) {
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
+    }
+
 }
 
 /*
@@ -748,6 +819,7 @@ void CreateMV(
     const std::string &name
 ) {
     MVLock->Acquire();
+    DEBUG('o', "Server called CreateMV\n");
     std::stringstream ss;
     int index = -1;
     for(unsigned int i = 0; i < MonitorVars.size(); i++) {
@@ -770,7 +842,13 @@ void CreateMV(
     }
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
-    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    // everyone creates the lock, but only the server that received the request
+    // from the client sends a message back to the client
+    // this is to preserve global data alignment
+    if (currentFS == postOffice->getMachineID()) {
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    }
+
     MVLock->Release();
 }
 
@@ -781,6 +859,7 @@ void GetMV(
     const int index) 
 {
     MVLock->Acquire();
+    DEBUG('o', "Server called GetMV\n");
     std::stringstream ss;
     if (mv < 0 || static_cast<unsigned int>(mv) >= MonitorVars.size()) {
         printf("Invalid MV: %d in GetMV, array size: %d \n", mv, MonitorVars.size());
@@ -796,7 +875,13 @@ void GetMV(
     }
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
-    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    // everyone creates the lock, but only the server that received the request
+    // from the client sends a message back to the client
+    // this is to preserve global data alignment
+    if (currentFS == postOffice->getMachineID()) {
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    }
+
     MVLock->Release();
 }
 
@@ -826,7 +911,13 @@ void SetMV(
     //
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
-    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    // everyone creates the lock, but only the server that received the request
+    // from the client sends a message back to the client
+    // this is to preserve global data alignment
+    if (currentFS == postOffice->getMachineID()) {
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    }
+
     //
     MVLock->Release();
 }
@@ -851,7 +942,13 @@ void DestroyMV(
     //
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
-    sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    // everyone creates the lock, but only the server that received the request
+    // from the client sends a message back to the client
+    // this is to preserve global data alignment
+    if (currentFS == postOffice->getMachineID()) {
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
+    }
+
     //
     MVLock->Release();
 }
@@ -895,6 +992,7 @@ void ServerFromClient() {
 
         newbuf = ss.str();
         std::copy(newbuf.begin(), newbuf.end(), buffer);
+        buffer[newbuf.size()] = '\0';
 
 
         //forward the message from clients to the other servers
@@ -902,6 +1000,8 @@ void ServerFromClient() {
             inPktHdr.to = i;
             inMailHdr.to = 1; //mailbox number is 1
             inMailHdr.from = 1; 
+            inPktHdr.length += 4;
+            inMailHdr.length += 4;
             postOffice->Send(inPktHdr, inMailHdr, buffer);
         }
 
@@ -919,193 +1019,192 @@ void ServerFromClient() {
 }
 
 void ServerFromServer() {
-        // Initialize variables
-        PacketHeader outPktHdr, inPktHdr;
-        MailHeader outMailHdr, inMailHdr;
+    // Initialize variables
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
 //        char buffer[MaxMailSize];
-        char * buffer = new char[MaxMailSize];
-        std::stringstream ss;
+    char * buffer = new char[MaxMailSize];
+    std::stringstream ss;
 
-        int forwardedServer;
-        int64_t timestamp;
-        int64_t smallestTS;
+    int64_t timestamp;
+    int64_t smallestTS;
 
-        // headers for server OK's (ACK's)
-        PacketHeader ophOK, iphOK;
-        MailHeader omhOK, imhOK;
-        char * bufOK = new char[MaxMailSize];
+    // headers for server OK's (ACK's)
+    PacketHeader ophOK, iphOK;
+    MailHeader omhOK, imhOK;
+    char * bufOK = new char[MaxMailSize];
 
-        // data for processing request (prepended with "current" in name)
-        int64_t currentTS; // current timestamp
-        char * currentmsg; // current message
-        int currentFS; // current forwarded server
+    // data for processing request (prepended with "current" in name)
+    int64_t currentTS; // current timestamp
+    char * currentmsg; // current message
 
-        int type = -1;
-        std::string name;
-        int index1;
-        int index2;
-        int index3;
+    int type = -1;
+    std::string name;
+    int index1;
+    int index2;
+    int index3;
 
 
-        while (true) {
-            // Receive a server forwarded message
-            postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
-            fflush(stdout);
+    while (true) {
+        // Receive a server forwarded message
+        postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
+        fflush(stdout);
 printf("inPktHdr.to = %i\n", inPktHdr.to);
 printf("inPktHdr.from = %i\n", inPktHdr.from);
 printf("inMailHdr.to = %i\n", inMailHdr.to);
 printf("inMailHdr.from = %i\n", inMailHdr.from);
- 
-
-            // Extract the timestamp and forwarding server machine ID
-            ss << buffer;
-
-            ss >> inPktHdr.from;
-            ss >> inMailHdr.from;
-
-            ss >> timestamp;
-            forwardedServer = timestamp % 10;
 
 
-            // Put the request message in the pending message queue in sorted order.
-            sortedQueue->SortedInsert((void*) buffer, timestamp);
+        // Extract the timestamp and forwarding server machine ID
+        ss << buffer;
+
+        ss >> inPktHdr.from;
+        ss >> inMailHdr.from;
+
+        ss >> timestamp;
+        forwardedServer = timestamp % 10;
 
 
-            // Update the last timestamp received table with the timestamp of the just received message 
-            // for the forwarding server's machine ID that sent it.
-            lastTimeStampReceived[forwardedServer] = timestamp;
+        // Put the request message in the pending message queue in sorted order.
+        sortedQueue->SortedInsert((void*) buffer, timestamp);
 
 
-            // Scan the Last Timestamp Received table 
-            // and extract the smallest timestamp from any server.
-            smallestTS = lastTimeStampReceived[0];
-            for (int i=1; i < NumServers; i++) {
-                if (smallestTS < lastTimeStampReceived[i]) {
-                    smallestTS = lastTimeStampReceived[i];
+        // Update the last timestamp received table with the timestamp of the just received message 
+        // for the forwarding server's machine ID that sent it.
+        lastTimeStampReceived[forwardedServer] = timestamp;
+
+
+        // Scan the Last Timestamp Received table 
+        // and extract the smallest timestamp from any server.
+        smallestTS = lastTimeStampReceived[0];
+        for (int i=1; i < NumServers; i++) {
+            if (smallestTS < lastTimeStampReceived[i]) {
+                smallestTS = lastTimeStampReceived[i];
+            }
+        }
+
+
+        // Retrieve the first message from pending msg queue
+        currentmsg = (char*) sortedQueue->SortedRemove(&smallestTS);
+        ss.str(""); // clear stringstream
+        ss.clear(); // for reuse
+        ss << currentmsg;
+        ss >> inPktHdr.from;
+        ss >> inMailHdr.from;
+        ss >> currentTS;
+        currentFS = currentTS % 10;
+
+
+        // Process any message in out pending message queue 
+        // having a timestamp less than or equal to the step 5 value (in timestamp order).
+        while (currentTS <= smallestTS) {
+            if (postOffice->getMachineID() == currentFS) {
+                // if the request was from this server,
+                // wait for all other servers to send OK
+                // TODO
+                for (int i=1; i < NumServers; i++) {
+                    postOffice->Receive(2, &iphOK, &imhOK, bufOK);
+                    fflush(stdout);
                 }
             }
 
+            else {
+                // if the request was from a different server,
+                // send OK to that server
+                // TODO
+                iphOK.to = currentFS;
+                imhOK.to = 2; // mailbox #2
+                imhOK.from = 2;
+                postOffice->Send(iphOK, imhOK, bufOK);
 
-            // Retrieve the first message from pending msg queue
+            }
+
+            // process the request and respond to the client
+            ss >> type;
+            switch (type) {
+                case CreateLock_SF : 
+                    ss >> name;
+                    CreateLock(inPktHdr, inMailHdr, name);
+                    break;
+                case DestroyLock_SF : 
+                    ss >> index1;
+                    DestroyLock(inPktHdr, inMailHdr, index1);
+                    break;
+                case CreateCV_SF : 
+                    ss >> name;
+                    CreateCV(inPktHdr, inMailHdr, name);
+                    break;
+                case DestroyCV_SF : 
+                    ss >> index1;
+                    DestroyCV(inPktHdr, inMailHdr, index1);
+                    break;
+                case Acquire_SF : 
+                    ss >> index1;
+                    Acquire(inPktHdr, inMailHdr, index1);
+                    break;
+                case Release_SF : 
+                    ss >> index1;
+                    Release(inPktHdr, inMailHdr, index1);
+                    break;
+                case Wait_SF : 
+                    ss >> index1;
+                    ss >> index2;
+                    Wait(inPktHdr, inMailHdr, index1, index2);
+                    break;
+                case Signal_SF : 
+                    ss >> index1;
+                    ss >> index2;
+                    Signal(inPktHdr, inMailHdr, index1, index2);
+                    break;
+                case BroadCast_SF : 
+                    ss >> index1;
+                    ss >> index2;
+                    BroadCast(inPktHdr, inMailHdr, index1, index2);
+                    break;
+                case CreateMV_SF : 
+                    ss >> name;
+                    ss >> index1;
+                    ss >> index2;
+                    CreateMV(inPktHdr, inMailHdr, index2, name);
+                    break;
+                case GetMV_SF :
+                    ss >> index1;
+                    ss >> index2;
+                    GetMV(inPktHdr, inMailHdr, index1, index2);
+                    break;
+                case SetMV_SF : 
+                    ss >> index1;
+                    ss >> index2;
+                    ss >> index3;
+                    SetMV(inPktHdr, inMailHdr, index1, index2, index3);
+                    break;
+                case DestroyMV_SF :
+                    ss >> index1;
+                    DestroyMV(inPktHdr, inMailHdr, index1);
+                    break;
+            }
+            // Retrieve next message from pending message queue
             currentmsg = (char*) sortedQueue->SortedRemove(&smallestTS);
             ss.str(""); // clear stringstream
             ss.clear(); // for reuse
+            if (currentmsg == NULL) {
+                break;
+            }
             ss << currentmsg;
             ss >> inPktHdr.from;
             ss >> inMailHdr.from;
             ss >> currentTS;
             currentFS = currentTS % 10;
 
-
-            // Process any message in out pending message queue 
-            // having a timestamp less than or equal to the step 5 value (in timestamp order).
-            while (currentTS <= smallestTS) {
-                if (postOffice->getMachineID() == currentFS) {
-                    // if the request was from this server,
-                    // wait for all other servers to send OK
-                    // TODO
-                    for (int i=1; i < NumServers; i++) {
-                        postOffice->Receive(2, &iphOK, &imhOK, bufOK);
-                        fflush(stdout);
-                    }
-
-                    // process the request and respond to the client
-                    ss >> type;
-                    switch (type) {
-                        case CreateLock_SF : 
-                            ss >> name;
-                            CreateLock(inPktHdr, inMailHdr, name);
-                            break;
-                        case DestroyLock_SF : 
-                            ss >> index1;
-                            DestroyLock(inPktHdr, inMailHdr, index1);
-                            break;
-                        case CreateCV_SF : 
-                            ss >> name;
-                            CreateCV(inPktHdr, inMailHdr, name);
-                            break;
-                        case DestroyCV_SF : 
-                            ss >> index1;
-                            DestroyCV(inPktHdr, inMailHdr, index1);
-                            break;
-                        case Acquire_SF : 
-                            ss >> index1;
-                            Acquire(inPktHdr, inMailHdr, index1);
-                            break;
-                        case Release_SF : 
-                            ss >> index1;
-                            Release(inPktHdr, inMailHdr, index1);
-                            break;
-                        case Wait_SF : 
-                            ss >> index1;
-                            ss >> index2;
-                            Wait(inPktHdr, inMailHdr, index1, index2);
-                            break;
-                        case Signal_SF : 
-                            ss >> index1;
-                            ss >> index2;
-                            Signal(inPktHdr, inMailHdr, index1, index2);
-                            break;
-                        case BroadCast_SF : 
-                            ss >> index1;
-                            ss >> index2;
-                            BroadCast(inPktHdr, inMailHdr, index1, index2);
-                            break;
-                        case CreateMV_SF : 
-                            ss >> name;
-                            ss >> index1;
-                            ss >> index2;
-                            CreateMV(inPktHdr, inMailHdr, index2, name);
-                            break;
-                        case GetMV_SF :
-                            ss >> index1;
-                            ss >> index2;
-                            GetMV(inPktHdr, inMailHdr, index1, index2);
-                            break;
-                        case SetMV_SF : 
-                            ss >> index1;
-                            ss >> index2;
-                            ss >> index3;
-                            SetMV(inPktHdr, inMailHdr, index1, index2, index3);
-                            break;
-                        case DestroyMV_SF :
-                            ss >> index1;
-                            DestroyMV(inPktHdr, inMailHdr, index1);
-                            break;
-                    }
-                }
-                else {
-                    // if the request was from a different server,
-                    // send OK to that server
-                    // TODO
-                    iphOK.to = currentFS;
-                    imhOK.to = 2; // mailbox #2
-                    imhOK.from = 2;
-                    postOffice->Send(iphOK, imhOK, bufOK);
-
-                }
-                // Retrieve next message from pending message queue
-                currentmsg = (char*) sortedQueue->SortedRemove(&smallestTS);
-                ss.str(""); // clear stringstream
-                ss.clear(); // for reuse
-                if (currentmsg == NULL) {
-                    break;
-                }
-                ss << currentmsg;
-                ss >> inPktHdr.from;
-                ss >> inMailHdr.from;
-                ss >> currentTS;
-                currentFS = currentTS % 10;
-
-            }
-            // Prepend last message retrieved from pending message back into queue
-            // This message isn't processed, since it's the last one you got out of the while loop
-            if (currentmsg != NULL) {
-                sortedQueue->SortedInsert((void*) currentmsg, currentTS);
-            }
-
         }
-    
+        // Prepend last message retrieved from pending message back into queue
+        // This message isn't processed, since it's the last one you got out of the while loop
+        if (currentmsg != NULL) {
+            sortedQueue->SortedInsert((void*) currentmsg, currentTS);
+        }
+
+    }
+
 }
 
 #endif // NETWORK
