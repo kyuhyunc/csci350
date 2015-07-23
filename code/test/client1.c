@@ -16,13 +16,10 @@ int main(){
 	*/
 	/*doCreates();*/
 	test = 	(char*) (ConcatNumToString(
-							"Test",
-							sizeof("Test"),
-							23
+							"Uhh",
+							sizeof("Uhh"),
+							30
 						)
 					);
-	Printf0(
-			test,
-			6
-		);
+
 }
