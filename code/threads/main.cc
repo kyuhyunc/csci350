@@ -709,7 +709,7 @@ void CreateMV(
             if(MonitorVars[i]->name == name && MonitorVars[i]->size() == size) {
                 index = i;   
                 ss << i;
-                std::cout << "Found MV: " << i << ", name: " << name << ", size: " << size << std::endl
+                std::cout << "Found MV: " << i << ", name: " << name << ", size: " << size << std::endl;
                 break;
             }
         }
