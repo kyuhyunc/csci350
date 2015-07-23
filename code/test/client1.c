@@ -4,6 +4,7 @@ extern void doCreates();
 
 int main(){
 	int i;
+	char* test;
 	for (i = 0; i < NUM_PASSENGERS; ++i) {
 		/*Exec("../test/passenger", sizeof("../test/passenger"));*/
 	}
@@ -14,8 +15,20 @@ int main(){
 	*		Okay to Delete, once it's time to start simulating the airport
 	*/
 	/*doCreates();*/
+	test = 	(char*) (ConcatNumToString(
+							"Test",
+							sizeof("Test"),
+							23
+						)
+					);
 	Printf0(
-			"Test",
-			5
+			(char*),
+			sizeof(
+					ConcatNumToString(
+						"Test",
+						sizeof("Test"),
+						23
+					)
+				)
 		);
 }
