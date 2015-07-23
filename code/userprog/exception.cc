@@ -2135,13 +2135,13 @@ int ConcatNumToString_Syscall(unsigned int vaddr, int len, int num) {
 
 	if (!(buf = new char[len])) {
 		printf("Error allocating kernel buffer for Printf1!\n");
-		return;
+		return -1;
 	}
 	else {
 		if (copyin(vaddr, len, buf) == -1) {
 			printf("Bad pointer passed to write: data not written\n");
 			delete [] buf;
-			return;
+			return -1;
 		}
 	}
 
@@ -2149,7 +2149,7 @@ int ConcatNumToString_Syscall(unsigned int vaddr, int len, int num) {
 	ss << buf;
 	ss << num;
 	char *data = new char[ss.str().length()];
-    std::strcpy(data, msg.c_str());
+    std::strcpy(data, ss.str().c_str());
 	std::cout << "Exception: " << data << std::endl;
 	return (int)data;
 }
