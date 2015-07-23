@@ -771,7 +771,7 @@ void SetMV(
         printf("Monitor Variable: %d is null inGetMV\n", mv);
         ss << -1;
     } else if ( index < 0 || index >= MonitorVars.at(mv)->size() ) {
-        printf("Invalid index: %d in SetMV: %d \n", index, mv);
+        printf("Invalid index: %d in SetMV: %d, actual size: %d, value: %d\n", index, mv, MonitorVars.at(mv)->size(), value);
         ss << -1;
     } else {
         MonitorVars.at(mv)->at(index) = value;
