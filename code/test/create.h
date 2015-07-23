@@ -140,11 +140,6 @@ void doCreates() {
 	int i;
 	int passenger;
 
-	Printf0(
-		"doCreates\n",
-		sizeof("doCreates\n")
-		);
-
 	createAirlines();
 	createCargoHandlers();
 	createManager();
@@ -691,6 +686,12 @@ void createPassengers() {
 			AirlineNumExpectedPassenger, 
 			GetMV(airline, AirlineNumExpectedPassenger) + 1 
 		);
+		Printf1(
+			"%d and %d in 1\n",
+			sizeof("%d and %d in 1\n"),
+			1000 * GetMV(airlines, airline) 
+				+ GetMV(airline, AirlineNumExpectedPassenger)
+			);
 		/* Ticket--Exec */
 		if ((i % 4) == 1) {
 			isExec = 1;
@@ -721,11 +722,23 @@ void createPassengers() {
 				AirlineNumExpectedBaggages, 
 				GetMV(airline, AirlineNumExpectedBaggages) + 1 
 			);
+			Printf1(
+			"%d and %d in 1\n",
+			sizeof("%d and %d in 1\n"),
+			1000 * GetMV(airlines, airline) 
+				+ GetMV(airline, AirlineNumExpectedBaggages)
+			);
 			/* airline->AirlineWeightCount++ */
 			SetMV( 
 				GetMV(airlines, airline),
 				AirlineWeightCount,
 				GetMV(airline, AirlineWeightCount) + bagWeight
+			);
+			Printf1(
+			"%d and %d in 1\n",
+			sizeof("%d and %d in 1\n"),
+			1000 * GetMV(airlines, airline) 
+				+ GetMV(airline, AirlineWeightCount)
 			);
 		}
 	}

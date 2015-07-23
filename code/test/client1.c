@@ -14,5 +14,4 @@ int main(){
 	*		Okay to Delete, once it's time to start simulating the airport
 	*/
 	doCreates();
-	Printf0("Worked", sizeof("Worked"));
 }
