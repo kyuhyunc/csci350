@@ -2132,7 +2132,7 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
 */
 int ConcatNumToString_Syscall(unsigned int vaddr, int len, int num) {
 	char* buf;
-
+	std::cout << "ConcatNumToString_Syscall: " << data << std::endl;
 	if (!(buf = new char[len])) {
 		printf("Error allocating kernel buffer for Printf1!\n");
 		return -1;
@@ -2483,8 +2483,11 @@ void ExceptionHandler(ExceptionType which) {
 				Printf2_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6), machine->ReadRegister(7));
 				break;
 			case SC_ConcatNumToString:
-				DEBUG('a', "Printf2 syscall.\n");
+				DEBUG('a', "SC_ConcatNumToString syscall.\n");
 				rv = ConcatNumToString_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
+				break;
+			case default:
+				std::cout << "Syscall type: " << type << std::endl;
 				break;
 		}
 
