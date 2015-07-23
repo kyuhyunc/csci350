@@ -176,7 +176,7 @@ void Printf0(char* buf, int size);
 void Printf1(char* buf, int size, int num1);
 void Printf2(char* buf, int size, int num1, int num2);
 
-int ConcatNumToString(char* buf, int size, int num);
+int ConcatNumToString(char* buf, char* str, int size, int num);
 
 #endif /* IN_ASM */
 

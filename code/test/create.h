@@ -740,13 +740,13 @@ char* concatNumToString(char* str, int length, int num) { /* TODO - Not working 
 	}
 	/* hundreds place */
 	if (num >= 100) {
-		concatString[length - 1] = '0' + num/100;
+		concatString[length - 1] = '0' + num / 100;
 	} else {
 		concatString[length - 1] = '0';
 	}
 	/* tens place */
-	if (num >= 10) {
-		concatString[length] = '0' + num/10;
+	if (num%100 >= 10) {
+		concatString[length] = '0' + num % 100 / 10;
 	} else {
 		concatString[length] = '0';
 	}

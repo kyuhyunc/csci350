@@ -2132,14 +2132,26 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
 /*
 *	Appends a number to a string
 */
-int ConcatNumToString_Syscall(unsigned int vaddr, int len, int num) {
+int ConcatNumToString_Syscall(unsigned int vaddr, unsigned int vaddr2, int len, int num) {
 	char* buf;
 	std::cout << "ConcatNumToString_Syscall: " << std::endl;
-	if (!(buf = new char[len])) {
+	if (!(buf = new char[len + 3])) {
 		printf("Error allocating kernel buffer for Printf1!\n");
 		return -1;
 	}
 	else {
+		if (num%100 > 0) {
+			buf[len] = '0' + num / 100;
+		} else {
+			buf[len] = '0';
+		}
+		if (num% 10 > 0) {
+			buf[len + 1] = '0' + (num%100) % 10;
+		} else {
+			buf[len + 1] = '0';
+		}
+		buf[len + 2] = num % 100
+		
 		if (copyin(vaddr, len, buf) == -1) {
 			printf("Bad pointer passed to write: data not written\n");
 			delete [] buf;
@@ -2486,7 +2498,12 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_ConcatNumToString:
 				DEBUG('a', "SC_ConcatNumToString syscall.\n");
-				rv = ConcatNumToString_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
+				rv = ConcatNumToString_Syscall(
+					machine->ReadRegister(4), 
+					machine->ReadRegister(5), 
+					machine->ReadRegister(6), 
+					machine->ReadRegister(7)
+					);
 				break;
 		}
 
