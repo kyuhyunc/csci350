@@ -2148,7 +2148,7 @@ int ConcatNumToString_Syscall(unsigned int vaddr, int len, int num) {
 	std::stringstream ss;
 	ss << buf;
 	ss << num;
-	char *data = new char[msg.length()];
+	char *data = new char[ss.str().length()];
     std::strcpy(data, msg.c_str());
 	std::cout << "Exception: " << data << std::endl;
 	return (int)data;
