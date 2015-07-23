@@ -375,7 +375,7 @@ void createManager() {
 }
 
 void createSecurityInspectors() {
-	int i, temp, si;
+	int i, temp, si, result;
 
 	/* Init MV for all SIs */
 	securityInspectors = CreateMV(
@@ -398,7 +398,6 @@ void createSecurityInspectors() {
 					sizeof("SI") + 3,
 					10
 				);
-		Printf1("%d\n", sizeof("%d\n"), si);
 		/* Add SI to array of SIs */
 		SetMV(securityInspectors, i, si);
 		
@@ -450,13 +449,17 @@ void createSecurityInspectors() {
 					),
 					sizeof("SINewPassCV") + 3
 				);
-		SetMV(si, SINewPassCV, temp);
+		result = SetMV(si, SINewPassCV, temp);
+		Printf1("1: %d\n", sizeof("1: %d\n"), si);
 		/* SIRtnPassenger */
-		SetMV(si, SIRtnPassenger, -1);
+		result = SetMV(si, SIRtnPassenger, -1);
+		Printf1("2: %d\n", sizeof("1: %d\n"), si);
 		/* SINewPassenger */
-		SetMV(si, SINewPassenger, -1);
+		result = SetMV(si, SINewPassenger, -1);
+		Printf1("3: %d\n", sizeof("1: %d\n"), si);
 		/* SIPassCount */
-		SetMV(si, SIPassCount, 0);
+		result = SetMV(si, SIPassCount, 0);
+		Printf1("4: %d\n", sizeof("1: %d\n"), si);
 	}
 }
 
