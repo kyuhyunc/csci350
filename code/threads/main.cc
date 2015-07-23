@@ -77,7 +77,8 @@ extern void ClientSim();    // Project 3 Networking
 //----------------------------------------------------------------------
 
 //Server
-List sortedQueue = new List();
+List* sortedQueue;
+uint64_t* lastTimeStampReceived;
 
 Lock* SLock;
 Lock* MVLock;
@@ -276,8 +277,8 @@ main(int argc, char **argv)
                 // 1 for receiving requests from servers (including itself)
             Thread* sfc = new Thread("ServerFromClient");
             sfc->Fork((VoidFunctionPtr)ServerFromClient, 0);
-/*            Thread* sfs = new Thread("ServerFromServer");
-            sfs->Fork((VoidFunctionPtr)ServerFromServer, 1);*/
+            Thread* sfs = new Thread("ServerFromServer");
+            sfs->Fork((VoidFunctionPtr)ServerFromServer, 1);
         }
 #endif // NETWORK
     }
@@ -863,6 +864,9 @@ void ServerFromClient() {
     MVLock = new Lock("MVLock");
     CVLock = new Lock("CVLock");
 
+    sortedQueue = new List();
+    lastTimeStampReceived = new uint64_t[NumServers];
+
 	// instantiate Network Data
 	PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
@@ -980,7 +984,7 @@ void ServerFromServer() {
 
             //Decode the message so we can get the timestamp and machine ID of Server
             std::stringstream ss(buffer);
-            uint65_t timestamp;
+            uint64_t timestamp;
             
 
 

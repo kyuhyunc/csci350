@@ -145,6 +145,10 @@ class Thread {
 #ifdef NETWORK
   public:
     int mailboxNum;
+
+    // randomly chooses server in distributed network
+    void ChooseRandServer();
+    int randserv;
 #endif
 };
 

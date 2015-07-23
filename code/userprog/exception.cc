@@ -35,8 +35,6 @@ using namespace std;
 
 #ifdef NETWORK
 
-std::vector< std::vector<int>* > monitorVars;
-
 uint64_t GetTimeStamp() {
     // Find # seconds from year 2000
     time_t t;
@@ -55,7 +53,7 @@ uint64_t GetTimeStamp() {
 //    printf("b = %llu\n", b);
     uint64_t c = b + *((uint64_t*)&tv.tv_usec);
 //    printf("c = %llu\n", c);
-    uint64_t d = c * 10 + 0;
+    uint64_t d = c * 10 + currentThread->randserv;
 
     return d;
 }
@@ -63,11 +61,15 @@ uint64_t GetTimeStamp() {
 void initNetworkMessageHeaders(PacketHeader &ph, MailHeader &mh, int dataLength) {
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
-    // From: our machine, reply to: mailbox 1
+            // A server's mailbox 0 receives all client requests
+            // A server's mailbox 1 receives all server forwarded requests
+                // destination machine is one of the randomly chosen servers
+                // in the distributed server system
+    // From: our machine, reply to our mailbox
     // ph
-    ph.to = SERVER_NETWORK_ID;
+    ph.to = currentThread->randserv;
     // mh
-    mh.to = SERVER_NETWORK_ID;
+    mh.to = 0;
     mh.from = currentThread->mailboxNum; 
     mh.length = dataLength + 1;
 }
@@ -709,6 +711,8 @@ int CreateLock_Syscall(int vaddr, int size) {
 	
 		DEBUG('o', "Client called CreateLock\n");
 
+        currentThread->ChooseRandServer();
+
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
 
@@ -850,6 +854,8 @@ int DestroyLock_Syscall(int index) {
 
 	DEBUG('o', "Client called DestroyLock\n");
 
+    currentThread->ChooseRandServer();
+
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
 
@@ -989,6 +995,8 @@ int Acquire_Syscall(int index) {
 
 	DEBUG('o', "Client called Acquire\n");
 
+    currentThread->ChooseRandServer();
+
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
 
@@ -1092,6 +1100,8 @@ int Release_Syscall(int index) {
 	#ifdef NETWORK 
 
 	DEBUG('o', "Client called Release\n");
+
+    currentThread->ChooseRandServer();
 
 	PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
@@ -1231,6 +1241,8 @@ int CreateCV_Syscall(int vaddr, int size) {
 	#ifdef NETWORK 
 
 		DEBUG('o', "Client called CreateCV\n");
+
+        currentThread->ChooseRandServer();
 
 		PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
@@ -1379,6 +1391,8 @@ int DestroyCV_Syscall(int index) {
 
 		DEBUG('o', "Client called DestroyLock\n");
 
+        currentThread->ChooseRandServer();
+
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
 
@@ -1517,6 +1531,8 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
 	#ifdef NETWORK 
 
 		DEBUG('o', "Client called Wait\n");
+
+        currentThread->ChooseRandServer();
 
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
@@ -1683,6 +1699,8 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
 
 		DEBUG('o', "Client called Signal\n");
 
+        currentThread->ChooseRandServer();
+
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
 
@@ -1801,6 +1819,8 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 	#ifdef NETWORK 
 
 		DEBUG('o', "Client called Broadcast\n");
+
+        currentThread->ChooseRandServer();
 
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
@@ -1928,6 +1948,8 @@ int CreateMV_Syscall(int vaddr, int nameLength, int size) {
 
     DEBUG('o', "Client called CreateMV\n");
 
+    currentThread->ChooseRandServer();
+
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
 
@@ -1966,6 +1988,8 @@ int GetMV_Syscall(int mv, int index) {
 
     DEBUG('o', "Client called GetMV\n");
 
+    currentThread->ChooseRandServer();
+
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
 
@@ -1992,6 +2016,8 @@ int GetMV_Syscall(int mv, int index) {
 int SetMV_Syscall(int mv, int index, int value) {
 
     DEBUG('o', "Client called SetMV\n");
+
+    currentThread->ChooseRandServer();
 
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
@@ -2021,6 +2047,8 @@ int SetMV_Syscall(int mv, int index, int value) {
 int DestroyMV_Syscall(int mv) {
 
     DEBUG('o', "Client called DestroyMV\n");
+
+    currentThread->ChooseRandServer();
 
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;

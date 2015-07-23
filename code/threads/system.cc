@@ -55,7 +55,6 @@ PostOffice *postOffice;
 Lock* MailBoxInitNumLock;
 int MailBoxInitNum;
 int NumServers;
-uint64_t* lastTimeStampReceived;
 #endif
 
 
@@ -175,7 +174,7 @@ printf("evict_type = FIFO\n");
 	    ASSERT(argc > 1);
 	    netname = atoi(*(argv + 1));
 	    argCount = 2;
-	} else if (!strcmp(*argv, "-s")) {
+	} else if (!strcmp(*argv, "-numservers")) {
         NumServers = atoi(*(argv + 1));
         argCount = 2;
     }
@@ -234,7 +233,6 @@ printf("evict_type = FIFO\n");
 
 #ifdef NETWORK
     postOffice = new PostOffice(netname, rely, 10);
-    lastTimeStampReceived = new uint64_t[NumServers];
 #endif
 }
 

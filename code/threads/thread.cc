@@ -330,3 +330,17 @@ Thread::RestoreUserState()
 	machine->WriteRegister(i, userRegisters[i]);
 }
 #endif
+
+#ifdef NETWORK
+
+void Thread::ChooseRandServer()
+{
+    if (NumServers == 1) {
+        randserv = 0;
+    }
+    else {
+        randserv = rand() % NumServers;
+    }
+}
+
+#endif
