@@ -140,14 +140,14 @@ void doCreates() {
 	int i;
 	int passenger;
 
-	createAirlines();
-	createCargoHandlers();
 	createManager();
-	createSecurityInspectors();
-	createScreeningOfficers();
+	createCargoHandlers();
 	createLiaisons();
 	createBaggages();
-	createPassengers();
+	createSecurityInspectors();
+	createScreeningOfficers();
+/*	createAirlines();
+	createPassengers();*/
 }
 
 void createAirlines() {
@@ -711,17 +711,17 @@ void createPassengers() {
 			bagWeight = (i * 13) % 31 + 30;
 			SetMV(bag, BaggageWeight, bagWeight); /* Weight */
 			/* airline->NumExpectedBaggages++ */
-			/*SetMV( 
+			SetMV( 
 				GetMV(airlines, airline), 
 				AirlineNumExpectedBaggages, 
 				GetMV(GetMV(airlines, airline), AirlineNumExpectedBaggages) + 1 
-			);*/
+			);
 			/* airline->AirlineWeightCount++ */
-			/*SetMV( 
+			SetMV( 
 				GetMV(airlines, airline),
 				AirlineWeightCount,
 				GetMV(GetMV(airlines, airline), AirlineWeightCount) + bagWeight
-			);*/
+			);
 		}
 	}
 
