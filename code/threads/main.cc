@@ -326,6 +326,10 @@ void sendMessageToClient(
     std::strcpy(data, msg.c_str());
 
     initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
+printf("inPktHdr.to = %i\n", inPktHdr.to);
+printf("inPktHdr.from = %i\n", inPktHdr.from);
+printf("inMailHdr.to = %i\n", inMailHdr.to);
+printf("inMailHdr.from = %i\n", inMailHdr.from);
     if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
         printf("Something bad happens in Server. Unable to send message \n");
     }
@@ -870,12 +874,28 @@ void ServerFromClient() {
 	// instantiate Network Data
 	PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-    char buffer[MaxMailSize];
+    char * buffer = new char[MaxMailSize];
+//    char * newbuf = new char[MaxMailSize];
+    std::string newbuf;
+    std::stringstream ss;
 
     while (true) {
     	// Receive the next message
     	postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);	
     	fflush(stdout);
+
+        // Tack on clientmachine# and clientmailbox# to buffer
+        ss.str("");
+        ss.clear();
+        ss << inPktHdr.from;
+        ss << " ";
+        ss << inMailHdr.from;
+        ss << " ";
+        ss << buffer;
+
+        newbuf = ss.str();
+        std::copy(newbuf.begin(), newbuf.end(), buffer);
+
 
         //forward the message from clients to the other servers
         for(int i = 0; i < NumServers; i++) {
@@ -891,6 +911,8 @@ void ServerFromClient() {
     delete SLock;
     delete MVLock;
     delete CVLock;
+
+    delete [] buffer;
 
     // Then we're done!
     interrupt->Halt();
@@ -929,10 +951,18 @@ void ServerFromServer() {
             // Receive a server forwarded message
             postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
             fflush(stdout);
+printf("inPktHdr.to = %i\n", inPktHdr.to);
+printf("inPktHdr.from = %i\n", inPktHdr.from);
+printf("inMailHdr.to = %i\n", inMailHdr.to);
+printf("inMailHdr.from = %i\n", inMailHdr.from);
  
 
             // Extract the timestamp and forwarding server machine ID
             ss << buffer;
+
+            ss >> inPktHdr.from;
+            ss >> inMailHdr.from;
+
             ss >> timestamp;
             forwardedServer = timestamp % 10;
 
@@ -961,6 +991,8 @@ void ServerFromServer() {
             ss.str(""); // clear stringstream
             ss.clear(); // for reuse
             ss << currentmsg;
+            ss >> inPktHdr.from;
+            ss >> inMailHdr.from;
             ss >> currentTS;
             currentFS = currentTS % 10;
 
@@ -1056,14 +1088,21 @@ void ServerFromServer() {
                 currentmsg = (char*) sortedQueue->SortedRemove(&smallestTS);
                 ss.str(""); // clear stringstream
                 ss.clear(); // for reuse
+                if (currentmsg == NULL) {
+                    break;
+                }
                 ss << currentmsg;
+                ss >> inPktHdr.from;
+                ss >> inMailHdr.from;
                 ss >> currentTS;
                 currentFS = currentTS % 10;
 
             }
             // Prepend last message retrieved from pending message back into queue
             // This message isn't processed, since it's the last one you got out of the while loop
-            sortedQueue->SortedInsert((void*) currentmsg, currentTS);
+            if (currentmsg != NULL) {
+                sortedQueue->SortedInsert((void*) currentmsg, currentTS);
+            }
 
         }
     
