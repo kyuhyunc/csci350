@@ -2148,8 +2148,10 @@ int ConcatNumToString_Syscall(unsigned int vaddr, int len, int num) {
 	std::stringstream ss;
 	ss << buf;
 	ss << num;
-	std::cout << "Exception: " << ss.str() << std::endl;
-	return static_cast<int>(ss.str().c_str());
+	char *data = new char[msg.length()];
+    std::strcpy(data, msg.c_str());
+	std::cout << "Exception: " << data << std::endl;
+	return (int)data;
 }
 
 #ifdef USE_TLB
