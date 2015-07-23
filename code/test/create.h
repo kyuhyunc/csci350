@@ -690,7 +690,7 @@ void createPassengers() {
 			"%d and %d in 1\n",
 			sizeof("%d and %d in 1\n"),
 			1000 * GetMV(airlines, airline) 
-				+ GetMV(airline, AirlineNumExpectedPassenger)
+				+ GetMV(GetMV(airlines, airline), AirlineNumExpectedPassenger)
 			);
 		/* Ticket--Exec */
 		if ((i % 4) == 1) {
@@ -720,25 +720,25 @@ void createPassengers() {
 			SetMV( 
 				GetMV(airlines, airline), 
 				AirlineNumExpectedBaggages, 
-				GetMV(airline, AirlineNumExpectedBaggages) + 1 
+				GetMV(GetMV(airlines, airline), AirlineNumExpectedBaggages) + 1 
 			);
 			Printf1(
 			"%d and %d in 2\n",
 			sizeof("%d and %d in 2\n"),
 			1000 * GetMV(airlines, airline) 
-				+ GetMV(airline, AirlineNumExpectedBaggages)
+				+ GetMV(GetMV(airlines, airline), AirlineNumExpectedBaggages)
 			);
 			/* airline->AirlineWeightCount++ */
 			SetMV( 
 				GetMV(airlines, airline),
 				AirlineWeightCount,
-				GetMV(airline, AirlineWeightCount) + bagWeight
+				GetMV(GetMV(airlines, airline), AirlineWeightCount) + bagWeight
 			);
 			Printf1(
 			"%d and %d in 3\n",
 			sizeof("%d and %d in 3\n"),
 			1000 * GetMV(airlines, airline) 
-				+ GetMV(airline, AirlineWeightCount)
+				+ GetMV(GetMV(airlines, airline), AirlineWeightCount)
 			);
 		}
 	}
