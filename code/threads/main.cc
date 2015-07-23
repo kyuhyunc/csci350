@@ -719,6 +719,7 @@ void CreateMV(
             printf("Invalid monitor variable size of %d in CreateMV\n", size);
             ss << -1;
         } else {
+            std::cout << "Created MV: " << i << ", name: " << name << ", size: " << size << std::endl;
             MonitorVars.push_back(new MonitorVariable(size, name));
             ss << MonitorVars.size() - 1;
         } 
