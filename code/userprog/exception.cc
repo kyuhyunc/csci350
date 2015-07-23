@@ -1957,6 +1957,11 @@ int CreateMV_Syscall(int vaddr, int nameLength, int size) {
 
     // Create StringStream -- put in function ID 
     std::stringstream ss;
+
+    // putting timestamp in StringStream and send it to server
+    ss << GetTimeStamp();
+    ss << " ";
+
     ss << CreateMV_SF;
     ss << " ";
     // Add lock name to stream
@@ -1997,6 +2002,11 @@ int GetMV_Syscall(int mv, int index) {
 
     // Create StringStream -- put in function ID 
     std::stringstream ss;
+
+    // putting timestamp in StringStream and send it to server
+    ss << GetTimeStamp();
+    ss << " ";
+
     ss << GetMV_SF;
     ss << " ";
     ss << mv;
@@ -2026,6 +2036,11 @@ int SetMV_Syscall(int mv, int index, int value) {
 
     // Create StringStream -- put in function ID 
     std::stringstream ss;
+
+    // putting timestamp in StringStream and send it to server
+    ss << GetTimeStamp();
+    ss << " ";
+
     ss << SetMV_SF;
     ss << " ";
     ss << mv;
@@ -2057,6 +2072,11 @@ int DestroyMV_Syscall(int mv) {
 
     // Create StringStream -- put in function ID 
     std::stringstream ss;
+
+    // putting timestamp in StringStream and send it to server
+    ss << GetTimeStamp();
+    ss << " ";
+
     ss << DestroyMV_SF;
     ss << " ";
     ss << mv;
