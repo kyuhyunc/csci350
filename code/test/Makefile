@@ -197,5 +197,5 @@ client5: client5.o start.o
 clean:
 	rm -f *.o *.coff
 	rm halt sort matmult sort2exec sort2fork matmult2exec matmult2fork testfiles testprint testexit testexithelper airportsim airstart clientsim client1 client2 client3 client4 client5 
-	rm passenger screeningofficer checkinstaff liaison manager securityinspector cargohandler
+	# rm passenger screeningofficer checkinstaff liaison manager securityinspector cargohandler
 	rm *~
