@@ -7,6 +7,6 @@ int main(){
 	}
 	for (i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
 		Exec("../test/securityinspector", sizeof("../test/securityinspector"));
-	}	}
+	}
 	
 }
