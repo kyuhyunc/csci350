@@ -140,6 +140,11 @@ void doCreates() {
 	int i;
 	int passenger;
 
+	Printf0(
+		"doCreates\n",
+		sizeof("doCreates\n")
+		);
+
 	createAirlines();
 	createCargoHandlers();
 	createManager();
