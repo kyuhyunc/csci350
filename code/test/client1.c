@@ -15,17 +15,7 @@ int main(){
 	*/
 	/*doCreates();*/
 	Printf0(
-			(char*)ConcatNumToString(
-					"Test",
-					sizeof("Test"),
-					23
-				),
-			sizeof(
-					ConcatNumToString(
-						"Test",
-						sizeof("Test"),
-						23
-					)
-				)
+			"Test",
+			5
 		);
 }
