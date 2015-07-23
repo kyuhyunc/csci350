@@ -37,6 +37,29 @@ using namespace std;
 
 std::vector< std::vector<int>* > monitorVars;
 
+uint64_t GetTimeStamp() {
+    // Find # seconds from year 2000
+    time_t t;
+    time(&t);
+
+    // Find # microseconds
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    time_t microseconds = tv.tv_usec;
+
+//    printf("t = %ld\n", t);
+//    printf("usec = %ld\n", tv.tv_usec);
+    uint64_t a = *((uint64_t*)&t);
+//    printf("a = %llu\n", a);
+    uint64_t b = a * 1000000;
+//    printf("b = %llu\n", b);
+    uint64_t c = b + *((uint64_t*)&tv.tv_usec);
+//    printf("c = %llu\n", c);
+    uint64_t d = c * 10 + 0;
+
+    return d;
+}
+
 void initNetworkMessageHeaders(PacketHeader &ph, MailHeader &mh, int dataLength) {
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
@@ -689,8 +712,13 @@ int CreateLock_Syscall(int vaddr, int size) {
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
 
-	    // Create StringStream -- put in function ID 
-		std::stringstream ss;
+	    std::stringstream ss;
+
+	    // putting timestamp in StringStream and send it to server
+	    ss << GetTimeStamp();
+	    ss << " ";
+		
+		// Create StringStream -- put in function ID 
 		ss << CreateLock_SF;
 		ss << " ";
 
@@ -827,6 +855,11 @@ int DestroyLock_Syscall(int index) {
 
     // Create StringStream -- put in function ID 
 	std::stringstream ss;
+
+	// putting timestamp in StringStream and send it to server
+	ss << GetTimeStamp();
+	ss << " ";
+
 	ss << DestroyLock_SF;
 	ss << " ";
 	ss << index;
@@ -961,6 +994,11 @@ int Acquire_Syscall(int index) {
 
     // Create StringStream -- put in function ID 
 	std::stringstream ss;
+
+	// putting timestamp in StringStream and send it to server
+	ss << GetTimeStamp();
+	ss << " ";
+
 	ss << Acquire_SF;
 	ss << " ";
 	ss << index;
@@ -1060,6 +1098,11 @@ int Release_Syscall(int index) {
 
     // Create StringStream -- put in function ID 
 	std::stringstream ss;
+
+	// putting timestamp in StringStream and send it to server
+	ss << GetTimeStamp();
+	ss << " ";
+
 	ss << Release_SF;
 	ss << " ";
 	ss << index;
@@ -1192,8 +1235,13 @@ int CreateCV_Syscall(int vaddr, int size) {
 		PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
 
-	    // Create StringStream
+	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
+
+		// putting timestamp in StringStream and send it to server
+		ss << GetTimeStamp();
+		ss << " ";
+
 		ss << CreateCV_SF;
 		ss << " ";
 		// Add cv name to stream
@@ -1336,6 +1384,11 @@ int DestroyCV_Syscall(int index) {
 
 	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
+
+		// putting timestamp in StringStream and send it to server
+		ss << GetTimeStamp();
+		ss << " ";
+
 		ss << DestroyCV_SF;
 		ss << " ";
 		ss << index;
@@ -1470,6 +1523,11 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
 
 	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
+
+		// putting timestamp in StringStream and send it to server
+		ss << GetTimeStamp();
+		ss << " ";
+
 		ss << Wait_SF;
 		ss << " ";
 		ss << lockIndex;
@@ -1630,6 +1688,11 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
 
 	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
+
+		// putting timestamp in StringStream and send it to server
+		ss << GetTimeStamp();
+		ss << " ";
+
 		ss << Signal_SF;
 		ss << " ";
 		ss << lockIndex;
@@ -1744,6 +1807,11 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 
 	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
+
+		// putting timestamp in StringStream and send it to server
+		ss << GetTimeStamp();
+		ss << " ";
+
 		ss << BroadCast_SF;
 		ss << " ";
 		ss << lockIndex;

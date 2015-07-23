@@ -76,6 +76,9 @@ extern void ClientSim();    // Project 3 Networking
 //  Server Lock/CV Global Variables and Function Prototypes
 //----------------------------------------------------------------------
 
+//Server
+List sortedQueue = new List();
+
 Lock* SLock;
 Lock* MVLock;
 Lock* CVLock;
@@ -327,7 +330,7 @@ void sendMessageToClient(
     }
     /*delete[] data;*/
 }
-
+/*
 uint64_t GetTimeStamp() {
     // Find # seconds from year 2000
     time_t t;
@@ -350,7 +353,7 @@ uint64_t GetTimeStamp() {
 
     return d;
 }
-
+*/
 void forwardMessageToAllServers() {
     // append timestamp to message
     
@@ -870,14 +873,26 @@ void ServerFromClient() {
     	postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);	
     	fflush(stdout);
 
-    	// Decode the message
-    	int type = -1; 
+        // Decode the message
+        int type = -1; 
         std::string name;
         int index1;
         int index2;
         int index3;
-    	std::stringstream ss(buffer);
+        uint64_t tempStorage;
+        std::stringstream ss(buffer);
+        ss>>tempStorage;
         ss>>type;
+
+        //forward the message from clients to the other servers
+        for(int i = 0; i < NumServers; i++) {
+            inPktHdr.to = i;
+            inMailHdr.to = 1; //mailbox number is 1
+            inMailHdr.from = 1; 
+            postOffice->Send(inPktHdr, inMailHdr, buffer);
+        }
+
+
 
     	// Figure out which server function to run, switch-case statement
     	switch (type) {
@@ -953,6 +968,42 @@ void ServerFromClient() {
 }
 
 void ServerFromServer() {
+
+        PacketHeader outPktHdr, inPktHdr;
+        MailHeader outMailHdr, inMailHdr;
+        char buffer[MaxMailSize];
+
+        while(true) {
+            //Receive a server forwarded message
+            postOffice->Receive(1,&inPktHdr, &inMailHdr, buffer);
+            fflush(stdout);
+
+            //Decode the message so we can get the timestamp and machine ID of Server
+            std::stringstream ss(buffer);
+            uint65_t timestamp;
+            
+
+
+            //Extract the timestamp and forwarding server machine ID
+
+
+
+            //Put the request message in the pending message queue in sorted order.
+
+            //Update the last timestamp received table with the timestamp of the just received message 
+            //for the forwarding server's machine ID that sent it.
+
+            //Scan the Last Timestamp Received table 
+            //and extract the smallest timestamp from any server.
+
+
+            //Process any message in out pending message queue 
+            //having a timestamp less than or equal to the step 5 value (in timestamp order).
+            //while
+        }
+
+
+
     
 }
 
