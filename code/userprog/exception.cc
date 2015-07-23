@@ -2150,7 +2150,7 @@ int ConcatNumToString_Syscall(unsigned int vaddr, int len, int num) {
 	ss << num;
 	char *data = new char[ss.str().length()];
     std::strcpy(data, ss.str().c_str());
-	std::cout << "Exception: " << data << std::endl;
+	printf("Hmm: %s\n", data);
 	return (int)data;
 }
 
