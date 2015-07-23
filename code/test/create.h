@@ -746,7 +746,7 @@ char* concatNumToString(char* str, int length, int num) { /* TODO - Not working 
 	}
 	/* tens place */
 	if (num%100 >= 10) {
-		concatString[length] = '0' + num % 100 / 10;
+		concatString[length] = '0' + (num % 100) / 10;
 	} else {
 		concatString[length] = '0';
 	}
