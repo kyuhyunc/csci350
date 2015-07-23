@@ -723,8 +723,8 @@ void createPassengers() {
 				GetMV(airline, AirlineNumExpectedBaggages) + 1 
 			);
 			Printf1(
-			"%d and %d in 1\n",
-			sizeof("%d and %d in 1\n"),
+			"%d and %d in 2\n",
+			sizeof("%d and %d in 2\n"),
 			1000 * GetMV(airlines, airline) 
 				+ GetMV(airline, AirlineNumExpectedBaggages)
 			);
@@ -735,8 +735,8 @@ void createPassengers() {
 				GetMV(airline, AirlineWeightCount) + bagWeight
 			);
 			Printf1(
-			"%d and %d in 1\n",
-			sizeof("%d and %d in 1\n"),
+			"%d and %d in 3\n",
+			sizeof("%d and %d in 3\n"),
 			1000 * GetMV(airlines, airline) 
 				+ GetMV(airline, AirlineWeightCount)
 			);
