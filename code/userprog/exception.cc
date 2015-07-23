@@ -35,7 +35,7 @@ using namespace std;
 
 #ifdef NETWORK
 
-uint64_t GetTimeStamp() {
+int64_t GetTimeStamp() {
     // Find # seconds from year 2000
     time_t t;
     time(&t);
@@ -47,13 +47,13 @@ uint64_t GetTimeStamp() {
 
 //    printf("t = %ld\n", t);
 //    printf("usec = %ld\n", tv.tv_usec);
-    uint64_t a = *((uint64_t*)&t);
+    int64_t a = *((int64_t*)&t);
 //    printf("a = %llu\n", a);
-    uint64_t b = a * 1000000;
+    int64_t b = a * 1000000;
 //    printf("b = %llu\n", b);
-    uint64_t c = b + *((uint64_t*)&tv.tv_usec);
+    int64_t c = b + *((int64_t*)&tv.tv_usec);
 //    printf("c = %llu\n", c);
-    uint64_t d = c * 10 + currentThread->randserv;
+    int64_t d = c * 10 + currentThread->randserv;
 
     return d;
 }

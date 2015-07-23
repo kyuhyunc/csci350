@@ -78,7 +78,7 @@ extern void ClientSim();    // Project 3 Networking
 
 //Server
 List* sortedQueue;
-uint64_t* lastTimeStampReceived;
+int64_t* lastTimeStampReceived;
 
 Lock* SLock;
 Lock* MVLock;
@@ -145,7 +145,7 @@ std::vector< MonitorVariable* > MonitorVars;
 // Function Prototypes
 void initializeNetworkMessageHeaders(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr, MailHeader &outMailHdr, int dataLength);
 void sendMessageToClient(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr, MailHeader &outMailHdr, const std::string msg);
-uint64_t GetTimeStamp();
+int64_t GetTimeStamp();
 void forwardMessageToAllServers();
 void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name);
 void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index);
@@ -332,7 +332,7 @@ void sendMessageToClient(
     /*delete[] data;*/
 }
 /*
-uint64_t GetTimeStamp() {
+int64_t GetTimeStamp() {
     // Find # seconds from year 2000
     time_t t;
     time(&t);
@@ -344,13 +344,13 @@ uint64_t GetTimeStamp() {
 
 //    printf("t = %ld\n", t);
 //    printf("usec = %ld\n", tv.tv_usec);
-    uint64_t a = *((uint64_t*)&t);
+    int64_t a = *((int64_t*)&t);
 //    printf("a = %llu\n", a);
-    uint64_t b = a * 1000000;
+    int64_t b = a * 1000000;
 //    printf("b = %llu\n", b);
-    uint64_t c = b + *((uint64_t*)&tv.tv_usec);
+    int64_t c = b + *((int64_t*)&tv.tv_usec);
 //    printf("c = %llu\n", c);
-    uint64_t d = c * 10 + 0;
+    int64_t d = c * 10 + 0;
 
     return d;
 }
@@ -865,7 +865,7 @@ void ServerFromClient() {
     CVLock = new Lock("CVLock");
 
     sortedQueue = new List();
-    lastTimeStampReceived = new uint64_t[NumServers];
+    lastTimeStampReceived = new int64_t[NumServers];
 
 	// instantiate Network Data
 	PacketHeader outPktHdr, inPktHdr;
@@ -877,17 +877,6 @@ void ServerFromClient() {
     	postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);	
     	fflush(stdout);
 
-        // Decode the message
-        int type = -1; 
-        std::string name;
-        int index1;
-        int index2;
-        int index3;
-        uint64_t tempStorage;
-        std::stringstream ss(buffer);
-        ss>>tempStorage;
-        ss>>type;
-
         //forward the message from clients to the other servers
         for(int i = 0; i < NumServers; i++) {
             inPktHdr.to = i;
@@ -897,70 +886,6 @@ void ServerFromClient() {
         }
 
 
-
-    	// Figure out which server function to run, switch-case statement
-    	switch (type) {
-    		case CreateLock_SF : 
-                ss>>name;
-                CreateLock(inPktHdr, inMailHdr, name);
-    			break;
-            case DestroyLock_SF : 
-                ss>>index1;
-                DestroyLock(inPktHdr, inMailHdr, index1);
-                break;
-            case CreateCV_SF : 
-                ss>>name;
-                CreateCV(inPktHdr, inMailHdr, name);
-                break;
-            case DestroyCV_SF : 
-                ss>>index1;
-                DestroyCV(inPktHdr, inMailHdr, index1);
-                break;
-            case Acquire_SF : 
-                ss>>index1;
-                Acquire(inPktHdr, inMailHdr, index1);
-                break;
-            case Release_SF : 
-                ss>>index1;
-                Release(inPktHdr, inMailHdr, index1);
-                break;
-            case Wait_SF : 
-                ss>>index1;
-                ss>>index2;
-                Wait(inPktHdr, inMailHdr, index1, index2);
-                break;
-            case Signal_SF : 
-                ss>>index1;
-                ss>>index2;
-                Signal(inPktHdr, inMailHdr, index1, index2);
-                break;
-            case BroadCast_SF : 
-                ss>>index1;
-                ss>>index2;
-                BroadCast(inPktHdr, inMailHdr, index1, index2);
-                break;
-            case CreateMV_SF : 
-                ss>>name;
-                ss>>index1;
-                ss>>index2;
-                CreateMV(inPktHdr, inMailHdr, index2, name);
-                break;
-            case GetMV_SF :
-                ss>>index1;
-                ss>>index2;
-                GetMV(inPktHdr, inMailHdr, index1, index2);
-                break;
-            case SetMV_SF : 
-                ss>>index1;
-                ss>>index2;
-                ss>>index3;
-                SetMV(inPktHdr, inMailHdr, index1, index2, index3);
-                break;
-            case DestroyMV_SF :
-                ss>>index1;
-                DestroyMV(inPktHdr, inMailHdr, index1);
-                break;
-    	}
     }
 
     delete SLock;
@@ -972,42 +897,174 @@ void ServerFromClient() {
 }
 
 void ServerFromServer() {
-
+        // Initialize variables
         PacketHeader outPktHdr, inPktHdr;
         MailHeader outMailHdr, inMailHdr;
-        char buffer[MaxMailSize];
+//        char buffer[MaxMailSize];
+        char * buffer = new char[MaxMailSize];
+        std::stringstream ss;
 
-        while(true) {
-            //Receive a server forwarded message
-            postOffice->Receive(1,&inPktHdr, &inMailHdr, buffer);
+        int forwardedServer;
+        int64_t timestamp;
+        int64_t smallestTS;
+
+        // headers for server OK's (ACK's)
+        PacketHeader ophOK, iphOK;
+        MailHeader omhOK, imhOK;
+        char * bufOK = new char[MaxMailSize];
+
+        // data for processing request (prepended with "current" in name)
+        int64_t currentTS; // current timestamp
+        char * currentmsg; // current message
+        int currentFS; // current forwarded server
+
+        int type = -1;
+        std::string name;
+        int index1;
+        int index2;
+        int index3;
+
+
+        while (true) {
+            // Receive a server forwarded message
+            postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
             fflush(stdout);
+ 
 
-            //Decode the message so we can get the timestamp and machine ID of Server
-            std::stringstream ss(buffer);
-            uint64_t timestamp;
-            
-
-
-            //Extract the timestamp and forwarding server machine ID
+            // Extract the timestamp and forwarding server machine ID
+            ss << buffer;
+            ss >> timestamp;
+            forwardedServer = timestamp % 10;
 
 
-
-            //Put the request message in the pending message queue in sorted order.
-
-            //Update the last timestamp received table with the timestamp of the just received message 
-            //for the forwarding server's machine ID that sent it.
-
-            //Scan the Last Timestamp Received table 
-            //and extract the smallest timestamp from any server.
+            // Put the request message in the pending message queue in sorted order.
+            sortedQueue->SortedInsert((void*) buffer, timestamp);
 
 
-            //Process any message in out pending message queue 
-            //having a timestamp less than or equal to the step 5 value (in timestamp order).
-            //while
+            // Update the last timestamp received table with the timestamp of the just received message 
+            // for the forwarding server's machine ID that sent it.
+            lastTimeStampReceived[forwardedServer] = timestamp;
+
+
+            // Scan the Last Timestamp Received table 
+            // and extract the smallest timestamp from any server.
+            smallestTS = lastTimeStampReceived[0];
+            for (int i=1; i < NumServers; i++) {
+                if (smallestTS < lastTimeStampReceived[i]) {
+                    smallestTS = lastTimeStampReceived[i];
+                }
+            }
+
+
+            // Retrieve the first message from pending msg queue
+            currentmsg = (char*) sortedQueue->SortedRemove(&smallestTS);
+            ss.str(""); // clear stringstream
+            ss.clear(); // for reuse
+            ss << currentmsg;
+            ss >> currentTS;
+            currentFS = currentTS % 10;
+
+
+            // Process any message in out pending message queue 
+            // having a timestamp less than or equal to the step 5 value (in timestamp order).
+            while (currentTS < smallestTS) {
+                if (postOffice->getMachineID() == currentFS) {
+                    // if the request was from this server,
+                    // wait for all other servers to send OK
+                    // TODO
+                    for (int i=1; i < NumServers; i++) {
+                        postOffice->Receive(2, &iphOK, &imhOK, bufOK);
+                    }
+
+                    // process the request and respond to the client
+                    ss >> type;
+                    switch (type) {
+                        case CreateLock_SF : 
+                            ss >> name;
+                            CreateLock(inPktHdr, inMailHdr, name);
+                            break;
+                        case DestroyLock_SF : 
+                            ss >> index1;
+                            DestroyLock(inPktHdr, inMailHdr, index1);
+                            break;
+                        case CreateCV_SF : 
+                            ss >> name;
+                            CreateCV(inPktHdr, inMailHdr, name);
+                            break;
+                        case DestroyCV_SF : 
+                            ss >> index1;
+                            DestroyCV(inPktHdr, inMailHdr, index1);
+                            break;
+                        case Acquire_SF : 
+                            ss >> index1;
+                            Acquire(inPktHdr, inMailHdr, index1);
+                            break;
+                        case Release_SF : 
+                            ss >> index1;
+                            Release(inPktHdr, inMailHdr, index1);
+                            break;
+                        case Wait_SF : 
+                            ss >> index1;
+                            ss >> index2;
+                            Wait(inPktHdr, inMailHdr, index1, index2);
+                            break;
+                        case Signal_SF : 
+                            ss >> index1;
+                            ss >> index2;
+                            Signal(inPktHdr, inMailHdr, index1, index2);
+                            break;
+                        case BroadCast_SF : 
+                            ss >> index1;
+                            ss >> index2;
+                            BroadCast(inPktHdr, inMailHdr, index1, index2);
+                            break;
+                        case CreateMV_SF : 
+                            ss >> name;
+                            ss >> index1;
+                            ss >> index2;
+                            CreateMV(inPktHdr, inMailHdr, index2, name);
+                            break;
+                        case GetMV_SF :
+                            ss >> index1;
+                            ss >> index2;
+                            GetMV(inPktHdr, inMailHdr, index1, index2);
+                            break;
+                        case SetMV_SF : 
+                            ss >> index1;
+                            ss >> index2;
+                            ss >> index3;
+                            SetMV(inPktHdr, inMailHdr, index1, index2, index3);
+                            break;
+                        case DestroyMV_SF :
+                            ss >> index1;
+                            DestroyMV(inPktHdr, inMailHdr, index1);
+                            break;
+                    }
+                }
+                else {
+                    // if the request was from a different server,
+                    // send OK to that server
+                    // TODO
+                    iphOK.to = currentFS;
+                    imhOK.to = 2; // mailbox #2
+                    imhOK.from = 2;
+                    postOffice->Send(iphOK, imhOK, bufOK);
+
+                }
+                // Retrieve next message from pending message queue
+                currentmsg = (char*) sortedQueue->SortedRemove(&smallestTS);
+                ss.str(""); // clear stringstream
+                ss.clear(); // for reuse
+                ss << currentmsg;
+                ss >> currentTS;
+                currentFS = currentTS % 10;
+
+            }
+            // Prepend last message retrieved from pending message back into queue
+            // This message isn't processed, since it's the last one you got out of the while loop
+            sortedQueue->SortedInsert((void*) currentmsg, currentTS);
+
         }
-
-
-
     
 }
 
