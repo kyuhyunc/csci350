@@ -21,6 +21,7 @@ int main(){
 	*		Okay to Delete, once it's time to start simulating the airport
 	*/
 	/*doCreates();*/
+	Printf0("About to create lock", sizeof("About to create lock"));
 	test = CreateLock(
 			ConcatNumToString(
 				"Lock",
