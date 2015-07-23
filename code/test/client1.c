@@ -22,13 +22,7 @@ int main(){
 						)
 					);
 	Printf0(
-			(char*),
-			sizeof(
-					ConcatNumToString(
-						"Test",
-						sizeof("Test"),
-						23
-					)
-				)
+			test,
+			6
 		);
 }
