@@ -399,14 +399,6 @@ void createSecurityInspectors() {
 					10
 				);
 		Printf1("%d\n", sizeof("%d\n"), si);
-		Printf0(
-				concatNumToString(
-						"SI",
-						sizeof("SI"),
-						i
-					),
-					sizeof("SI") + 3
-			);
 		/* Add SI to array of SIs */
 		SetMV(securityInspectors, i, si);
 		
