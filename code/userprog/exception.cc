@@ -47,11 +47,13 @@ int64_t GetTimeStamp() {
 
 //    printf("t = %ld\n", t);
 //    printf("usec = %ld\n", tv.tv_usec);
-    int64_t a = *((int64_t*)&t);
+//    int64_t a = *((int64_t*)&t);
+    int64_t a = t;
 //    printf("a = %llu\n", a);
     int64_t b = a * 1000000;
 //    printf("b = %llu\n", b);
-    int64_t c = b + *((int64_t*)&tv.tv_usec);
+//    int64_t c = b + *((int64_t*)&tv.tv_usec);
+    int64_t c = b + microseconds;
 //    printf("c = %llu\n", c);
     int64_t d = c * 10 + currentThread->randserv;
 

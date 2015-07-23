@@ -967,13 +967,14 @@ void ServerFromServer() {
 
             // Process any message in out pending message queue 
             // having a timestamp less than or equal to the step 5 value (in timestamp order).
-            while (currentTS < smallestTS) {
+            while (currentTS <= smallestTS) {
                 if (postOffice->getMachineID() == currentFS) {
                     // if the request was from this server,
                     // wait for all other servers to send OK
                     // TODO
                     for (int i=1; i < NumServers; i++) {
                         postOffice->Receive(2, &iphOK, &imhOK, bufOK);
+                        fflush(stdout);
                     }
 
                     // process the request and respond to the client
