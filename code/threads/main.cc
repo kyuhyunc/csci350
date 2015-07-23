@@ -437,6 +437,7 @@ void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, cons
         ServerLockVector[index]->clientCounter--;
         if(ServerLockVector[index]->state == AVAIL && ServerLockVector[index]->clientCounter == 0) {
         	DEBUG('o', "SERVER is deleting lock %d\n", index);
+            ServerLockVector[index] = NULL;
             delete ServerLockVector[index];
         } 
     } 
@@ -518,6 +519,7 @@ void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
         ServerCVVector[index]->clientCounter--;
         if(ServerCVVector[index]->clientCounter == 0) {
             DEBUG('o', "Server is deleting CV %d\n", index);
+            ServerCVVector[index] = NULL;
             delete ServerCVVector[index];
         }
     } 
