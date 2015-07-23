@@ -49,6 +49,8 @@
 #define SC_Printf1	31
 #define SC_Printf2	32
 
+#define SC_ConcatNumToString	33
+
 #define MAXFILENAME 256
 
 #ifndef IN_ASM
@@ -173,6 +175,8 @@ int GetMV(int mv, int index);
 void Printf0(char* buf, int size);
 void Printf1(char* buf, int size, int num1);
 void Printf2(char* buf, int size, int num1, int num2);
+
+void ConcatNumToString(char* buf, int size, int num);
 
 #endif /* IN_ASM */
 

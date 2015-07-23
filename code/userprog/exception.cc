@@ -2127,6 +2127,31 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
   delete [] buf;
 }
 
+/*
+*	Appends a number to a string
+*/
+char* ConcatNumToString_Syscall(unsigned int vaddr, int len, int num) {
+	char* buf;
+
+	if (!(buf = new char[len])) {
+		printf("Error allocating kernel buffer for Printf1!\n");
+		return;
+	}
+	else {
+		if (copyin(vaddr, len, buf) == -1) {
+			printf("Bad pointer passed to write: data not written\n");
+			delete [] buf;
+			return;
+		}
+	}
+
+	std::stringstream ss;
+	ss << buf;
+	ss << num;
+	std::cout << "Exception: " << ss.str() << std::endl;
+	return ss.str().c_str();
+}
+
 #ifdef USE_TLB
 
 void DumpTLB() {
@@ -2454,6 +2479,10 @@ void ExceptionHandler(ExceptionType which) {
 			case SC_Printf2:
 				DEBUG('a', "Printf2 syscall.\n");
 				Printf2_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6), machine->ReadRegister(7));
+				break;
+			case SC_ConcatNumToString:
+				DEBUG('a', "Printf2 syscall.\n");
+				rv = ConcatNumToString_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
 				break;
 		}
 

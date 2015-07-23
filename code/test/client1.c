@@ -13,5 +13,19 @@ int main(){
 	*	Testing 
 	*		Okay to Delete, once it's time to start simulating the airport
 	*/
-	doCreates();
+	/*doCreates();*/
+	Printf0(
+			ConcatNumToString(
+					"Test",
+					sizeof("Test"),
+					23
+				),
+			sizeof(
+					ConcatNumToString(
+						"Test",
+						sizeof("Test"),
+						23
+					)
+				)
+		);
 }
