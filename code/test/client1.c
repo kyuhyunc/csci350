@@ -5,11 +5,11 @@ extern void doCreates();
 int main(){
 	int i;
 	char* test;
-	/*char buf[30];*/
+	char buf[30];
 
-/*	for (i = 0; i < 30; ++i) {
+	for (i = 0; i < 30; ++i) {
 		buf[i] = '3';
-	}*/
+	}
 
 	for (i = 0; i < NUM_PASSENGERS; ++i) {
 		/*Exec("../test/passenger", sizeof("../test/passenger"));*/
@@ -27,6 +27,7 @@ int main(){
 							30
 						)
 					);*/
+	test = &buf;
 	Printf0(
 			test,
 			30
