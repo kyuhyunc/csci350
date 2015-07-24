@@ -111,6 +111,18 @@ testappend: testappend.o start.o
 	$(LD) $(LDFLAGS) start.o testappend.o -o testappend.coff
 	../bin/coff2noff testappend.coff testappend
 
+4test1.o: 4test1.c
+	$(CC) $(CFLAGS) -c 4test1.c
+4test1: 4test1.o start.o 
+	$(LD) $(LDFLAGS) start.o 4test1.o -o 4test1.coff
+	../bin/coff2noff 4test1.coff test41
+
+4test2.o: 4test2.c
+	$(CC) $(CFLAGS) -c 4test2.c
+4test2: 4test2.o start.o 
+	$(LD) $(LDFLAGS) start.o 4test2.o -o 4test2.coff
+	../bin/coff2noff 4test2.coff test42
+
 airportsim.o: airportsim.c
 	$(CC) $(CFLAGS) -c airportsim.c
 airportsim: airportsim.o start.o
