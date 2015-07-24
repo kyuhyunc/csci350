@@ -767,11 +767,6 @@ void createLiaisons() {
 				);
 		/* Add to Liaison array */
 		SetMV(liaisons, i, liason);
-		Printf1(
-			"Liaison create: %d\n",
-			sizeof("Liaison create: %d\n"),
-			GetMV(liaisons, i)
-			);
 
 		/*
 		*	Init Liaison
