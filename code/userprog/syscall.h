@@ -43,7 +43,9 @@
 #define SC_CreateMV		20
 #define SC_GetMV		21
 #define SC_SetMV		22
- #define SC_DestroyMV	23
+#define SC_DestroyMV	23
+
+#define SC_ConcatNum2String 24
 
 #define SC_Printf0	30
 #define SC_Printf1	31
@@ -173,6 +175,10 @@ int GetMV(int mv, int index);
 void Printf0(char* buf, int size);
 void Printf1(char* buf, int size, int num1);
 void Printf2(char* buf, int size, int num1, int num2);
+
+/*  Other utilities
+ */
+void ConcatNum2String(char* str, int size, int num, char* buf);
 
 #endif /* IN_ASM */
 

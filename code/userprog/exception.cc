@@ -2244,6 +2244,48 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
   delete [] buf;
 }
 
+void ConcatNum2String_Syscall(unsigned int vaddr, int len, int num, unsigned int buffer) {
+    /*  Concatenates a number to a string
+        Arguments:
+            vaddr: the char * (string)
+            len: length of the char *
+            num: number to be appended to the end
+            buffer: buffer passed in by user program
+                (because the address needs to be within
+                the user program's address space)
+    */
+
+    // Read in char *
+    char* buf;
+
+    if (!(buf = new char[len])) {
+        printf("Error allocating kernel buffer for Printf2!\n");
+        return;
+    }
+    else {
+        if (copyin(vaddr, len, buf) == -1) {
+            printf("Bad pointer passed to write: data not written\n");
+            delete [] buf;
+            return;
+        }
+    }
+
+    // Use stringstream magic to append num to the char*
+    std::stringstream ss;
+    ss << buf << num;
+
+    char* bufout = new char[100];
+
+    std::string temp;
+    temp = ss.str();
+    std::copy(temp.begin(), temp.end(), bufout);
+    bufout[temp.size()] = '\0';
+
+    copyout(buffer, temp.size()+1, bufout);
+
+    return;
+}
+
 #ifdef USE_TLB
 
 void DumpTLB() {
@@ -2572,6 +2614,10 @@ void ExceptionHandler(ExceptionType which) {
 				DEBUG('a', "Printf2 syscall.\n");
 				Printf2_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6), machine->ReadRegister(7));
 				break;
+            case SC_ConcatNum2String:
+                DEBUG('a', "ConcatNum2String syscall.\n");
+                ConcatNum2String_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6), machine->ReadRegister(7));
+                break;
 		}
 
 		// Put in the return value and increment the PC

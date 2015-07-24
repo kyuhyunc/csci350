@@ -980,7 +980,7 @@ void ServerFromClient() {
 
     while (true) {
     	// Receive the next message
-    	postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);	
+    	postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);
     	fflush(stdout);
 
         // Tack on clientmachine# and clientmailbox# to buffer
@@ -996,14 +996,14 @@ void ServerFromClient() {
         std::copy(newbuf.begin(), newbuf.end(), buffer);
         buffer[newbuf.size()] = '\0';
 
+        inPktHdr.length += 4;
+        inMailHdr.length += 4;
 
         //forward the message from clients to the other servers
         for(int i = 0; i < NumServers; i++) {
             inPktHdr.to = i;
             inMailHdr.to = 1; //mailbox number is 1
             inMailHdr.from = 1; 
-            inPktHdr.length += 4;
-            inMailHdr.length += 4;
             postOffice->Send(inPktHdr, inMailHdr, buffer);
         }
 
