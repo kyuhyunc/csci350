@@ -121,9 +121,6 @@ enum bool {false, true};
 #define BUSY 1
 #define ONBREAK 2
 
-typedef int bool;
-enum bool {false, true};
-
 /* Global People */
 int passengers;
 int airlines;
@@ -160,6 +157,8 @@ int OfficersLineCV;
 /* Utility */
 char concatString[100];
 
+int xyz[1000];
+
 /* Function Declarations */
 void doCreates();
 void createGlobalData();
@@ -172,6 +171,17 @@ void createScreeningOfficers();
 void createLiaisons();
 void createBaggages();
 void createPassengers();
+
+void doInitialize();
+void initAirlines();
+void initCIS(int airline);
+void initCargoHandlers();
+void initManager();
+void initSecurityInspectors();
+void initScreeningOfficers();
+void initLiaisons();
+void initBaggages();
+void initPassengers();
 
 char* concatNumToString(char* str, int length, int num);
 void incrementMV(int mv, int index);
@@ -214,9 +224,6 @@ bool queue_empty (int queue) {
 }
 
 void doCreates() {
-	int i;
-	int passenger;
-
 	createGlobalData();
 	createManager();
 	createCargoHandlers();
@@ -224,8 +231,19 @@ void doCreates() {
 	createBaggages();
 	createSecurityInspectors();
 	createScreeningOfficers();
-/*	createAirlines();
-	createPassengers();*/
+	createAirlines();
+	createPassengers();
+}
+
+void doInitialize() {
+	initManager();
+	initCargoHandlers();
+	initLiaisons();
+	initBaggages();
+	initSecurityInspectors();
+	initScreeningOfficers();
+	initAirlines();
+	initPassengers();
 }
 
 void createGlobalData() {
@@ -299,9 +317,94 @@ void createGlobalData() {
 }
 
 void createAirlines() {
+	airlines = CreateMV("airlines", sizeof("airlines"), NUM_AIRLINES);
+}
+
+void createCargoHandlers() {
+	/* ConveyorBelt */
+	conveyorBelt = CreateMV(
+		"conveyBelt",
+		sizeof("conveyBelt"),
+		3
+		); 
+	/* Cargo Handlers */
+	cargoHandlers = CreateMV(
+						"cargoHandlers",
+						sizeof("cargoHandlers"),
+						NUM_CARGO_HANDLERS
+					);
+}
+
+void createManager() {
+	manager = CreateMV(
+				"manager",
+				sizeof("manager"),
+				5
+			);
+}
+
+void createSecurityInspectors() {
+	/* Init MV for all SIs */
+	securityInspectors = CreateMV(
+							"securityInspectors",
+							sizeof("securityInspectors"),
+							NUM_SECURITY_INSPECTORS
+						);
+}
+
+void createScreeningOfficers() {
+	/* officersLine Queue */
+	officersLine = CreateMV(
+		"officersLine",
+		sizeof("officersLine"),
+		3
+		); 
+
+	/* Create Array of Screening Officers (SO) */
+	screeningOfficers = CreateMV(
+							"screeningOfficers",
+							sizeof("screeningOfficers"),
+							NUM_SCREENING_OFFICERS
+						);
+}
+
+void createLiaisons() {
+	int i, liason, temp;
+
+	/* Create Array of Screening Officers (SO) */
+	liaisons = CreateMV(
+						"liaisons",
+						sizeof("liaisons"),
+						NUM_LIASONS
+					);
+}
+
+void createBaggages() {
+	int i;
+	/* Create array of baggages */
+	baggages = CreateMV(
+					"baggages",
+					sizeof("baggages"),
+					NUM_PASSENGERS * 3
+				);
+}
+
+void createPassengers() {
+	/* Create Passengers array */
+	passengers = CreateMV(
+					"Passengers",
+					sizeof("Passengers"),
+					NUM_PASSENGERS
+				);
+}
+
+
+/*
+*	INIT function
+*/
+void initAirlines() {
 	int i, j, airline, execQueue, temp;
 
-	airlines = CreateMV("airlines", sizeof("airlines"), NUM_AIRLINES);
 	for (i = 0; i < NUM_AIRLINES; ++i) {
 		airline = CreateMV(
 						concatNumToString("airline", sizeof("airline"), i),
@@ -358,7 +461,7 @@ void createAirlines() {
 								), 
 								sizeof("airline_CIS_lock_") + 3)
 							);
-		createCIS(airline);
+		initCIS(airline);
 
 		/* Queue */
 		execQueue = CreateMV(
@@ -407,7 +510,7 @@ void createAirlines() {
 	}
 }
 
-void createCIS(int airline) {
+void initCIS(int airline) {
 	int i, cis, cisArray, temp;
 	cisArray = CreateMV("CIS", 
 						sizeof("CIS"), 
@@ -461,15 +564,9 @@ void createCIS(int airline) {
 	}
 }
 
-void createCargoHandlers() {
+void initCargoHandlers() {
 	int i, ch, temp;
 
-	/* ConveyorBelt */
-	conveyorBelt = CreateMV(
-		"conveyBelt",
-		sizeof("conveyBelt"),
-		3
-		); 
 	/* Data */
 	temp = CreateMV(
 		"conveyBeltData",
@@ -485,13 +582,6 @@ void createCargoHandlers() {
 	/* Queue Read */
 	SetMV(conveyorBelt, QueueFront, 0);
 
-
-	/* Cargo Handlers */
-	cargoHandlers = CreateMV(
-						"cargoHandlers",
-						sizeof("cargoHandlers"),
-						NUM_CARGO_HANDLERS
-					);
 	for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
 		/* 
 		*	Create Cargo Handler 
@@ -533,7 +623,7 @@ void createCargoHandlers() {
 					sizeof("CHBagCount") + 3,
 					NUM_AIRLINES
 				);
-		SetMV(ch, CHBagCount, BUSY);
+		SetMV(ch, CHBagCount, temp);
 
 		/* CHWeightCount */
 		temp = CreateMV(
@@ -545,16 +635,11 @@ void createCargoHandlers() {
 					sizeof("CHWeightCount") + 3,
 					NUM_AIRLINES
 				);
-		SetMV(ch, CHWeightCount, BUSY);
+		SetMV(ch, CHWeightCount, temp);
 	}
 }
 
-void createManager() {
-	manager = CreateMV(
-				"manager",
-				sizeof("manager"),
-				5
-			);
+void initManager() {
 	SetMV(manager, ManAllLiaisonDone, 0);
 	SetMV(manager, ManAllCISDone, 0);
 	SetMV(manager, ManAllCargoDone, 0);
@@ -562,15 +647,8 @@ void createManager() {
 	SetMV(manager, ManAllSIDone, 0);
 }
 
-void createSecurityInspectors() {
+void initSecurityInspectors() {
 	int i, temp, si, result;
-
-	/* Init MV for all SIs */
-	securityInspectors = CreateMV(
-							"securityInspectors",
-							sizeof("securityInspectors"),
-							NUM_SECURITY_INSPECTORS
-						);
 
 	/* Create all SIs */
 	for (i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
@@ -647,17 +725,9 @@ void createSecurityInspectors() {
 	}
 }
 
-void createScreeningOfficers() {
+void initScreeningOfficers() {
 	int i, so, temp;
 
-
-
-	/* officersLine Queue */
-	officersLine = CreateMV(
-		"officersLine",
-		sizeof("officersLine"),
-		3
-		); 
 	/* Data */
 	temp = CreateMV(
 		"officersLineData",
@@ -673,15 +743,6 @@ void createScreeningOfficers() {
 	/* Queue Read */
 	SetMV(officersLine, QueueFront, 0);
 
-
-
-
-	/* Create Array of Screening Officers (SO) */
-	screeningOfficers = CreateMV(
-							"screeningOfficers",
-							sizeof("screeningOfficers"),
-							NUM_SCREENING_OFFICERS
-						);
 	/* Create all SO */
 	for (i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
 		/*
@@ -741,15 +802,8 @@ void createScreeningOfficers() {
 	}
 }
 
-void createLiaisons() {
+void initLiaisons() {
 	int i, liason, temp;
-
-	/* Create Array of Screening Officers (SO) */
-	liaisons = CreateMV(
-						"liaisons",
-						sizeof("liaisons"),
-						NUM_LIASONS
-					);
 
 	/* Create all Liaisons */
 	for (i = 0; i < NUM_LIASONS; ++i) {
@@ -823,28 +877,15 @@ void createLiaisons() {
 	}
 }
 
-void createBaggages() {
+void initBaggages() {
 	int i;
-	/* Create array of baggages */
-	baggages = CreateMV(
-					"baggages",
-					sizeof("baggages"),
-					NUM_PASSENGERS * 3
-				);
 	for (i = 0; i < NUM_PASSENGERS * 3; ++i) {
 		SetMV(baggages, i, -1);
 	}
 }
 
-void createPassengers() {
+void initPassengers() {
 	int i, j, pass, temp, numBags, bag, bagWeight, airline, isExec;
-
-	/* Create Passengers array */
-	passengers = CreateMV(
-					"Passengers",
-					sizeof("Passengers"),
-					NUM_PASSENGERS
-				);
 
 	/* Create Passengers */
 	for (i = 0; i < NUM_PASSENGERS; ++i) {
@@ -860,11 +901,10 @@ void createPassengers() {
 					sizeof("Passenger") + 3,
 					10
 				);
-
+		SetMV(passengers, i, pass);
 		/*
 		*	Init Passenger
 		*/
-
 		/* PassID */
 		SetMV(pass, PassID, pass);
 
@@ -890,7 +930,6 @@ void createPassengers() {
 		/* 
 		*	Ticket 
 		*/
-
 		/* Ticket--Airline */
 		airline = (i*17) % NUM_AIRLINES;
 		SetMV(pass, PassTicketAirline, airline);
@@ -939,6 +978,12 @@ void createPassengers() {
 		}
 	}
 }
+
+
+
+
+
+
 
 char* concatNumToString(char* str, int length, int num) { /* TODO - Not working Properly */
 	int i;

@@ -26,10 +26,7 @@ void startPassenger() {
 	int _myMV;
 	int _minLineSize;
 	int _liaison;
-
-	Printf0(
-		"startPassenger\n",
-		sizeof("startPassenger\n") );
+	int temp0, temp1, temp2, temp3;
 
     Acquire(GlobalDataLock);
     _myIndex = GetMV(NumActivePassengers, 0);
@@ -74,21 +71,13 @@ void startPassenger() {
 	}
 
 	Printf1(
-			"Passenger's Liaison: %d\n",
-			sizeof("Passenger's Liaison: %d\n"),
-			_liaison
-			);
+			"3: LiaisonCommCV: %d, LiaisonLock:%d\n",
+			sizeof("3: LiaisonCommCV: %d, LiaisonLock:%d\n"),
+			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
 
 	Printf1("Passenger %d chose Liaison %d with a line length %d\n", 
 		sizeof("Passenger %d chose Liaison %d with a line length %d\n"), 
 		concat3Num(_myIndex, _liaison, GetMV(_liaison, LiaisonLineSize)));
-
-	/* Get in line? */
-	/*if (liaison._state == BUSY) {
-		liaison._lineSize++;
-		Wait(LiaisonLineLock, liaison._lineCV);
-		liaison._lineSize--;
-	}*/
 
 	if (GetMV(_liaison, LiaisonState) == BUSY) {
 		incrementMV(_liaison, LiaisonLineSize);
@@ -99,11 +88,21 @@ void startPassenger() {
 		decrementMV(_liaison, LiaisonLineSize);
 	}
 
-	Printf1("Passenger %d is moving along...\n", sizeof("Passenger %d is moving along...\n"), _myIndex);
+	Printf1(
+			"Liaison: %d\n",
+			sizeof("Liaison: %d\n"),
+			_liaison);
+
+	Printf1(
+			"4: LiaisonCommCV: %d, LiaisonLock:%d\n",
+			sizeof("4: LiaisonCommCV: %d, LiaisonLock:%d\n"),
+			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
+
 	/* Go to Liaison */
 	/*Acquire(liaison._lock);*/
 	Acquire(GetMV(_liaison, LiaisonLock));
 	Release(LiaisonLineLock);
+
 	/* Give Liaison my Passenger info */
 	/*liaison._passCount[my._ticket._airline]++;*/
 	incrementMV(
@@ -116,8 +115,15 @@ void startPassenger() {
 		GetMV(_myMV, PassTicketAirline),
 		GetMV(_liaison, LiaisonBagCount) + GetMV(_myMV, PassNumBaggages)
 		);
+
 	/*liaison._currentPassenger = _myIndex;*/
 	SetMV(_liaison, LiaisonCurrentPassenger, _myMV);
+
+	Printf1(
+			"5: LiaisonCommCV: %d, LiaisonLock:%d\n",
+			sizeof("5: LiaisonCommCV: %d, LiaisonLock:%d\n"),
+			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
+
 	Signal(
 		GetMV(_liaison, LiaisonLock), 
 		GetMV(_liaison, LiaisonCommCV) ); /* Signal Liaison */

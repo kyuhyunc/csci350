@@ -128,6 +128,7 @@ public:
     {}
     int size() { return vector.size(); }
     int& at(const int &index) { return vector.at(index); }
+    void setAt(const int &index, const int &value){ vector.at(index) = value; }
 public: 
     std::vector<int> vector;
     std::string name;
@@ -774,8 +775,8 @@ void SetMV(
         printf("Invalid index: %d in SetMV: %d, actual size: %d, value: %d\n", index, mv, MonitorVars.at(mv)->size(), value);
         ss << -1;
     } else {
-        MonitorVars.at(mv)->at(index) = value;
-        ss << value;
+        MonitorVars.at(mv)->setAt(index, value);
+        ss << mv;
     }
     //
     PacketHeader outPktHdr;

@@ -1,69 +1,112 @@
 #include "create.h"
 
-#define NULL 0
-
-
-typedef int bool;
-enum bool {false, true};
-
-
-/*
-	Utilities	
-*/
-
-int concat3Num(int i, int j, int k) {
-	return 1000000 * i + 1000 * j + k;
-} 
-
-int concat2Num(int i, int j) {
-	return 1000 * i + j;
-}
-
-
 void startLiaison() {
-#define l Liaisons[_myIndex]
 	/* Claim my Liaison */
 	int _myIndex; /* ID for currentThread */
+	int _myMV;
+
+	Printf0(
+	    		"startLiaison\n",
+	    		sizeof("startLiaison\n")
+	    		);
+
     Acquire(GlobalDataLock);
-    _myIndex = NumActiveLiaisons++;
+	/*_myIndex = NumActiveLiaisons++;*/
+	_myIndex = GetMV(NumActiveLiaisons, 0);
+	incrementMV(NumActiveLiaisons, 0);
     Release(GlobalDataLock);
+
+    _myMV = GetMV(liaisons, _myIndex);
+
+    Printf1(
+    		"Liaison's ID: %d\n",
+    		sizeof("Liaison's ID: %d\n"),
+    		_myMV
+    		);
+    Printf1(
+		"Liaison LiaisonCommCV: %d, LiaisonLock:%d\n",
+		sizeof("Liaison LiaisonCommCV: %d, LiaisonLock:%d\n"),
+		concat2Num(GetMV(_myMV, LiaisonCommCV), GetMV(_myMV, LiaisonLock)));
 
 	while(true) {
 		/*
 			Passenger Interaction
     	*/
 	    Acquire(LiaisonLineLock);
-
-	    Acquire(l._lock);
-	    if (l._lineSize == 0) {
+	    Acquire(GetMV(_myMV, LiaisonLock)); 
+	    if (GetMV(_myMV, LiaisonLineSize) == 0) {
+	    	SetMV(
+	    		_myMV,
+	    		LiaisonState,
+	    		AVAIL
+	    		);
 	    	Release(LiaisonLineLock);
-	    	l._state = AVAIL;
-			if (Manager._allLiaisonsDone) { /* Done? */
-				Release(l._lock);
-				break;
-			}
-	    	Wait(l._lock, l._commCV); /* Wait for new Passenger */
-			if (Manager._allLiaisonsDone) { /* Done? */
-				Release(l._lock);
-				break;
-			}
+	    	if (GetMV(manager, ManAllLiaisonDone)) {
+	    		Release(GetMV(_myMV, LiaisonLock));
+	    		break;
+	    	}
+	    	Printf0(
+	    		"About to go to sleep\n",
+	    		sizeof("About to go to sleep\n")
+	    		);
+	    	Wait(
+	    		GetMV(_myMV, LiaisonLock),
+	    		GetMV(_myMV, LiaisonCommCV) );
+	    	if (GetMV(manager, ManAllLiaisonDone)) {
+	    		Release(GetMV(_myMV, LiaisonLock));
+	    		break;
+	    	}
 	    } else {
-	    	Signal(LiaisonLineLock, l._lineCV); /* Signal Passenger */
+	    	Printf1(
+				"Liaison signal. CV: %d, Lock:%d\n",
+				sizeof("Liaison signal. CV: %d, Lock:%d\n"),
+				concat2Num(GetMV(_myMV, LiaisonLineCV), LiaisonLineLock));
+	    	
+	    	Signal(LiaisonLineLock, GetMV(_myMV, LiaisonLineCV)); /* Signal Passenger */
+	    	
 	    	Release(LiaisonLineLock); 
-	    	Wait(l._lock, l._commCV); /* Wait on Passenger */
+
+	    	Printf1(
+				"Liaison wait. CV: %d, Lock:%d\n",
+				sizeof("Liaison wait. CV: %d, Lock:%d\n"),
+				concat2Num(GetMV(_myMV, LiaisonCommCV), GetMV(_myMV, LiaisonLock)));
+	    	
+	    	Wait(
+	    		GetMV(_myMV, LiaisonLock),
+	    		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
 	    }
-	    l._state = BUSY;
-	    Printf1("Airport Liaison %d directed passenger %d of airline %d\n",
+	    Printf0(
+    		"About to help\n",
+    		sizeof("About to help\n") );
+	    SetMV(_myMV, LiaisonState, BUSY);
+	    Printf1(
+	    	"Airport Liaison %d directed passenger %d of airline %d\n",
 	    	sizeof("Airport Liaison %d directed passenger %d of airline %d\n"),
-	    	concat3Num(_myIndex, l._currentPassenger, Passengers[l._currentPassenger]._ticket._airline));
-	    Signal(l._lock, l._commCV); /* Signal Passenger */
-	    Wait(l._lock, l._commCV); /* Wait for Passenger to say goodbye */
-	    Release(l._lock);
+	    	concat3Num(
+	    		_myIndex,
+	    		GetMV(
+	    			_myMV, 
+	    			LiaisonCurrentPassenger
+	    			), 
+	    		GetMV(
+	    			GetMV(
+	    				_myMV, 
+	    				LiaisonCurrentPassenger
+	    				), 
+	    			PassTicketAirline
+	    			) 
+	    		)
+	    	);
+	    Signal(
+    		GetMV(_myMV, LiaisonLineLock),
+    		GetMV(_myMV, LiaisonCommCV) ); /* Signal Passenger */
+	    Wait(
+    		GetMV(_myMV, LiaisonLineLock),
+    		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
+	    Release( GetMV(_myMV, LiaisonLineLock) );
 	    /* end Passenger Interaction */
 	}
-
 	Exit(0);
-#undef l
 }
 
 int main() {
