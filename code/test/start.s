@@ -258,13 +258,13 @@ Printf2:
 	j	$31
 	.end Printf2
 
-	.globl ConcatNumToString
-	.ent	ConcatNumToString
-ConcatNumToString:
-	addiu $2,$0,SC_ConcatNumToString
+	.globl ConcatNum2String
+	.ent	ConcatNum2String
+ConcatNum2String:
+	addiu $2,$0,SC_ConcatNum2String
 	syscall
 	j	$31
-	.end ConcatNumToString
+	.end ConcatNum2String
 
 /* dummy function to keep gcc happy */
         .globl  __main

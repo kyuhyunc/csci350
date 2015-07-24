@@ -11,14 +11,44 @@
  */
 
 #include "syscall.h"
-/*int a[3];
-int b, c;*/
+
+int firstLock, secondLock;
+int firstCV, secondCV;
+void testing2();
+void testing1() {
+	Printf0("Entering testing1\n", sizeof("Entering testing1\n"));
+	firstLock = CreateLock("first", sizeof("first"));
+	firstCV = CreateCV("first", sizeof("first"));
+	Acquire(firstLock);
+	Fork(testing2, "testing2", sizeof("testing2"));
+	Printf0("After Acquire\n", sizeof("After Acquire\n"));
+	Wait(firstLock,firstCV);
+	Printf0("After Wait\n", sizeof("After Wait\n"));
+	Release(firstLock);
+	Printf0("After Release 1\n", sizeof("After Release 1\n"));
+
+	Exit(0);
+}
+void testing2() {
+	Printf0("Entering testing2\n", sizeof("Entering testing2\n"));
+/*	secondLock = CreateLock("first", sizeof("first"));
+	secondCV = CreateCV("first", sizeof("first"));*/
+	Acquire(firstLock);
+	Printf0("After Acquire 2 \n", sizeof("After Acquire 2 \n"));
+	Signal(firstLock, firstCV);
+	Printf0("After signal 2 \n", sizeof("After signal 2 \n"));
+	Release(firstLock);
+	Printf0("After Release 2\n", sizeof("After Release 2\n"));
+
+	Exit(0);
+}
 
 int
 main()
 {
-/*	Yield();*/
-	Printf0("Entering halt\n", sizeof("Entering halt\n"));
-/*    Halt();*/
-    /* not reached */
+	Printf0("Testing Starts\n", sizeof("Testing Starts\n"));
+	Fork(testing1, "testing1", sizeof("testing1"));
+	
+
+
 }

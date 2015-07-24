@@ -142,6 +142,14 @@ class Thread {
 
     AddrSpace *space;			// User code this thread is running.
 #endif
+#ifdef NETWORK
+  public:
+    int mailboxNum;
+
+    // randomly chooses server in distributed network
+    void ChooseRandServer();
+    int randserv;
+#endif
 };
 
 // Magical machine-dependent routines, defined in switch.s

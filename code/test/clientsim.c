@@ -91,6 +91,24 @@ void test2_thread() {
 	Release(lock_t2);
 	Exit(0);
 }
+void test2_thread2() {
+    Printf0("TEST 2 - Thread 2 is about to call Acquire\n", sizeof("TEST 2 - Thread 1 is about to call Acquire\n"));
+    Acquire(lock_t2);
+    Printf0("TEST 2 - Thread 2 successfully acquired lock\n", sizeof("TEST 2 - Thread 1 successfully acquired lock\n"));
+    Printf0("TEST 2 - Thread 2 is definitely releasing the lock\n", sizeof("TEST 2 - Thread 1 is definitely releasing the lock\n"));
+    Release(lock_t2);
+    Exit(0);
+}
+void test2_thread1() {
+    Printf0("TEST 2 - Thread 1 is about to call Acquire\n", sizeof("TEST 2 - Thread 1 is about to call Acquire\n"));
+    Acquire(lock_t2);
+    Printf0("TEST 2 - Thread 1 successfully acquired lock\n", sizeof("TEST 2 - Thread 1 successfully acquired lock\n"));
+    Fork(test2_thread2, "test2_thread2", sizeof("test2_thread2"));
+    Yield();
+    Printf0("TEST 2 - Thread 1 is definitely releasing the lock\n", sizeof("TEST 2 - Thread 1 is definitely releasing the lock\n"));
+    Release(lock_t2);
+    Exit(0);
+}
 
 /*
 *	Test 2 - Tests Acquire functionality
@@ -103,10 +121,8 @@ bool test2_acquireLock() {
 
 	numLockAcquires = 0;
 
-	Fork(test2_thread, "test2_thread_0", 
-		sizeof("test2_thread_0"));
-	Fork(test2_thread, "test2_thread_1", 
-		sizeof("test2_thread_1"));
+	Fork(test2_thread1, "test2_thread_1", sizeof("test2_thread_0"));
+/*	Fork(test2_thread2, "test2_thread_2", sizeof("test2_thread_1"));*/
 	return true; /* Must look at print statements to determine */
 }
 
@@ -230,21 +246,26 @@ bool test6_waitAndSignal() {
 *	Test 7 - Create MV
 */
 bool test7_createMV() {
-	int mv0, mv1, mv2, mv3;
-	int mv0_size = 3, mv1_size = 1;
+	int mv0_t7, mv1_t7, mv2_t7, mv3_t7;
+	int mv0_t7_size = 3, mv1_t7_size = 1;
 
 	Printf0("Running test7_createMV\n", sizeof("Running test7_createMV\n"));
 
-	mv0 = CreateMV("mv0_t7", sizeof("mv0_t7"), mv0_size);
-	mv1 = CreateMV("mv1_t7", sizeof("mv1_t7"), mv1_size);
-	mv2 = CreateMV("mv0_t7", sizeof("mv0_t7"), mv0_size);
-	mv3 = CreateMV("mv2_t7", sizeof("mv2_t7"), 0);
+	mv0_t7 = CreateMV("mv0_t7", sizeof("mv0_t7"), mv0_t7_size);
+	mv1_t7 = CreateMV("mv1_t7", sizeof("mv1_t7"), mv1_t7_size);
+	mv2_t7 = CreateMV("mv0_t7", sizeof("mv0_t7"), mv0_t7_size);
+	mv3_t7 = CreateMV("mv2_t7", sizeof("mv2_t7"), 0);
+Printf1("mv0_t7 = %d\n", sizeof("mv0_t7 = %d\n"), mv0_t7);
+Printf1("mv1_t7 = %d\n", sizeof("mv1_t7 = %d\n"), mv1_t7);
+Printf1("mv2_t7 = %d\n", sizeof("mv2_t7 = %d\n"), mv2_t7);
+Printf1("mv3_t7 = %d\n", sizeof("mv3_t7 = %d\n"), mv3_t7);
+
 
 	if(
-		mv0 == 0
-		&& mv1 == 1
-		&& mv2 == 0 
-		&& mv3 == -1
+		mv0_t7 == 0
+		&& mv1_t7 == 1
+		&& mv2_t7 == 0 
+		&& mv3_t7 == -1
 	) {
 		Printf0("test7_createMV passed!\n", sizeof("test7_createMV passed!\n"));
 		return true;
@@ -261,34 +282,34 @@ bool test7_createMV() {
 *		This will test whether get and set methods work
 */
 bool test8_setAndGetMV() {
-	int mv0, mv1, mv2;
-	int mv0_size = 1, mv1_size = 3;
+	int mv0_t8, mv1_t8, mv2_t8;
+	int mv0_t8_size = 1, mv1_t8_size = 3;
 	int rn_negSetIndex, rn_bigSetIndex, rp_validSetIndex, rn_negIndex, rn_bigIndex;
 	int rn_negGetIndex, rn_bigGetIndex, rn_negMVIndex, rn_bigMVIndex; /* r stands for result. p = pos, n = neg */
 	int value = 23;
 
-	Printf0("Running test7_createMV\n", sizeof("Running test7_createMV\n"));
+	Printf0("Running test8_setAndGetMV\n", sizeof("Running test8_setAndGetMV\n"));
 
-	mv0 = CreateMV("mv0_t8", sizeof("mv0_t8"), mv0_size);
-	mv1 = CreateMV("mv1_t8", sizeof("mv1_t8"), mv1_size);
-	mv2 = CreateMV("mv0_t8", sizeof("mv0_t8"), mv0_size);
+	mv0_t8 = CreateMV("mv0_t8", sizeof("mv0_t8"), mv0_t8_size);
+	mv1_t8 = CreateMV("mv1_t8", sizeof("mv1_t8"), mv1_t8_size);
+	mv2_t8 = CreateMV("mv0_t8", sizeof("mv0_t8"), mv0_t8_size);
 
 	/* Invalid Set */
-	rn_negSetIndex = SetMV(mv1, -1, value);
-	rn_bigSetIndex = SetMV(mv1, mv1_size, value);
+	rn_negSetIndex = SetMV(mv1_t8, -1, value);
+	rn_bigSetIndex = SetMV(mv1_t8, mv1_t8_size, value);
 	rn_negIndex = SetMV(-1, 0, 0);
-	rn_bigIndex = SetMV(2, 0, 0);
+	rn_bigIndex = SetMV(22, 0, 0);
 	/* Valid Set */
-	rp_validSetIndex = SetMV(mv1, mv1_size - 1, value);
+	rp_validSetIndex = SetMV(mv1_t8, mv1_t8_size - 1, value);
 
 	/* Invalid Get */
-	rn_negGetIndex = GetMV(mv1, -1);
-	rn_bigGetIndex = GetMV(mv1, mv1_size);
+	rn_negGetIndex = GetMV(mv1_t8, -1);
+	rn_bigGetIndex = GetMV(mv1_t8, mv1_t8_size);
 	rn_negMVIndex = GetMV(-1, 0);
-	rn_bigMVIndex = GetMV(2, 0);
+	rn_bigMVIndex = GetMV(22, 0);
 
 	if(
-		GetMV(mv1, mv1_size - 1) == value /* Valid Get */
+		GetMV(mv1_t8, mv1_t8_size - 1) == value /* Valid Get */
 		&& rn_negSetIndex == -1
 		&& rn_bigSetIndex == -1
 		&& rn_negIndex == -1
@@ -298,12 +319,10 @@ bool test8_setAndGetMV() {
 		&& rn_negMVIndex == -1
 		&& rn_bigMVIndex == -1
 	) {
-		Printf0("test7_createMV passed!\n", sizeof("test7_createMV passed!\n"));
+		Printf0("test8_setAndGetMV passed!\n", sizeof("test8_setAndGetMV passed!\n"));
 		return true;
 	}else{
-		Printf0(
-			"test7_createMV failed!\n", 
-			sizeof("test7_createMV failed!\n"));
+		Printf0("test8_setAndGetMV failed!\n", sizeof("test8_setAndGetMV failed!\n"));
 		return false;
 	}
 
@@ -314,27 +333,27 @@ bool test8_setAndGetMV() {
 *	Test 9 - Destroy Monitor Variable
 */
 bool test9_deleteMV() {
-	int mv0, mv1, mv2;
-	int mv0_size = 3, mv1_size = 1;
+	int mv0_t9, mv1_t9, mv2_t9;
+	int mv0_t9_size = 3, mv1_t9_size = 1;
 	int rp_goodDelete, rn_deletedIndex, rn_negIndex, rn_bigIndex;
 
 	Printf0("Running test9_deleteMV\n", sizeof("Running test9_deleteMV\n"));
 
 	/* Check DEstroy functionality */
-	mv0 = CreateMV("mv0_t9", sizeof("mv0_t9"), mv0_size);
-	mv1 = CreateMV("mv1_t9", sizeof("mv1_t9"), mv1_size);
-	rp_goodDelete = DestroyMV(mv1);
-	mv2 = CreateMV("mv2_t9", sizeof("mv2_t9"), 23);
-	rn_deletedIndex = GetMV(mv1, 0);
+	mv0_t9 = CreateMV("mv0_t9", sizeof("mv0_t9"), mv0_t9_size);
+	mv1_t9 = CreateMV("mv1_t9", sizeof("mv1_t9"), mv1_t9_size);
+	rp_goodDelete = DestroyMV(mv1_t9);
+	mv2_t9 = CreateMV("mv2_t9", sizeof("mv2_t9"), 23);
+	rn_deletedIndex = GetMV(mv1_t9, 0);
 
 	/* Check Destroy boundaries */
 	rn_negIndex = DestroyMV(-1);
 
 	if(
-		rp_goodDelete == mv1
+		rp_goodDelete == mv1_t9
 		&& rn_negIndex == -1
 		&& rn_deletedIndex == -1
-		&& mv2 == mv0 + 2
+		&& mv2_t9 == mv0_t9 + 2
 		) {
 		Printf0("test9_deleteMV passed!\n", sizeof("test9_deleteMV passed!\n"));
 		return true;
@@ -342,7 +361,7 @@ bool test9_deleteMV() {
 		Printf1(
 			"test9_deleteMV failed! %d %d %d\n", 
 			sizeof("test9_deleteMV failed! %d %d %d\n"),
-			1000000*(rp_goodDelete == mv1) + 1000*(mv2 == mv0 + 2) + (mv2));
+			1000000*(rp_goodDelete == mv1_t9) + 1000*(mv2_t9 == mv0_t9 + 2) + (mv2_t9));
 		Printf1(
 			"test9_1111 %d %d %d\n", 
 			sizeof("test9_1111 %d %d %d\n"),
@@ -387,9 +406,8 @@ bool test10_broadcast() {
 *
 */
 int main() {
-	/*test6_waitAndSignal();*/
-	/*test8_setAndGetMV();*/
-	/*test10_broadcast();*/
+/*        test6_waitAndSignal() &&*/
+/*        test10_broadcast()*/
 	if (
 		test0_createLock() &&
 		test1_deleteLock() &&
@@ -398,7 +416,8 @@ int main() {
 		test4_createCV() &&
 		test5_destroyCV() &&
 		test7_createMV() &&
-		test9_deleteMV() 
+        test8_setAndGetMV() &&
+		test9_deleteMV()
 	) {
 		Printf0("All tests passed!\n", sizeof("All tests passed!\n"));
 	} else {

@@ -47,6 +47,12 @@ Thread::Thread(char* threadName)
 	index = -1;
 	stackreg = -1;
 #endif
+#ifdef NETWORK
+    MailBoxInitNumLock->Acquire();
+    mailboxNum = MailBoxInitNum;
+    MailBoxInitNum++;
+    MailBoxInitNumLock->Release();
+#endif
 }
 
 //----------------------------------------------------------------------
@@ -323,4 +329,18 @@ Thread::RestoreUserState()
     for (int i = 0; i < NumTotalRegs; i++)
 	machine->WriteRegister(i, userRegisters[i]);
 }
+#endif
+
+#ifdef NETWORK
+
+void Thread::ChooseRandServer()
+{
+    if (NumServers == 1) {
+        randserv = 0;
+    }
+    else {
+        randserv = rand() % NumServers;
+    }
+}
+
 #endif

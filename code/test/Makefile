@@ -31,9 +31,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
-all: halt matmult sort matmult2exec matmult2fork sort2exec sort2fork testfiles testprint testexit testexithelper airportsim airstart clientsim passenger liaison client1 client2
-	#client1 client2 client3 client4 client5 passenger screeningofficer checkinstaff liaison securityinspector manager cargohandler
-
+all: halt matmult sort matmult2exec matmult2fork sort2exec sort2fork testfiles testprint testexit testexithelper testappend airportsim airstart clientsim
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -106,7 +104,17 @@ testexithelper: testexithelper.o start.o
 	$(LD) $(LDFLAGS) start.o testexithelper.o -o testexithelper.coff
 	../bin/coff2noff testexithelper.coff testexithelper
 
+<<<<<<< HEAD
 airportsim.o: airportsim.c create.h
+=======
+testappend.o: testappend.c
+	$(CC) $(CFLAGS) -c testappend.c
+testappend: testappend.o start.o
+	$(LD) $(LDFLAGS) start.o testappend.o -o testappend.coff
+	../bin/coff2noff testappend.coff testappend
+
+airportsim.o: airportsim.c
+>>>>>>> 4e4be87081fae9c15997ade93fe496f2c9746a5d
 	$(CC) $(CFLAGS) -c airportsim.c
 airportsim: airportsim.o start.o
 	$(LD) $(LDFLAGS) start.o airportsim.o -o airportsim.coff
@@ -198,10 +206,5 @@ liaison: liaison.o start.o
 
 clean:
 	rm -f *.o *.coff
-	rm halt sort matmult sort2exec sort2fork matmult2exec matmult2fork testfiles testprint testexit testexithelper airportsim airstart clientsim 
-	rm passenger liaison 
-	rm client1 client2
-	# client3 client4 client5 
-	#rm  screeningofficer checkinstaff manager securityinspector cargohandler
-
+	rm halt sort matmult sort2exec sort2fork matmult2exec matmult2fork testfiles testprint testexit testexithelper testappend airportsim airstart clientsim
 	rm *~

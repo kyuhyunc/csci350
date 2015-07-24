@@ -32,21 +32,47 @@
 
 using namespace std;
 
-#define MAILBOX 1
 
 #ifdef NETWORK
 
-std::vector< std::vector<int>* > monitorVars;
+int64_t GetTimeStamp() {
+    // Find # seconds from year 2000
+    time_t t;
+    time(&t);
+
+    // Find # microseconds
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    time_t microseconds = tv.tv_usec;
+
+//    printf("t = %ld\n", t);
+//    printf("usec = %ld\n", tv.tv_usec);
+//    int64_t a = *((int64_t*)&t);
+    int64_t a = t;
+//    printf("a = %llu\n", a);
+    int64_t b = a * 1000000;
+//    printf("b = %llu\n", b);
+//    int64_t c = b + *((int64_t*)&tv.tv_usec);
+    int64_t c = b + microseconds;
+//    printf("c = %llu\n", c);
+    int64_t d = c * 10 + currentThread->randserv;
+
+    return d;
+}
 
 void initNetworkMessageHeaders(PacketHeader &ph, MailHeader &mh, int dataLength) {
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
-    // From: our machine, reply to: mailbox 1
+            // A server's mailbox 0 receives all client requests
+            // A server's mailbox 1 receives all server forwarded requests
+                // destination machine is one of the randomly chosen servers
+                // in the distributed server system
+    // From: our machine, reply to our mailbox
     // ph
-    ph.to = SERVER_NETWORK_ID;
+    ph.to = currentThread->randserv;
     // mh
-    mh.to = SERVER_NETWORK_ID;
-    mh.from = MAILBOX; 
+    mh.to = 0;
+    mh.from = currentThread->mailboxNum; 
     mh.length = dataLength + 1;
 }
 
@@ -685,13 +711,20 @@ int CreateLock_Syscall(int vaddr, int size) {
 	//**********************************************************************
 	#ifdef NETWORK
 	
-		DEBUG('o', "Client called CreateLock\n");
+		DEBUG('o', "Client machine %d mailbox %d called CreateLock\n", postOffice->getMachineID(), currentThread->mailboxNum);
+
+        currentThread->ChooseRandServer();
 
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
 
-	    // Create StringStream -- put in function ID 
-		std::stringstream ss;
+	    std::stringstream ss;
+
+	    // putting timestamp in StringStream and send it to server
+	    ss << GetTimeStamp();
+	    ss << " ";
+		
+		// Create StringStream -- put in function ID 
 		ss << CreateLock_SF;
 		ss << " ";
 
@@ -710,11 +743,11 @@ int CreateLock_Syscall(int vaddr, int size) {
 
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+	    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );
 	    int lockID = -1; // -1 is error
 	    ss >> lockID;
 
-	    DEBUG('o', "Client received lock #%d\n", lockID);
+		DEBUG('o', "Client machine %d mailbox %d received lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, lockID);
 
 	    return lockID;
 
@@ -821,13 +854,20 @@ int DestroyLock_Syscall(int index) {
 
 	#ifdef NETWORK 
 
-	DEBUG('o', "Client called DestroyLock\n");
+    DEBUG('o', "Client machine %d mailbox %d called DestroyLock\n", postOffice->getMachineID(), currentThread->mailboxNum);
+
+    currentThread->ChooseRandServer();
 
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
 
     // Create StringStream -- put in function ID 
 	std::stringstream ss;
+
+	// putting timestamp in StringStream and send it to server
+	ss << GetTimeStamp();
+	ss << " ";
+
 	ss << DestroyLock_SF;
 	ss << " ";
 	ss << index;
@@ -837,7 +877,7 @@ int DestroyLock_Syscall(int index) {
 	DEBUG('o', "Client is about to Receive message in DestroyLock\n");
     char buffer[MaxMailSize];
     // Wait for message from server -- comes with lock ID
-    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+    postOffice->Receive(currentThread->mailboxNum, &inPktHdr, &inMailHdr, buffer);
     fflush(stdout);
     // Retrieve lock ID/index
     ss.str(""); // clear stringstream
@@ -845,7 +885,7 @@ int DestroyLock_Syscall(int index) {
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client destroyed lock #%d\n", result);
+    DEBUG('o', "Client machine %d mailbox %d destroyed lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
     return result;
 
@@ -955,25 +995,32 @@ int Acquire_Syscall(int index) {
 
 	#ifdef NETWORK 
 
-	DEBUG('o', "Client called Acquire\n");
+    DEBUG('o', "Client machine %d mailbox %d called Acquire on lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, index);
+
+    currentThread->ChooseRandServer();
 
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
 
     // Create StringStream -- put in function ID 
 	std::stringstream ss;
+
+	// putting timestamp in StringStream and send it to server
+	ss << GetTimeStamp();
+	ss << " ";
+
 	ss << Acquire_SF;
 	ss << " ";
 	ss << index;
 
-	printf("currentThread: %s\n", currentThread->getName());
+//	printf("currentThread: %s\n", currentThread->getName());
 
     sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	DEBUG('o', "Client is about to Receive message in AcuireLOCK\n");
+//	DEBUG('o', "Client is about to Receive message in AcuireLOCK\n");
     char buffer[MaxMailSize];
     // Wait for message from server -- comes with lock ID
-    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+    postOffice->Receive(currentThread->mailboxNum, &inPktHdr, &inMailHdr, buffer);
     fflush(stdout);
 
     // Retrieve lock ID/index
@@ -982,7 +1029,7 @@ int Acquire_Syscall(int index) {
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client acquired lock #%d\n", result);
+    DEBUG('o', "Client machine %d mailbox %d acquired lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
     return result;
 
@@ -1054,13 +1101,20 @@ int Release_Syscall(int index) {
 
 	#ifdef NETWORK 
 
-	DEBUG('o', "Client called Release\n");
+    DEBUG('o', "Client machine %d mailbox %d called Release on Lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, index);
+
+    currentThread->ChooseRandServer();
 
 	PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
 
     // Create StringStream -- put in function ID 
 	std::stringstream ss;
+
+	// putting timestamp in StringStream and send it to server
+	ss << GetTimeStamp();
+	ss << " ";
+
 	ss << Release_SF;
 	ss << " ";
 	ss << index;
@@ -1069,7 +1123,7 @@ int Release_Syscall(int index) {
 
     char buffer[MaxMailSize];
     // Wait for message from server -- comes with lock ID
-    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+    postOffice->Receive(currentThread->mailboxNum, &inPktHdr, &inMailHdr, buffer);
     fflush(stdout);
 
     // Retrieve lock ID/index
@@ -1078,7 +1132,7 @@ int Release_Syscall(int index) {
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client Released lock #%d\n", result);
+    DEBUG('o', "Client machine %d mailbox %d released lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
     return result;
 
@@ -1188,13 +1242,20 @@ int CreateCV_Syscall(int vaddr, int size) {
 
 	#ifdef NETWORK 
 
-		DEBUG('o', "Client called CreateCV\n");
+        DEBUG('o', "Client machine %d mailbox %d called CreateCV\n", postOffice->getMachineID(), currentThread->mailboxNum);
+
+        currentThread->ChooseRandServer();
 
 		PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
 
-	    // Create StringStream
+	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
+
+		// putting timestamp in StringStream and send it to server
+		ss << GetTimeStamp();
+		ss << " ";
+
 		ss << CreateCV_SF;
 		ss << " ";
 		// Add cv name to stream
@@ -1214,7 +1275,7 @@ int CreateCV_Syscall(int vaddr, int size) {
 
 	    char buffer[MaxMailSize];
 	    // Wait for message from server -- comes with lock ID
-	    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+	    postOffice->Receive(currentThread->mailboxNum, &inPktHdr, &inMailHdr, buffer);
 	    fflush(stdout);
 
 	    // Retrieve lock ID/index
@@ -1223,7 +1284,7 @@ int CreateCV_Syscall(int vaddr, int size) {
 	    int result = -1; // -1 is error
 	    ss >> result;
 
-	    DEBUG('o', "Client created cv #%d\n", result);
+        DEBUG('o', "Client machine %d mailbox %d received CV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
 	    return result;
 
@@ -1330,13 +1391,20 @@ int DestroyCV_Syscall(int index) {
 
 	#ifdef NETWORK 
 
-		DEBUG('o', "Client called DestroyLock\n");
+        DEBUG('o', "Client machine %d mailbox %d called DestroyCV\n", postOffice->getMachineID(), currentThread->mailboxNum);
+
+        currentThread->ChooseRandServer();
 
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
 
 	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
+
+		// putting timestamp in StringStream and send it to server
+		ss << GetTimeStamp();
+		ss << " ";
+
 		ss << DestroyCV_SF;
 		ss << " ";
 		ss << index;
@@ -1346,7 +1414,7 @@ int DestroyCV_Syscall(int index) {
 		DEBUG('o', "Client is about to Receive message in DestroyCV\n");
 	    char buffer[MaxMailSize];
 	    // Wait for message from server -- comes with lock ID
-	    postOffice->Receive(MAILBOX, &inPktHdr, &inMailHdr, buffer);
+	    postOffice->Receive(currentThread->mailboxNum, &inPktHdr, &inMailHdr, buffer);
 	    fflush(stdout);
 	    // Retrieve lock ID/index
 	    ss.str(""); // clear stringstream
@@ -1354,7 +1422,7 @@ int DestroyCV_Syscall(int index) {
 	    int result = -1; // -1 is error
 	    ss >> result;
 
-	    DEBUG('o', "Client destroyed cv #%d\n", result);
+        DEBUG('o', "Client machine %d mailbox %d destroyed CV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
 	    return result;
 
@@ -1464,13 +1532,20 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
 
 	#ifdef NETWORK 
 
-		DEBUG('o', "Client called Wait\n");
+        DEBUG('o', "Client machine %d mailbox %d called Wait on CV #%d with Lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, CVIndex, lockIndex);
+
+        currentThread->ChooseRandServer();
 
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
 
 	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
+
+		// putting timestamp in StringStream and send it to server
+		ss << GetTimeStamp();
+		ss << " ";
+
 		ss << Wait_SF;
 		ss << " ";
 		ss << lockIndex;
@@ -1479,11 +1554,11 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
 
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );	    
+	    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );	    
 	    int result = -1; // -1 is error
 	    ss >> result;
 
-	    DEBUG('o', "Client woke up from Wait #%d\n", result);
+        DEBUG('o', "Client machine %d mailbox %d woke up from Wait #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
 	    return result;
 
@@ -1624,13 +1699,20 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
 
 	#ifdef NETWORK 
 
-		DEBUG('o', "Client called Signal\n");
+        DEBUG('o', "Client machine %d mailbox %d called Signal on CV #%d with Lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, CVIndex, lockIndex);
+
+        currentThread->ChooseRandServer();
 
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
 
 	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
+
+		// putting timestamp in StringStream and send it to server
+		ss << GetTimeStamp();
+		ss << " ";
+
 		ss << Signal_SF;
 		ss << " ";
 		ss << lockIndex;
@@ -1639,11 +1721,11 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
 
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+	    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );
 	    int result = -1; // -1 is error
 	    ss >> result;
 
-	    DEBUG('o', "Client Signaled #%d\n", result);
+        DEBUG('o', "Client machine %d mailbox %d Signaled CV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
 	    return result;
 
@@ -1738,13 +1820,20 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 
 	#ifdef NETWORK 
 
-		DEBUG('o', "Client called Broadcast\n");
+        DEBUG('o', "Client machine %d mailbox %d called Broadcast on CV #%d with Lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, CVIndex, lockIndex);
+
+        currentThread->ChooseRandServer();
 
 	    PacketHeader outPktHdr, inPktHdr;
 	    MailHeader outMailHdr, inMailHdr;
 
 	    // Create StringStream -- put in function ID 
 		std::stringstream ss;
+
+		// putting timestamp in StringStream and send it to server
+		ss << GetTimeStamp();
+		ss << " ";
+
 		ss << BroadCast_SF;
 		ss << " ";
 		ss << lockIndex;
@@ -1753,11 +1842,11 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+	    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );
 	    int result = -1; // -1 is error
 	    ss >> result;
 
-	    DEBUG('o', "Client Broadcasted #%d\n", result);
+        DEBUG('o', "Client machine %d mailbox %d broadcasted #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
 	    return result;
 
@@ -1859,13 +1948,20 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 
 int CreateMV_Syscall(int vaddr, int nameLength, int size) {
 
-    DEBUG('o', "Client called CreateMV\n");
+    DEBUG('o', "Client machine %d mailbox %d called CreateMV for size %d\n", postOffice->getMachineID(), currentThread->mailboxNum, size);
+
+    currentThread->ChooseRandServer();
 
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
 
     // Create StringStream -- put in function ID 
     std::stringstream ss;
+
+    // putting timestamp in StringStream and send it to server
+    ss << GetTimeStamp();
+    ss << " ";
+
     ss << CreateMV_SF;
     ss << " ";
     // Add lock name to stream
@@ -1887,9 +1983,11 @@ int CreateMV_Syscall(int vaddr, int nameLength, int size) {
 
     sendMessage(outPktHdr, outMailHdr, ss.str());
 
-    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );
     int result = -1; // -1 is error
     ss >> result;
+
+    DEBUG('o', "Client machine %d mailbox %d created MV #%d of size %d\n", postOffice->getMachineID(), currentThread->mailboxNum, result, size);
 
     return result;
 
@@ -1897,13 +1995,20 @@ int CreateMV_Syscall(int vaddr, int nameLength, int size) {
 
 int GetMV_Syscall(int mv, int index) {
 
-    DEBUG('o', "Client called GetMV\n");
+    DEBUG('o', "Client machine %d mailbox %d called GetMV on MV #%d index #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, mv, index);
+
+    currentThread->ChooseRandServer();
 
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
 
     // Create StringStream -- put in function ID 
     std::stringstream ss;
+
+    // putting timestamp in StringStream and send it to server
+    ss << GetTimeStamp();
+    ss << " ";
+
     ss << GetMV_SF;
     ss << " ";
     ss << mv;
@@ -1912,11 +2017,11 @@ int GetMV_Syscall(int mv, int index) {
 
     sendMessage(outPktHdr, outMailHdr, ss.str());
 
-    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client GotMV #%d\n", result);
+    DEBUG('o', "Client machine %d mailbox %d got %d for MV #%d index #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result, mv, index);
 
     return result;
 
@@ -1924,13 +2029,20 @@ int GetMV_Syscall(int mv, int index) {
 
 int SetMV_Syscall(int mv, int index, int value) {
 
-    DEBUG('o', "Client called SetMV\n");
+    DEBUG('o', "Client machine %d mailbox %d called SetMV on MV #%d index #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, mv, index);
+
+    currentThread->ChooseRandServer();
 
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
 
     // Create StringStream -- put in function ID 
     std::stringstream ss;
+
+    // putting timestamp in StringStream and send it to server
+    ss << GetTimeStamp();
+    ss << " ";
+
     ss << SetMV_SF;
     ss << " ";
     ss << mv;
@@ -1941,11 +2053,11 @@ int SetMV_Syscall(int mv, int index, int value) {
 
     sendMessage(outPktHdr, outMailHdr, ss.str());
 
-    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client SetMV #%d\n", result);
+    DEBUG('o', "Client machine %d mailbox %d set %d on MV #%d index #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result, mv, index);
 
     return result;
 
@@ -1953,24 +2065,31 @@ int SetMV_Syscall(int mv, int index, int value) {
 
 int DestroyMV_Syscall(int mv) {
 
-    DEBUG('o', "Client called DestroyMV\n");
+    DEBUG('o', "Client machine %d mailbox %d called DestroyMV\n", postOffice->getMachineID(), currentThread->mailboxNum);
+
+    currentThread->ChooseRandServer();
 
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
 
     // Create StringStream -- put in function ID 
     std::stringstream ss;
+
+    // putting timestamp in StringStream and send it to server
+    ss << GetTimeStamp();
+    ss << " ";
+
     ss << DestroyMV_SF;
     ss << " ";
     ss << mv;
 
     sendMessage(outPktHdr, outMailHdr, ss.str());
 
-    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
+    ss.str( receiveMessage(currentThread->mailboxNum, inPktHdr, inMailHdr) );
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client DestroyEDMV #%d\n", result);
+    DEBUG('o', "Client machine %d mailbox %d destroyed MV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
     return result;
 
@@ -2127,41 +2246,46 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
   delete [] buf;
 }
 
-/*
-*	Appends a number to a string
-*/
-int ConcatNumToString_Syscall(unsigned int vaddr, unsigned int vaddr2, int len, int num) {
-	char* buf;
-	if (!(buf = new char[len + 3])) {
-		printf("Error allocating kernel buffer for Printf1!\n");
-		return -1;
-	}
-	else {
-		if (num%100 > 0) {
-			buf[len] = '0' + num / 100;
-		} else {
-			buf[len] = '0';
-		}
-		if (num% 10 > 0) {
-			buf[len + 1] = '0' + (num%100) % 10;
-		} else {
-			buf[len + 1] = '0';
-		}
-		buf[len + 2] = num % 100;
-		
-		if (copyin(vaddr, len, buf) == -1) {
-			printf("Bad pointer passed to write: data not written\n");
-			delete [] buf;
-			return -1;
-		}
-	}
+void ConcatNum2String_Syscall(unsigned int vaddr, int len, int num, unsigned int buffer) {
+    /*  Concatenates a number to a string
+        Arguments:
+            vaddr: the char * (string)
+            len: length of the char *
+            num: number to be appended to the end
+            buffer: buffer passed in by user program
+                (because the address needs to be within
+                the user program's address space)
+    */
 
-	std::stringstream ss;
-	ss << buf;
-	ss << num;
-	char *data = new char[ss.str().length()];
-    std::strcpy(data, ss.str().c_str());
-	return (int)data;
+    // Read in char *
+    char* buf;
+
+    if (!(buf = new char[len])) {
+        printf("Error allocating kernel buffer for Printf2!\n");
+        return;
+    }
+    else {
+        if (copyin(vaddr, len, buf) == -1) {
+            printf("Bad pointer passed to write: data not written\n");
+            delete [] buf;
+            return;
+        }
+    }
+
+    // Use stringstream magic to append num to the char*
+    std::stringstream ss;
+    ss << buf << num;
+
+    char* bufout = new char[100];
+
+    std::string temp;
+    temp = ss.str();
+    std::copy(temp.begin(), temp.end(), bufout);
+    bufout[temp.size()] = '\0';
+
+    copyout(buffer, temp.size()+1, bufout);
+
+    return;
 }
 
 #ifdef USE_TLB
@@ -2492,15 +2616,10 @@ void ExceptionHandler(ExceptionType which) {
 				DEBUG('a', "Printf2 syscall.\n");
 				Printf2_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6), machine->ReadRegister(7));
 				break;
-			case SC_ConcatNumToString:
-				DEBUG('a', "SC_ConcatNumToString syscall.\n");
-				rv = ConcatNumToString_Syscall(
-					machine->ReadRegister(4), 
-					machine->ReadRegister(5), 
-					machine->ReadRegister(6), 
-					machine->ReadRegister(7)
-					);
-				break;
+            case SC_ConcatNum2String:
+                DEBUG('a', "ConcatNum2String syscall.\n");
+                ConcatNum2String_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6), machine->ReadRegister(7));
+                break;
 		}
 
 		// Put in the return value and increment the PC
@@ -2522,4 +2641,3 @@ void ExceptionHandler(ExceptionType which) {
     }
 }
 
-#undef MAILBOX
