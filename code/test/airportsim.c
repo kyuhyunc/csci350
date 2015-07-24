@@ -182,7 +182,7 @@ Queue OfficersLine;
 Queue ConveyorBelt;
 
 /* Data for Security Personel */
-/*bool SecurityFailResults[NUM_PASSENGERS];*/
+bool SecurityFailResults[NUM_PASSENGERS];
 
 /*
 	Utilities	

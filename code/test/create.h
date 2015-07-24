@@ -146,7 +146,7 @@ int InspectorLineLock;
 int OfficersLineCV;
 
 /* Data for Security Personel */
-int SecurityFailResults;
+/*int SecurityFailResults;*/
 
 /* Utility */
 char concatString[100];
@@ -244,11 +244,11 @@ void createGlobalData() {
 		);
 
 	/* Data for Security Personel */
-	SecurityFailResults = CreateMV(
+/*	SecurityFailResults = CreateMV(
 		"SecurityFailResults",
 		sizeof("SecurityFailResults"),
 		NUM_PASSENGERS
-		);
+		);*/
 
 }
 
