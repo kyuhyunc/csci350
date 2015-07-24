@@ -118,10 +118,10 @@ void startLiaison() {
 	    Signal(
     		GetMV(_myMV, LiaisonLineLock),
     		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
-	    Wait(
+	    /*Wait(
     		GetMV(_myMV, LiaisonLineLock),
-    		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
-	    Release( GetMV(_myMV, LiaisonLineLock) );
+    		GetMV(_myMV, LiaisonCommCV) );*/ /* Wait on Passenger */
+	    /*Release( GetMV(_myMV, LiaisonLineLock) );*/
 	    /* end Passenger Interaction */
 	}
 	Exit(0);
