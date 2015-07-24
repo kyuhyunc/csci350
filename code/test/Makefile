@@ -139,25 +139,25 @@ client2: client2.o start.o
 client3.o: client3.c
 	$(CC) $(CFLAGS) -c client3.c
 client3: client3.o start.o
-	$(LD) $(LDFLAGS) start.o client1.o -o client3.coff
+	$(LD) $(LDFLAGS) start.o client3.o -o client3.coff
 	../bin/coff2noff client3.coff client3
 
 client4.o: client4.c
 	$(CC) $(CFLAGS) -c client4.c
 client4: client4.o start.o
-	$(LD) $(LDFLAGS) start.o client1.o -o client4.coff
+	$(LD) $(LDFLAGS) start.o client4.o -o client4.coff
 	../bin/coff2noff client4.coff client4
 
 client5.o: client5.c
 	$(CC) $(CFLAGS) -c client5.c
 client5: client5.o start.o
-	$(LD) $(LDFLAGS) start.o client1.o -o client5.coff
+	$(LD) $(LDFLAGS) start.o client5.o -o client5.coff
 	../bin/coff2noff client5.coff client5
 
 passenger.o: passenger.c
 	$(CC) $(CFLAGS) -c passenger.c
 passenger: passenger.o start.o
-	$(LD) $(LDFLAGS) start.o client1.o -o passenger.coff
+	$(LD) $(LDFLAGS) start.o passenger.o -o passenger.coff
 	../bin/coff2noff passenger.coff passenger
 
 # screeningofficer.o: screeningofficer.c
