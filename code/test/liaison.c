@@ -79,10 +79,9 @@ void startLiaison() {
 	    	Release(LiaisonLineLock); 
 	    	
 	    	Printf1(
-	    		"Liaison's ID: %d\n",
-	    		sizeof("Liaison's ID: %d\n"),
-	    		_myMV
-	    		);
+				"LiaisonLock: %d\n",
+				sizeof("LiaisonLock: %d\n"),
+				GetMV(_myMV, LiaisonLock) );
 
 	    	Printf1(
 				"Liaison wait. CV: %d, Lock:%d\n",
@@ -93,9 +92,8 @@ void startLiaison() {
 	    		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
 	    }
 	    Printf0(
-	    		"About to help\n",
-	    		sizeof("About to help\n")
-	    		);
+    		"About to help\n",
+    		sizeof("About to help\n") );
 	    SetMV(_myMV, LiaisonState, BUSY);
 	    Printf1(
 	    	"Airport Liaison %d directed passenger %d of airline %d\n",

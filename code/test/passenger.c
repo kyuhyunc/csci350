@@ -79,6 +79,10 @@ void startPassenger() {
 			sizeof("Passenger's mv: %d\n"),
 			_myMV
 			);
+	Printf1(
+			"LiaisonCommCV: %d, LiaisonLock:%d\n",
+			sizeof("LiaisonCommCV: %d, LiaisonLock:%d\n"),
+			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
 
 	Printf1("Passenger %d chose Liaison %d with a line length %d\n", 
 		sizeof("Passenger %d chose Liaison %d with a line length %d\n"), 
@@ -94,11 +98,28 @@ void startPassenger() {
 	}
 
 	Printf1("Passenger %d is moving along...\n", sizeof("Passenger %d is moving along...\n"), _myIndex);
+	
+	Printf1(
+		"LiaisonLock: %d\n",
+		sizeof("LiaisonLock: %d\n"),
+		GetMV(_liaison, LiaisonLock)
+		);
+
+	Printf1(
+			"LiaisonCommCV: %d, LiaisonLock:%d\n",
+			sizeof("LiaisonCommCV: %d, LiaisonLock:%d\n"),
+			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
 
 	/* Go to Liaison */
 	/*Acquire(liaison._lock);*/
 	Acquire(GetMV(_liaison, LiaisonLock));
 	Release(LiaisonLineLock);
+
+	Printf1(
+			"LiaisonCommCV: %d, LiaisonLock:%d\n",
+			sizeof("LiaisonCommCV: %d, LiaisonLock:%d\n"),
+			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
+	
 	/* Give Liaison my Passenger info */
 	/*liaison._passCount[my._ticket._airline]++;*/
 	incrementMV(
