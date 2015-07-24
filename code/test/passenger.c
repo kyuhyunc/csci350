@@ -140,7 +140,7 @@ void startPassenger() {
 	Printf1(
 			"Passenger signaling. CV: %d, Lock:%d\n",
 			sizeof("Passenger waiting. CV: %d, Lock:%d\n"),
-			concat2Num(GetMV(_liaison, LiaisonLineCV), LiaisonLineLock) );
+			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
 
 	Signal(
 		GetMV(_liaison, LiaisonLock), 
