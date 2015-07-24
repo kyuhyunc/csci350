@@ -81,7 +81,7 @@ void startLiaison() {
 	    		"About to help\n",
 	    		sizeof("About to help\n")
 	    		);
-	    SetMV(_myMV, LiaisonState, BUSY);
+	    /*SetMV(_myMV, LiaisonState, BUSY);
 	    Printf1(
 	    	"Airport Liaison %d directed passenger %d of airline %d\n",
 	    	sizeof("Airport Liaison %d directed passenger %d of airline %d\n"),
@@ -99,14 +99,14 @@ void startLiaison() {
 	    			PassTicketAirline
 	    			) 
 	    		)
-	    	);
-	    Signal(
+	    	);*/
+	    /*Signal(
     		GetMV(_myMV, LiaisonLineLock),
-    		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
-	    Wait(
+    		GetMV(_myMV, LiaisonCommCV) );*/ /* Wait on Passenger */
+	    /*Wait(
     		GetMV(_myMV, LiaisonLineLock),
-    		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
-	    Release( GetMV(_myMV, LiaisonLineLock) );
+    		GetMV(_myMV, LiaisonCommCV) );*/ /* Wait on Passenger */
+	    /*Release( GetMV(_myMV, LiaisonLineLock) );*/
 	    /* end Passenger Interaction */
 	}
 	Exit(0);

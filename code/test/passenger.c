@@ -140,16 +140,16 @@ void startPassenger() {
 		GetMV(_liaison, LiaisonLock), 
 		GetMV(_liaison, LiaisonCommCV) ); /* Signal Liaison */
 	/*Wait(liaison._lock, liaison._commCV);*/ /* Wait for Liaison */
-	Wait(
+	/*Wait(
 		GetMV(_liaison, LiaisonLock), 
 		GetMV(_liaison, LiaisonCommCV) );
 	Printf1("Passenger %d of Airline %d is directed to the check-in counter\n", 
 		sizeof("Passenger %d of Airline %d is directed to the check-in counter\n"),
-		concat2Num(_myIndex, GetMV(_myMV, PassTicketAirline)));
-	Signal(
+		concat2Num(_myIndex, GetMV(_myMV, PassTicketAirline)));*/
+	/*Signal(
 		GetMV(_liaison, LiaisonLock), 
-		GetMV(_liaison, LiaisonCommCV) ); /* Signal Liaison */
-	Release(GetMV(_liaison, LiaisonLock));
+		GetMV(_liaison, LiaisonCommCV) );*/ /* Signal Liaison */
+	/*Release(GetMV(_liaison, LiaisonLock));*/
 	/* end Liaison Interaction */
 
 	Exit(0);
