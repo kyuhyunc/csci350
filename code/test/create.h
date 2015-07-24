@@ -601,16 +601,12 @@ void createSecurityInspectors() {
 					sizeof("SINewPassCV") + 3
 				);
 		result = SetMV(si, SINewPassCV, temp);
-		Printf1("1: %d\n", sizeof("1: %d\n"), si);
 		/* SIRtnPassenger */
 		result = SetMV(si, SIRtnPassenger, -1);
-		Printf1("2: %d\n", sizeof("1: %d\n"), si);
 		/* SINewPassenger */
 		result = SetMV(si, SINewPassenger, -1);
-		Printf1("3: %d\n", sizeof("1: %d\n"), si);
 		/* SIPassCount */
 		result = SetMV(si, SIPassCount, 0);
-		Printf1("4: %d\n", sizeof("1: %d\n"), si);
 	}
 }
 
@@ -920,8 +916,6 @@ char* concatNumToString(char* str, int length, int num) { /* TODO - Not working 
 	concatString[length + 1] = '0' + num % 10;
 	/* null terminator */
 	concatString[length + 2] = '\0';
-
-	Printf0(concatString, length + 5);
 
 	return concatString;
 }
