@@ -163,37 +163,37 @@ passenger: passenger.o start.o
 # screeningofficer.o: screeningofficer.c
 # 	$(CC) $(CFLAGS) -c screeningofficer.c
 # screeningofficer: screeningofficer.o start.o
-# 	$(LD) $(LDFLAGS) start.o client1.o -o screeningofficer.coff
+# 	$(LD) $(LDFLAGS) start.o screeningofficer.o -o screeningofficer.coff
 # 	../bin/coff2noff screeningofficer.coff screeningofficer
 
 # checkinstaff.o: checkinstaff.c
 # 	$(CC) $(CFLAGS) -c checkinstaff.c
 # checkinstaff: checkinstaff.o start.o
-# 	$(LD) $(LDFLAGS) start.o client1.o -o checkinstaff.coff
+# 	$(LD) $(LDFLAGS) start.o checkinstaff.o -o checkinstaff.coff
 # 	../bin/coff2noff checkinstaff.coff checkinstaff
 
 liaison.o: liaison.c
 	$(CC) $(CFLAGS) -c liaison.c
 liaison: liaison.o start.o
-	$(LD) $(LDFLAGS) start.o client1.o -o liaison.coff
+	$(LD) $(LDFLAGS) start.o liaison.o -o liaison.coff
 	../bin/coff2noff liaison.coff liaison
 
 # manager.o: manager.c
 # 	$(CC) $(CFLAGS) -c manager.c
 # manager: manager.o start.o
-# 	$(LD) $(LDFLAGS) start.o client1.o -o manager.coff
+# 	$(LD) $(LDFLAGS) start.o manager.o -o manager.coff
 # 	../bin/coff2noff manager.coff manager
 
 # securityinspector.o: securityinspector.c
 # 	$(CC) $(CFLAGS) -c securityinspector.c
 # securityinspector: securityinspector.o start.o
-# 	$(LD) $(LDFLAGS) start.o client1.o -o securityinspector.coff
+# 	$(LD) $(LDFLAGS) start.o securityinspector.o -o securityinspector.coff
 # 	../bin/coff2noff securityinspector.coff securityinspector
 
 # cargohandler.o: cargohandler.c
 # 	$(CC) $(CFLAGS) -c cargohandler.c
 # cargohandler: cargohandler.o start.o
-# 	$(LD) $(LDFLAGS) start.o client1.o -o cargohandler.coff
+# 	$(LD) $(LDFLAGS) start.o cargohandler.o -o cargohandler.coff
 # 	../bin/coff2noff cargohandler.coff cargohandler
 
 clean:
