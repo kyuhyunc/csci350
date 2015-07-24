@@ -2,10 +2,10 @@
 
 #define NULL 0
 
-
+/*
 typedef int bool;
 enum bool {false, true};
-
+*/
 
 /*
 	Utilities	
