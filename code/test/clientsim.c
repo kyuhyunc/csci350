@@ -91,6 +91,24 @@ void test2_thread() {
 	Release(lock_t2);
 	Exit(0);
 }
+void test2_thread2() {
+    Printf0("TEST 2 - Thread 2 is about to call Acquire\n", sizeof("TEST 2 - Thread 1 is about to call Acquire\n"));
+    Acquire(lock_t2);
+    Printf0("TEST 2 - Thread 2 successfully acquired lock\n", sizeof("TEST 2 - Thread 1 successfully acquired lock\n"));
+    Printf0("TEST 2 - Thread 2 is definitely releasing the lock\n", sizeof("TEST 2 - Thread 1 is definitely releasing the lock\n"));
+    Release(lock_t2);
+    Exit(0);
+}
+void test2_thread1() {
+    Printf0("TEST 2 - Thread 1 is about to call Acquire\n", sizeof("TEST 2 - Thread 1 is about to call Acquire\n"));
+    Acquire(lock_t2);
+    Printf0("TEST 2 - Thread 1 successfully acquired lock\n", sizeof("TEST 2 - Thread 1 successfully acquired lock\n"));
+    Fork(test2_thread2, "test2_thread2", sizeof("test2_thread2"));
+    Yield();
+    Printf0("TEST 2 - Thread 1 is definitely releasing the lock\n", sizeof("TEST 2 - Thread 1 is definitely releasing the lock\n"));
+    Release(lock_t2);
+    Exit(0);
+}
 
 /*
 *	Test 2 - Tests Acquire functionality
@@ -103,10 +121,8 @@ bool test2_acquireLock() {
 
 	numLockAcquires = 0;
 
-	Fork(test2_thread, "test2_thread_0", 
-		sizeof("test2_thread_0"));
-	Fork(test2_thread, "test2_thread_1", 
-		sizeof("test2_thread_1"));
+	Fork(test2_thread1, "test2_thread_1", sizeof("test2_thread_0"));
+/*	Fork(test2_thread2, "test2_thread_2", sizeof("test2_thread_1"));*/
 	return true; /* Must look at print statements to determine */
 }
 
@@ -393,15 +409,15 @@ int main() {
 /*        test6_waitAndSignal() &&*/
 /*        test10_broadcast()*/
 	if (
-/*		test0_createLock() &&
+		test0_createLock() &&
 		test1_deleteLock() &&
 		test2_acquireLock() &&
 		test3_releaseAndDestroy() &&
 		test4_createCV() &&
-		test5_destroyCV() &&*/
+		test5_destroyCV() &&
 		test7_createMV() &&
-        test8_setAndGetMV()/* &&
-		test9_deleteMV()*/
+        test8_setAndGetMV() &&
+		test9_deleteMV()
 	) {
 		Printf0("All tests passed!\n", sizeof("All tests passed!\n"));
 	} else {

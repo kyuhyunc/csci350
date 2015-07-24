@@ -134,16 +134,32 @@ public:
 
 class MonitorVariable {
 public:
-    MonitorVariable(const int &vectSize, const std::string &n) 
-    :   vector(vectSize, 0),
-        name(n) 
-    {}
-    int size() { return vector.size(); }
-    int& at(const int &index) { return vector.at(index); }
-    void setAt(const int &index, const int &value) { vector.at(index) = value; }
-public: 
-    std::vector<int> vector;
-    std::string name;
+//    MonitorVariable(const int vectSize, const std::string &n) 
+    MonitorVariable(const int size, const std::string &name)
+    :_size(size), _name(name) {
+        _data = new int[size];
+    }
+    ~MonitorVariable() {
+        delete _data;
+    }
+//    int size() { return vector.size(); }
+//    int& at(const int &index) { return vector.at(index); }
+//    void setAt(const int &index, const int &value) { vector.at(index) = value; }
+
+    // accessors
+    int getSize() const { return _size; }
+    std::string getName() const { return _name; }
+
+    // mutators
+    int getData(const int index) const { return _data[index]; }
+    void setData(const int index, const int val) { _data[index] = val; }
+
+//    std::string name;
+private:
+    int * _data;
+    int _size;
+    std::string _name;
+//    std::vector<int> vector;
 };
 
 
@@ -851,7 +867,7 @@ void CreateMV(
     // Try to find pre-existing MV
     for(unsigned int i = 0; i < MonitorVars.size(); i++) {
         if (MonitorVars[i] != NULL) {
-            if(MonitorVars[i]->name == name && MonitorVars[i]->size() == size) {
+            if(MonitorVars[i]->getName() == name && MonitorVars[i]->getSize() == size) {
                 index = i;   
                 ss << i;
                 break;
@@ -904,13 +920,13 @@ void GetMV(
         ss << -1;
     }
     // Check if index is within bounds
-    else if (index < 0 || index >= MonitorVars.at(mv)->size()) {
+    else if (index < 0 || index >= MonitorVars.at(mv)->getSize()) {
         printf("Invalid index: %d in GetMV\n", index);
         ss << -1;
     }
     // All checks passed
     else {
-        ss << MonitorVars.at(mv)->at(index);
+        ss << MonitorVars.at(mv)->getData(index);
     }
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
@@ -946,14 +962,15 @@ void SetMV(
         ss << -1;
     }
     // Check if index is within bounds
-    else if ( index < 0 || index >= MonitorVars.at(mv)->size() ) {
+    else if ( index < 0 || index >= MonitorVars.at(mv)->getSize() ) {
         printf("Invalid index: %d in SetMV\n", index);
         ss << -1;
     }
     // All checks passed
     else {
 //        MonitorVars.at(mv)->at(index) = value;
-        MonitorVars.at(mv)->setAt(index, value);
+//        MonitorVars.at(mv)->setAt(index, value);
+        MonitorVars.at(mv)->setData(index, value);
         ss << value;
     }
     //
