@@ -106,9 +106,10 @@ void startPassenger() {
 			GetMV(_liaison, LiaisonLineSize)
 			);
 
-		Printf0(
-			"LiaisonState == BUSY\n",
-			sizeof("LiaisonState == BUSY\n") );
+		Printf1(
+			"Passenger waiting. CV: %d, Lock:%d\n",
+			sizeof("Passenger waiting. CV: %d, Lock:%d\n") 
+			concat2Num(GetMV(_liaison, LiaisonLineCV), LiaisonLineLock));
 		Wait(
 			LiaisonLineLock, 
 			GetMV(_liaison, LiaisonLineCV)

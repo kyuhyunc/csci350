@@ -67,6 +67,10 @@ void startLiaison() {
 	    		break;
 	    	}
 	    } else {
+	    	Printf1(
+				"Liaison signal. CV: %d, Lock:%d\n",
+				sizeof("Liaison signal. CV: %d, Lock:%d\n") 
+				concat2Num(GetMV(_myMV, LiaisonLineCV), LiaisonLineLock));
 	    	Signal(LiaisonLineLock, GetMV(_myMV, LiaisonLineCV)); /* Signal Passenger */
 	    	Release(LiaisonLineLock); 
 	    	Wait(
