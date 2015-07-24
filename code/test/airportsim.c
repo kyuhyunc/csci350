@@ -160,29 +160,29 @@ SecurityInspector SecurityInspectors[NUM_SECURITY_INSPECTORS];
 
 /* Number of currently active entities */
 /* Used strictly for initialization */
-/*int NumActivePassengers; 
+int NumActivePassengers; 
 int NumActiveLiaisons;
 int NumActiveCIS;
 int NumActiveCargoHandlers;
 int NumActiveScreeningOfficers;
-int NumActiveSecurityInspectors;*/
+int NumActiveSecurityInspectors;
 
 /* Locks */
-/*int GlobalDataLock;*/ /* Used for initializing */
-/*int LiaisonLineLock;
+int GlobalDataLock; /* Used for initializing */
+int LiaisonLineLock;
 int ConveyorLock;
 int OfficersLineLock;
-int InspectorLineLock;*/
+int InspectorLineLock;
 
 /* CV */
-/*int OfficersLineCV;*/
+int OfficersLineCV;
 
 /* Queue */
-/*Queue OfficersLine;
-Queue ConveyorBelt;*/
+Queue OfficersLine;
+Queue ConveyorBelt;
 
 /* Data for Security Personel */
-/*bool SecurityFailResults[NUM_PASSENGERS];*/
+bool SecurityFailResults[NUM_PASSENGERS];
 
 /*
 	Utilities	
