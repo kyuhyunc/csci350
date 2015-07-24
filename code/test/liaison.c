@@ -31,12 +31,12 @@ void startLiaison() {
 	    Acquire(LiaisonLineLock);
 	    Acquire(GetMV(_myMV, LiaisonLock)); 
 	    if (GetMV(_myMV, LiaisonLineSize) == 0) {
-	    	Release(LiaisonLineLock);
 	    	SetMV(
 	    		_myMV,
 	    		LiaisonState,
 	    		AVAIL
 	    		);
+	    	Release(LiaisonLineLock);
 	    	if (GetMV(manager, ManAllLiaisonDone)) {
 	    		Release(GetMV(_myMV, LiaisonLock));
 	    		break;
