@@ -115,6 +115,7 @@
 #define BUSY 1
 #define ONBREAK 2
 
+/* Global People */
 int passengers;
 int airlines;
 int cargoHandlers;
@@ -125,11 +126,34 @@ int liaisons;
 int baggages;
 int officersLine;
 int conveyorBelt;
+
+/* Initializing Data */
+int NumActivePassengers; 
+int NumActiveLiaisons;
+int NumActiveCIS;
+int NumActiveCargoHandlers;
+int NumActiveScreeningOfficers;
+int NumActiveSecurityInspectors;
+
+/* Locks */
+int GlobalDataLock; /* Used for initializing */
+int LiaisonLineLock;
+int ConveyorLock;
+int OfficersLineLock;
+int InspectorLineLock;
+
+/* CV */
+int OfficersLineCV;
+
+/* Data for Security Personel */
+int SecurityFailResults;
+
+/* Utility */
 char concatString[100];
 
 /* Function Declarations */
-
 void doCreates();
+void createGlobalData();
 void createAirlines();
 void createCIS(int airline);
 void createCargoHandlers();
@@ -147,6 +171,7 @@ void doCreates() {
 	int i;
 	int passenger;
 
+	createGlobalData();
 	createManager();
 	createCargoHandlers();
 	createLiaisons();
@@ -155,6 +180,77 @@ void doCreates() {
 	createScreeningOfficers();
 /*	createAirlines();
 	createPassengers();*/
+}
+
+void createGlobalData() {
+	/* Initializing Data */
+	NumActivePassengers = CreateMV(
+		"NumActivePassengers",
+		sizeof("NumActivePassengers"),
+		1
+		);
+	NumActiveLiaisons = CreateMV(
+		"NumActiveLiaisons",
+		sizeof("NumActiveLiaisons"),
+		1
+		);
+	NumActiveCIS = CreateMV(
+		"NumActiveCIS",
+		sizeof("NumActiveCIS"),
+		1
+		);
+	NumActiveCargoHandlers = CreateMV(
+		"NumActiveCargoHandlers",
+		sizeof("NumActiveCargoHandlers"),
+		1
+		);
+	NumActiveScreeningOfficers = CreateMV(
+		"NumActiveScreeningOfficers",
+		sizeof("NumActiveScreeningOfficers"),
+		1
+		);
+	NumActiveSecurityInspectors = CreateMV(
+		"NumActiveSecurityInspectors",
+		sizeof("NumActiveSecurityInspectors"),
+		1
+		);
+
+	/* Locks */
+	GlobalDataLock = CreateLock(
+		"GlobalDataLock",
+		sizeof("GlobalDataLock")
+		);
+	LiaisonLineLock = CreateLock(
+		"LiaisonLineLock",
+		sizeof("LiaisonLineLock")
+		);
+	ConveyorLock = CreateLock(
+		"ConveyorLock",
+		sizeof("ConveyorLock")
+		);
+	OfficersLineLock = CreateLock(
+		"OfficersLineLock",
+		sizeof("OfficersLineLock")
+		);
+	InspectorLineLock = CreateLock(
+		"InspectorLineLock",
+		sizeof("InspectorLineLock")
+		);
+
+	/* CV */
+	OfficersLineCV = CreateCV(
+		"OfficersLineCV",
+		sizeof("OfficersLineCV")
+		);
+
+	/* Data for Security Personel */
+	bool SecurityFailResults[NUM_PASSENGERS];
+	SecurityFailResults = CreateMV(
+		"SecurityFailResults",
+		sizeof("SecurityFailResults"),
+		NUM_PASSENGERS
+		);
+
 }
 
 void createAirlines() {
