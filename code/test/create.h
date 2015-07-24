@@ -115,6 +115,9 @@
 #define BUSY 1
 #define ONBREAK 2
 
+typedef int bool;
+enum bool {false, true};
+
 /* Global People */
 int passengers;
 int airlines;
