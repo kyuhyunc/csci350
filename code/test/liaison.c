@@ -34,7 +34,7 @@ void startLiaison() {
 	    	Printf1(
 				"Liaison state before: %d\n",
 				sizeof("Liaison state before: %d\n"),
-				GetMV(_myMV, LiaisonLineSize)
+				GetMV(_myMV, LiaisonState)
 				);
 	    	SetMV(
 	    		_myMV,
@@ -44,7 +44,7 @@ void startLiaison() {
 	    	Printf1(
 				"Liaison state: %d\n",
 				sizeof("Liaison state: %d\n"),
-				GetMV(_myMV, LiaisonLineSize)
+				GetMV(_myMV, LiaisonState)
 				);
 	    	Release(LiaisonLineLock);
 	    	if (GetMV(manager, ManAllLiaisonDone)) {
