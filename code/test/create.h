@@ -105,6 +105,11 @@
 #define BaggageAirline 0
 #define BaggageWeight 1
 
+/* Queue */
+#define QueueData 0
+#define QueueRear 1
+#define QueueFront 2
+
 /* States */
 #define AVAIL 0
 #define BUSY 1
@@ -151,7 +156,7 @@ void doCreates() {
 }
 
 void createAirlines() {
-	int i, j, airline, execQueue;
+	int i, j, airline, execQueue, temp;
 
 	airlines = CreateMV("airlines", sizeof("airlines"), NUM_AIRLINES);
 	for (i = 0; i < NUM_AIRLINES; ++i) {
@@ -212,6 +217,7 @@ void createAirlines() {
 							);
 		createCIS(airline);
 
+		/* Queue */
 		execQueue = CreateMV(
 						concatNumToString(
 							"airlineExecQueue",
@@ -219,13 +225,28 @@ void createAirlines() {
 							i
 							),
 						sizeof("airlineExecQueue") + 3,
-						NUM_PASSENGERS
+						3
+			);
+		SetMV(airline, AirlineExecQueue, execQueue);
+
+		/* Queue Data */
+		temp = CreateMV(
+			concatNumToString(
+				"airExecQData",
+				sizeof("airExecQData"),
+				i
+				),
+			sizeof("airExecQData") + 3,
+			NUM_PASSENGERS
 			);
 		for (j = 0; j < NUM_PASSENGERS; ++j) {
-			SetMV(execQueue, j, -1); /* TODO - Make sure this works by printing out this -1 */
+			SetMV(temp, j, -1); /* TODO - Make sure this works by printing out this -1 */
 		}
-
-		SetMV(airline, AirlineExecQueue, execQueue);
+		SetMV(execQueue, QueueData, temp);
+		/* Front Pointer */
+		SetMV(execQueue, QueueFront, 0);
+		/* Rear Pointer */
+		SetMV(execQueue, QueueRear, 0);
 
 		/* TODO - do we need this here?? */
 		/* Implement Queue first... */
@@ -728,9 +749,6 @@ void createPassengers() {
 			);
 		}
 	}
-
-
-
 }
 
 char* concatNumToString(char* str, int length, int num) { /* TODO - Not working Properly */
