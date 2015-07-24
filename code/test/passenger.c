@@ -26,6 +26,7 @@ void startPassenger() {
 	int _myMV;
 	int _minLineSize;
 	int _liaison;
+	int temp0, temp1, temp2, temp3;
 
 	Printf0(
 		"startPassenger\n",
@@ -87,33 +88,8 @@ void startPassenger() {
 		sizeof("Passenger %d chose Liaison %d with a line length %d\n"), 
 		concat3Num(_myIndex, _liaison, GetMV(_liaison, LiaisonLineSize)));
 
-	/* Get in line? */
-	/*if (liaison._state == BUSY) {
-		liaison._lineSize++;
-		Wait(LiaisonLineLock, liaison._lineCV);
-		liaison._lineSize--;
-	}*/
-
 	if (GetMV(_liaison, LiaisonState) == BUSY) {
-
-		Printf1(
-			"Passenger's lineSize0: %d\n",
-			sizeof("Passenger's lineSize0: %d\n"),
-			GetMV(_liaison, LiaisonLineSize)
-			);
-
 		incrementMV(_liaison, LiaisonLineSize);
-
-		Printf1(
-			"Passenger's lineSize1: %d\n",
-			sizeof("Passenger's lineSize1: %d\n"),
-			GetMV(_liaison, LiaisonLineSize)
-			);
-
-		Printf1(
-			"Passenger waiting. CV: %d, Lock:%d\n",
-			sizeof("Passenger waiting. CV: %d, Lock:%d\n"),
-			concat2Num(GetMV(_liaison, LiaisonLineCV), LiaisonLineLock) );
 		Wait(
 			LiaisonLineLock, 
 			GetMV(_liaison, LiaisonLineCV)
