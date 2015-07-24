@@ -138,6 +138,12 @@ void startPassenger() {
 	SetMV(_liaison, LiaisonCurrentPassenger, _myMV);
 	
 	Printf1(
+			"Passenger's Liaison: %d\n",
+			sizeof("Passenger's Liaison: %d\n"),
+			_liaison
+			);
+	
+	Printf1(
 			"Passenger signaling. CV: %d, Lock:%d\n",
 			sizeof("Passenger waiting. CV: %d, Lock:%d\n"),
 			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );

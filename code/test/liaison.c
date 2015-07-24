@@ -73,6 +73,13 @@ void startLiaison() {
 				concat2Num(GetMV(_myMV, LiaisonLineCV), LiaisonLineLock));
 	    	Signal(LiaisonLineLock, GetMV(_myMV, LiaisonLineCV)); /* Signal Passenger */
 	    	Release(LiaisonLineLock); 
+	    	
+	    	Printf1(
+	    		"Liaison's ID: %d\n",
+	    		sizeof("Liaison's ID: %d\n"),
+	    		_myMV
+	    		);
+
 	    	Printf1(
 				"Liaison wait. CV: %d, Lock:%d\n",
 				sizeof("Liaison wait. CV: %d, Lock:%d\n"),
