@@ -105,6 +105,11 @@
 #define BaggageAirline 0
 #define BaggageWeight 1
 
+/* Queue */
+#define QueueData 0
+#define QueueRear 1
+#define QueueFront 2
+
 /* States */
 #define AVAIL 0
 #define BUSY 1
@@ -153,13 +158,13 @@ void doCreates() {
 }
 
 void createAirlines() {
-	int i, j, airline, execQueue;
+	int i, j, airline, execQueue, temp;
 
 	airlines = CreateMV("airlines", sizeof("airlines"), NUM_AIRLINES);
 	for (i = 0; i < NUM_AIRLINES; ++i) {
 		airline = CreateMV(
 						concatNumToString("airline", sizeof("airline"), i),
-						sizeof("airline") + 2,
+						sizeof("airline") + 3,
 						18
 						);
 		SetMV(airlines, i, airline);
@@ -170,7 +175,7 @@ void createAirlines() {
 									sizeof("airline_lock_"), 
 									i
 								), 
-								sizeof("airline_lock_") + 2)
+								sizeof("airline_lock_") + 3)
 							);
 		SetMV(airline, AirlineExecLineLock, CreateLock(
 								concatNumToString(
@@ -178,7 +183,7 @@ void createAirlines() {
 									sizeof("airline_exec_lock_"), 
 									i
 								), 
-								sizeof("airline_exec_lock_") + 2)
+								sizeof("airline_exec_lock_") + 3)
 							);
 		SetMV(airline, AirlineExecLineCV, CreateCV(
 								concatNumToString(
@@ -186,7 +191,7 @@ void createAirlines() {
 									sizeof("airline_execLineCV_"), 
 									i
 								), 
-								sizeof("airline_execLineCV_") + 2)
+								sizeof("airline_execLineCV_") + 3)
 							);
 		SetMV(airline, AirlineBoardLoungeCV, CreateCV(
 								concatNumToString(
@@ -194,7 +199,7 @@ void createAirlines() {
 									sizeof("airline_boardLoungeCV_"), 
 									i
 								), 
-								sizeof("airline_boardLoungeCV_") + 2)
+								sizeof("airline_boardLoungeCV_") + 3)
 							);
 		SetMV(airline, AirlineExecLineLock, CreateLock(
 								concatNumToString(
@@ -202,7 +207,7 @@ void createAirlines() {
 									sizeof("airline_CIS_lock_"), 
 									i
 								), 
-								sizeof("airline_CIS_lock_") + 2)
+								sizeof("airline_CIS_lock_") + 3)
 							);
 		SetMV(airline, AirlineCISLineLock, CreateLock(
 								concatNumToString(
@@ -210,24 +215,40 @@ void createAirlines() {
 									sizeof("airline_CIS_lock_"), 
 									i
 								), 
-								sizeof("airline_CIS_lock_") + 2)
+								sizeof("airline_CIS_lock_") + 3)
 							);
 		createCIS(airline);
 
+		/* Queue */
 		execQueue = CreateMV(
 						concatNumToString(
 							"airlineExecQueue",
 							sizeof("airlineExecQueue"),
 							i
 							),
-						sizeof("airlineExecQueue") + 2,
-						NUM_PASSENGERS
+						sizeof("airlineExecQueue") + 3,
+						3
+			);
+		SetMV(airline, AirlineExecQueue, execQueue);
+
+		/* Queue Data */
+		temp = CreateMV(
+			concatNumToString(
+				"airExecQData",
+				sizeof("airExecQData"),
+				i
+				),
+			sizeof("airExecQData") + 3,
+			NUM_PASSENGERS
 			);
 		for (j = 0; j < NUM_PASSENGERS; ++j) {
-			SetMV(execQueue, j, -1); /* TODO - Make sure this works by printing out this -1 */
+			SetMV(temp, j, -1); /* TODO - Make sure this works by printing out this -1 */
 		}
-
-		SetMV(airline, AirlineExecQueue, execQueue);
+		SetMV(execQueue, QueueData, temp);
+		/* Front Pointer */
+		SetMV(execQueue, QueueFront, 0);
+		/* Rear Pointer */
+		SetMV(execQueue, QueueRear, 0);
 
 		/* TODO - do we need this here?? */
 		/* Implement Queue first... */
@@ -253,7 +274,7 @@ void createCIS(int airline) {
 						);
 	SetMV(airline, AirlineCIS, cisArray);
 	for (i = 0; i < NUM_CIS_PER_AIRLINE; ++i) {
-		cis = CreateMV(concatNumToString("cis", sizeof("cis"), i), sizeof("cis") + 2, 11);
+		cis = CreateMV(concatNumToString("cis", sizeof("cis"), i), sizeof("cis") + 3, 11);
 		SetMV(cisArray, i, cis);
 		/* Init CIS */
 
@@ -263,7 +284,7 @@ void createCIS(int airline) {
 						sizeof("CIS_lock_"), 
 						i
 					), 
-				sizeof("CIS_lock_") + 2
+				sizeof("CIS_lock_") + 3
 			);
 		SetMV(cis, CISLock, temp);
 
@@ -273,7 +294,7 @@ void createCIS(int airline) {
 					sizeof("CIS_lineCV_"), 
 					i
 				), 
-				sizeof("CIS_lineCV_") + 2
+				sizeof("CIS_lineCV_") + 3
 			);
 		SetMV(cis, CISLineCV, temp);
 
@@ -283,7 +304,7 @@ void createCIS(int airline) {
 					sizeof("CIS_commCV_"), 
 					i
 				), 
-				sizeof("CIS_commCV_") + 2
+				sizeof("CIS_commCV_") + 3
 			);
 		SetMV(cis, CISCommCV, temp);
 
@@ -324,7 +345,7 @@ void createCargoHandlers() {
 					"cargoHandler",
 					sizeof("cargoHandler"),
 					i),
-				sizeof("cargoHandler") + 2,
+				sizeof("cargoHandler") + 3,
 				4
 			);
 		SetMV(cargoHandlers, i, ch);
@@ -339,7 +360,7 @@ void createCargoHandlers() {
 						sizeof("CHCommCV"),
 						i
 					),
-					sizeof("CHCommCV") + 2
+					sizeof("CHCommCV") + 3
 				);
 		SetMV(ch, CHCommCV, temp);
 
@@ -353,7 +374,7 @@ void createCargoHandlers() {
 						sizeof("CHBagCount"),
 						i
 					),
-					sizeof("CHBagCount") + 2,
+					sizeof("CHBagCount") + 3,
 					NUM_AIRLINES
 				);
 		SetMV(ch, CHBagCount, BUSY);
@@ -365,7 +386,7 @@ void createCargoHandlers() {
 						sizeof("CHWeightCount"),
 						i
 					),
-					sizeof("CHWeightCount") + 2,
+					sizeof("CHWeightCount") + 3,
 					NUM_AIRLINES
 				);
 		SetMV(ch, CHWeightCount, BUSY);
@@ -406,7 +427,7 @@ void createSecurityInspectors() {
 						sizeof("SI"),
 						i
 					),
-					sizeof("SI") + 2,
+					sizeof("SI") + 3,
 					10
 				);
 		/* Add SI to array of SIs */
@@ -428,7 +449,7 @@ void createSecurityInspectors() {
 						sizeof("SILock"),
 						i
 					),
-					sizeof("SILock") + 2
+					sizeof("SILock") + 3
 				);
 		SetMV(si, SILock, temp);
 		/* SICommCV */
@@ -438,7 +459,7 @@ void createSecurityInspectors() {
 						sizeof("SICommCV"),
 						i
 					),
-					sizeof("SICommCV") + 2
+					sizeof("SICommCV") + 3
 				);
 		SetMV(si, SICommCV, temp);
 		/* SIRtnPassCV */
@@ -448,7 +469,7 @@ void createSecurityInspectors() {
 						sizeof("SIRtnPassCV"),
 						i
 					),
-					sizeof("SIRtnPassCV") + 2
+					sizeof("SIRtnPassCV") + 3
 				);
 		SetMV(si, SIRtnPassCV, temp);
 		/* SINewPassCV */
@@ -458,7 +479,7 @@ void createSecurityInspectors() {
 						sizeof("SINewPassCV"),
 						i
 					),
-					sizeof("SINewPassCV") + 2
+					sizeof("SINewPassCV") + 3
 				);
 		result = SetMV(si, SINewPassCV, temp);
 		Printf1("1: %d\n", sizeof("1: %d\n"), si);
@@ -494,7 +515,7 @@ void createScreeningOfficers() {
 						sizeof("SO"),
 						i
 					),
-					sizeof("SO") + 2,
+					sizeof("SO") + 3,
 					7
 				);
 		/* Add SO to array of SIs */
@@ -510,7 +531,7 @@ void createScreeningOfficers() {
 						sizeof("SOLock"),
 						i
 					),
-					sizeof("SOLock") + 2
+					sizeof("SOLock") + 3
 				);
 		SetMV(so, SOLock, temp);
 
@@ -521,7 +542,7 @@ void createScreeningOfficers() {
 						sizeof("SOCommCV"),
 						i
 					),
-					sizeof("SOCommCV") + 2
+					sizeof("SOCommCV") + 3
 				);
 		SetMV(so, SOCommCV, temp);
 
@@ -563,7 +584,7 @@ void createLiaisons() {
 						sizeof("liason"),
 						i
 					),
-					sizeof("liason") + 2,
+					sizeof("liason") + 3,
 					8
 				);
 		/* Add to Liaison array */
@@ -580,7 +601,7 @@ void createLiaisons() {
 						sizeof("LiaisonLock"),
 						i
 					),
-					sizeof("LiaisonLock") + 2
+					sizeof("LiaisonLock") + 3
 				);
 		SetMV(liason, LiaisonLock, temp);
 
@@ -591,7 +612,7 @@ void createLiaisons() {
 						sizeof("LiaisonLineCV"),
 						i
 					),
-					sizeof("LiaisonLineCV") + 2
+					sizeof("LiaisonLineCV") + 3
 				);
 		SetMV(liason, LiaisonLineCV, temp);
 
@@ -602,7 +623,7 @@ void createLiaisons() {
 						sizeof("LiaisonCommCV"),
 						i
 					),
-					sizeof("LiaisonCommCV") + 2
+					sizeof("LiaisonCommCV") + 3
 				);
 		SetMV(liason, LiaisonCommCV, temp);
 
@@ -658,7 +679,7 @@ void createPassengers() {
 						sizeof("Passenger"),
 						i
 					),
-					sizeof("Passenger") + 2,
+					sizeof("Passenger") + 3,
 					10
 				);
 
@@ -717,7 +738,7 @@ void createPassengers() {
 							sizeof("bag"),
 							i * 10 + j
 						),
-						sizeof("bag") + 2,
+						sizeof("bag") + 3,
 						2
 					);
 			SetMV(baggages, (i * 3) + j, bag);
@@ -739,9 +760,6 @@ void createPassengers() {
 			);
 		}
 	}
-
-
-
 }
 
 char* concatNumToString(char* str, int length, int num) { /* TODO - Not working Properly */
@@ -750,19 +768,15 @@ char* concatNumToString(char* str, int length, int num) { /* TODO - Not working 
 		concatString[i] = str[i];
 	}
 	/* hundreds place */
-	if (num >= 100) {
-		concatString[length - 1] = '0' + num/100;
-	} else {
-		concatString[length - 1] = '0';
-	}
+	concatString[length - 1] = '0' + num / 100;
 	/* tens place */
-	if (num >= 10) {
-		concatString[length] = '0' + num/10;
-	} else {
-		concatString[length] = '0';
-	}
+	concatString[length] = '0' + (num % 100) / 10;
 	/* one's place */
 	concatString[length + 1] = '0' + num % 10;
+	/* null terminator */
+	concatString[length + 2] = '\0';
+
+	Printf0(concatString, length + 5);
 
 	return concatString;
 }
