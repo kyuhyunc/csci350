@@ -1,29 +1,9 @@
 #include "create.h"
 
-#define NULL 0
-
-
-typedef int bool;
-enum bool {false, true};
-
-
-/*
-	Utilities	
-*/
-
-int concat3Num(int i, int j, int k) {
-	return 1000000 * i + 1000 * j + k;
-} 
-
-int concat2Num(int i, int j) {
-	return 1000 * i + j;
-}
-
-
 void startLiaison() {
-#define l Liaisons[_myIndex]
 	/* Claim my Liaison */
 	int _myIndex; /* ID for currentThread */
+	int _myMV;
     Acquire(GlobalDataLock);
     _myIndex = NumActiveLiaisons++;
     Release(GlobalDataLock);
