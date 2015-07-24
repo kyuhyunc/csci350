@@ -445,21 +445,13 @@ void initAirlines() {
 								), 
 								sizeof("aBLCV") + 3)
 							);
-		SetMV(airline, AirlineExecLineLock, CreateLock(
+		SetMV(airline, AirlineCISLineLock, CreateLock(
 								concatNumToString(
 									"aCISLock", 
 									sizeof("aCISLock"), 
 									i
 								), 
 								sizeof("aCISLock") + 3)
-							);
-		SetMV(airline, AirlineCISLineLock, CreateLock(
-								concatNumToString(
-									"airline_CIS_lock_", 
-									sizeof("airline_CIS_lock_"), 
-									i
-								), 
-								sizeof("airline_CIS_lock_") + 3)
 							);
 
 		initCIS(airline);
