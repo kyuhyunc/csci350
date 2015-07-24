@@ -140,6 +140,7 @@ public:
     {}
     int size() { return vector.size(); }
     int& at(const int &index) { return vector.at(index); }
+    void setAt(const int &index, const int &value) { vector.at(index) = value; }
 public: 
     std::vector<int> vector;
     std::string name;
@@ -846,6 +847,8 @@ void CreateMV(
     DEBUG('o', "Server called CreateMV\n");
     std::stringstream ss;
     int index = -1;
+
+    // Try to find pre-existing MV
     for(unsigned int i = 0; i < MonitorVars.size(); i++) {
         if (MonitorVars[i] != NULL) {
             if(MonitorVars[i]->name == name && MonitorVars[i]->size() == size) {
@@ -855,7 +858,11 @@ void CreateMV(
             }
         }
     }
+
+    // Create a new MV (if conditions are met)
     if(index == -1) {
+        // If size is 0 or less, invalid size
+        // Therefore, don't create MV
         if (size < 1) {
             printf("Invalid monitor variable size of %d in CreateMV\n", size);
             ss << -1;
@@ -876,6 +883,7 @@ void CreateMV(
     MVLock->Release();
 }
 
+// Returns the value of the index at the MV
 void GetMV(
     const PacketHeader &inPktHdr, 
     const MailHeader &inMailHdr, 
@@ -885,16 +893,23 @@ void GetMV(
     MVLock->Acquire();
     DEBUG('o', "Server called GetMV\n");
     std::stringstream ss;
+    // Check if client passed in MV within bounds
     if (mv < 0 || static_cast<unsigned int>(mv) >= MonitorVars.size()) {
         printf("Invalid MV: %d in GetMV, array size: %d \n", mv, MonitorVars.size());
         ss << -1;
-    } else if (MonitorVars.at(mv) == NULL) {
+    }
+    // Check if MV exists
+    else if (MonitorVars.at(mv) == NULL) {
         printf("Monitor Variable: %d is null inGetMV\n", mv);
         ss << -1;
-    } else if (index < 0 || index >= MonitorVars.at(mv)->size()) {
+    }
+    // Check if index is within bounds
+    else if (index < 0 || index >= MonitorVars.at(mv)->size()) {
         printf("Invalid index: %d in GetMV\n", index);
         ss << -1;
-    } else {
+    }
+    // All checks passed
+    else {
         ss << MonitorVars.at(mv)->at(index);
     }
     PacketHeader outPktHdr;
@@ -909,6 +924,7 @@ void GetMV(
     MVLock->Release();
 }
 
+// Sets the value of the index at the MV
 void SetMV(
     const PacketHeader &inPktHdr, 
     const MailHeader &inMailHdr, 
@@ -919,17 +935,25 @@ void SetMV(
     MVLock->Acquire();
     //
     std::stringstream ss;
+    // Check if client passed in MV within bounds
     if ( mv < 0 || static_cast<unsigned int>(mv) >= MonitorVars.size() ) {
         printf("Invalid MV: %d in SetMV , array size: %d \n", mv, MonitorVars.size());
         ss << -1;
-    }else if (MonitorVars.at(mv) == NULL) {
+    }
+    // Check if MV exists
+    else if (MonitorVars.at(mv) == NULL) {
         printf("Monitor Variable: %d is null inGetMV\n", mv);
         ss << -1;
-    } else if ( index < 0 || index >= MonitorVars.at(mv)->size() ) {
+    }
+    // Check if index is within bounds
+    else if ( index < 0 || index >= MonitorVars.at(mv)->size() ) {
         printf("Invalid index: %d in SetMV\n", index);
         ss << -1;
-    } else {
-        MonitorVars.at(mv)->at(index) = value;
+    }
+    // All checks passed
+    else {
+//        MonitorVars.at(mv)->at(index) = value;
+        MonitorVars.at(mv)->setAt(index, value);
         ss << value;
     }
     //
@@ -954,10 +978,14 @@ void DestroyMV(
     MVLock->Acquire();
     //
     std::stringstream ss;
+
+    // Check if client passed in valid MV number
     if (mv < 0 || static_cast<unsigned int>(mv) >= MonitorVars.size()) {
         printf("Invalid MV: %d in GetMV\n", mv);
         ss << -1;
-    } else {
+    }
+    // Otherwise, good to go on deleting MV
+    else {
         MonitorVariable *monVar = MonitorVars.at(mv);
         MonitorVars.at(mv) = NULL;
         delete monVar;

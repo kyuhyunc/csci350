@@ -1948,7 +1948,7 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 
 int CreateMV_Syscall(int vaddr, int nameLength, int size) {
 
-    DEBUG('o', "Client machine %d mailbox %d called CreateMV\n", postOffice->getMachineID(), currentThread->mailboxNum);
+    DEBUG('o', "Client machine %d mailbox %d called CreateMV for size %d\n", postOffice->getMachineID(), currentThread->mailboxNum, size);
 
     currentThread->ChooseRandServer();
 
@@ -1987,7 +1987,7 @@ int CreateMV_Syscall(int vaddr, int nameLength, int size) {
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client machine %d mailbox %d created MV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
+    DEBUG('o', "Client machine %d mailbox %d created MV #%d of size %d\n", postOffice->getMachineID(), currentThread->mailboxNum, result, size);
 
     return result;
 
@@ -1995,7 +1995,7 @@ int CreateMV_Syscall(int vaddr, int nameLength, int size) {
 
 int GetMV_Syscall(int mv, int index) {
 
-    DEBUG('o', "Client machine %d mailbox %d called GetMV\n", postOffice->getMachineID(), currentThread->mailboxNum);
+    DEBUG('o', "Client machine %d mailbox %d called GetMV on MV #%d index #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, mv, index);
 
     currentThread->ChooseRandServer();
 
@@ -2021,7 +2021,7 @@ int GetMV_Syscall(int mv, int index) {
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client machine %d mailbox %d got MV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
+    DEBUG('o', "Client machine %d mailbox %d got %d for MV #%d index #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result, mv, index);
 
     return result;
 
@@ -2029,7 +2029,7 @@ int GetMV_Syscall(int mv, int index) {
 
 int SetMV_Syscall(int mv, int index, int value) {
 
-    DEBUG('o', "Client machine %d mailbox %d called SetMV\n", postOffice->getMachineID(), currentThread->mailboxNum);
+    DEBUG('o', "Client machine %d mailbox %d called SetMV on MV #%d index #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, mv, index);
 
     currentThread->ChooseRandServer();
 
@@ -2057,7 +2057,7 @@ int SetMV_Syscall(int mv, int index, int value) {
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client machine %d mailbox %d set MV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
+    DEBUG('o', "Client machine %d mailbox %d set %d on MV #%d index #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result, mv, index);
 
     return result;
 
