@@ -92,6 +92,9 @@ void startPassenger() {
 
 	if (GetMV(_liaison, LiaisonState) == BUSY) {
 		incrementMV(_liaison, LiaisonLineSize);
+		Printf0(
+			"LiaisonState == BUSY\n",
+			sizeof("LiaisonState == BUSY\n") );
 		Wait(
 			LiaisonLineLock, 
 			GetMV(_liaison, LiaisonLineCV)

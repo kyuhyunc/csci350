@@ -44,6 +44,10 @@ void startLiaison() {
 	    		GetMV(_myMV, LiaisonCommCV) );
 	    	if (GetMV(manager, ManAllLiaisonDone)) {
 	    		Release(GetMV(_myMV, LiaisonLock));
+	    		Printf0(
+		    		"ManAllLiaisonDone\n",
+		    		sizeof("ManAllLiaisonDone\n")
+		    		);
 	    		break;
 	    	}
 	    } else {
