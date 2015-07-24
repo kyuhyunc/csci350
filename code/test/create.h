@@ -118,6 +118,8 @@ int securityInspectors;
 int screeningOfficers;
 int liaisons;
 int baggages;
+int officersLine;
+int conveyorBelt;
 char concatString[100];
 
 /* Function Declarations */
@@ -304,6 +306,15 @@ void createCIS(int airline) {
 
 void createCargoHandlers() {
 	int i, ch, temp;
+
+	/* ConveyorBelt */
+	conveyorBelt = CreateMV(
+		"conveyBelt",
+		sizeof("conveyBelt"),
+		NUM_PASSENGERS * 3
+		);
+
+	/* Cargo Handlers */
 	cargoHandlers = CreateMV(
 						"cargoHandlers",
 						sizeof("cargoHandlers"),
