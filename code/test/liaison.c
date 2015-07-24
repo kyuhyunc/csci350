@@ -45,12 +45,23 @@ void startLiaison() {
 	    		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
 	    }
 	    SetMV(_myMV, LiaisonState, BUSY);
-	    Printf1("Airport Liaison %d directed passenger %d of airline %d\n",
+	    Printf1(
+	    	"Airport Liaison %d directed passenger %d of airline %d\n",
 	    	sizeof("Airport Liaison %d directed passenger %d of airline %d\n"),
 	    	concat3Num(
 	    		_myIndex, 
-	    		GetMV(_myMV, LiaisonCurrentPassenger), 
-	    		GetMV(GetMV(_myMV, LiaisonCurrentPassenger), PassTicketAirline) );
+	    		GetMV(
+	    			_myMV, 
+	    			LiaisonCurrentPassenger
+	    			), 
+	    		GetMV(
+	    			GetMV(
+	    				_myMV, 
+	    				LiaisonCurrentPassenger
+	    				), 
+	    			PassTicketAirline
+	    			) 
+	    		);
 	    Signal(
     		GetMV(_myMV, LiaisonLineLock),
     		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
