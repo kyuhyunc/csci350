@@ -172,11 +172,11 @@ passenger: passenger.o start.o
 # 	$(LD) $(LDFLAGS) start.o client1.o -o checkinstaff.coff
 # 	../bin/coff2noff checkinstaff.coff checkinstaff
 
-# liaison.o: liaison.c
-# 	$(CC) $(CFLAGS) -c liaison.c
-# liaison: liaison.o start.o
-# 	$(LD) $(LDFLAGS) start.o client1.o -o liaison.coff
-# 	../bin/coff2noff liaison.coff liaison
+liaison.o: liaison.c
+	$(CC) $(CFLAGS) -c liaison.c
+liaison: liaison.o start.o
+	$(LD) $(LDFLAGS) start.o client1.o -o liaison.coff
+	../bin/coff2noff liaison.coff liaison
 
 # manager.o: manager.c
 # 	$(CC) $(CFLAGS) -c manager.c
@@ -201,7 +201,7 @@ clean:
 	rm halt sort matmult sort2exec sort2fork matmult2exec matmult2fork testfiles testprint testexit testexithelper airportsim airstart clientsim 
 	rm passenger liaison 
 	rm client1 client2
-	#client1 client2 client3 client4 client5 
-	#rm passenger screeningofficer checkinstaff liaison manager securityinspector cargohandler
+	# client3 client4 client5 
+	#rm  screeningofficer checkinstaff manager securityinspector cargohandler
 
 	rm *~

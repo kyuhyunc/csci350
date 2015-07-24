@@ -72,9 +72,7 @@ void startLiaison() {
 	    Release( GetMV(_myMV, LiaisonLineLock) );
 	    /* end Passenger Interaction */
 	}
-
 	Exit(0);
-#undef l
 }
 
 int main() {
