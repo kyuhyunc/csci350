@@ -89,6 +89,11 @@ void startPassenger() {
 	}
 
 	Printf1(
+			"Liaison: %d\n",
+			sizeof("Liaison: %d\n"),
+			_liaison);
+
+	Printf1(
 			"4: LiaisonCommCV: %d, LiaisonLock:%d\n",
 			sizeof("4: LiaisonCommCV: %d, LiaisonLock:%d\n"),
 			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
