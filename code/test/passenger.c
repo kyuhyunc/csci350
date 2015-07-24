@@ -27,6 +27,10 @@ void startPassenger() {
 	int _minLineSize;
 	int _liaison;
 
+	Printf0(
+		"startPassenger\n",
+		sizeof("startPassenger\n") );
+
     Acquire(GlobalDataLock);
     _myIndex = GetMV(NumActivePassengers, 0);
     incrementMV(NumActivePassengers, 0);
