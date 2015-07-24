@@ -708,6 +708,8 @@ int CreateLock_Syscall(int vaddr, int size) {
 		// Add data size to stream
 		ss << size;
 
+		std::cout << ss.str() << "__" << std:endl;
+
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
 	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
@@ -2127,6 +2129,33 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
   delete [] buf;
 }
 
+/*
+*	Appends a number to a string
+*/
+int ConcatNumToString_Syscall(unsigned int vaddr, int len, int num) {
+	char* buf;
+	std::cout << "ConcatNumToString_Syscall: " << std::endl;
+	if (!(buf = new char[len])) {
+		printf("Error allocating kernel buffer for Printf1!\n");
+		return -1;
+	}
+	else {
+		if (copyin(vaddr, len, buf) == -1) {
+			printf("Bad pointer passed to write: data not written\n");
+			delete [] buf;
+			return -1;
+		}
+	}
+
+	std::stringstream ss;
+	ss << buf;
+	ss << num;
+	char *data = new char[ss.str().length()];
+    std::strcpy(data, ss.str().c_str());
+	printf("Hmm: %d\n", data);
+	return (int)data;
+}
+
 #ifdef USE_TLB
 
 void DumpTLB() {
@@ -2348,7 +2377,7 @@ void ExceptionHandler(ExceptionType which) {
     if ( which == SyscallException ) {
 		switch (type) {
 			default:
-				DEBUG('a', "Unknown syscall - shutting down.\n");
+				DEBUG('a', "Unknown syscall: %d, - shutting down.\n", type);
 			case SC_Halt:
 				DEBUG('a', "Shutdown, initiated by user program.\n");
 				interrupt->Halt();
@@ -2454,6 +2483,10 @@ void ExceptionHandler(ExceptionType which) {
 			case SC_Printf2:
 				DEBUG('a', "Printf2 syscall.\n");
 				Printf2_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6), machine->ReadRegister(7));
+				break;
+			case SC_ConcatNumToString:
+				DEBUG('a', "SC_ConcatNumToString syscall.\n");
+				rv = ConcatNumToString_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
 				break;
 		}
 
