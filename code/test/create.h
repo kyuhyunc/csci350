@@ -513,6 +513,32 @@ void createSecurityInspectors() {
 void createScreeningOfficers() {
 	int i, so, temp;
 
+
+
+	/* officersLine Queue */
+	officersLine = CreateMV(
+		"officersLine",
+		sizeof("officersLine"),
+		3
+		); 
+	/* Data */
+	temp = CreateMV(
+		"officersLineData",
+		sizeof("officersLineData"),
+		NUM_PASSENGERS
+		);
+	for (i = 0; i < NUM_PASSENGERS; ++i) {
+		SetMV(temp, i, -1);
+	}
+	SetMV(conveyorBelt, QueueData, temp);
+	/* Queue Front */
+	SetMV(conveyorBelt, QueueRear, 0);
+	/* Queue Read */
+	SetMV(conveyorBelt, QueueFront, 0);
+
+
+
+
 	/* Create Array of Screening Officers (SO) */
 	screeningOfficers = CreateMV(
 							"screeningOfficers",
