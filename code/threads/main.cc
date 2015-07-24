@@ -775,7 +775,7 @@ void SetMV(
         printf("Invalid index: %d in SetMV: %d, actual size: %d, value: %d\n", index, mv, MonitorVars.at(mv)->size(), value);
         ss << -1;
     } else {
-        MonitorVars.at(mv)->setAt(value);
+        MonitorVars.at(mv)->setAt(index, value);
         ss << mv;
     }
     //
