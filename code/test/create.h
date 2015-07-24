@@ -312,7 +312,7 @@ void createCargoHandlers() {
 		"conveyBelt",
 		sizeof("conveyBelt"),
 		NUM_PASSENGERS * 3
-		);
+		); 
 
 	/* Cargo Handlers */
 	cargoHandlers = CreateMV(
