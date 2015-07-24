@@ -4,41 +4,60 @@ void startLiaison() {
 	/* Claim my Liaison */
 	int _myIndex; /* ID for currentThread */
 	int _myMV;
+
     Acquire(GlobalDataLock);
-    _myIndex = NumActiveLiaisons++;
+	/*_myIndex = NumActiveLiaisons++;*/
+	_myIndex = GetMV(NumActiveLiaisons, 0);
+	incrementMV(NumActiveLiaisons, 0);
     Release(GlobalDataLock);
+
+    _myMV = GetMV(liaisons, _myIndex);
 
 	while(true) {
 		/*
 			Passenger Interaction
     	*/
 	    Acquire(LiaisonLineLock);
-
-	    Acquire(l._lock);
-	    if (l._lineSize == 0) {
+	    Acquire(GetMV(_myMV, LiaisonLock)); 
+	    if (GetMV(_myMV, LiaisonLineSize) == 0) {
 	    	Release(LiaisonLineLock);
-	    	l._state = AVAIL;
-			if (Manager._allLiaisonsDone) { /* Done? */
-				Release(l._lock);
-				break;
-			}
-	    	Wait(l._lock, l._commCV); /* Wait for new Passenger */
-			if (Manager._allLiaisonsDone) { /* Done? */
-				Release(l._lock);
-				break;
-			}
+	    	SetMV(
+	    		_myMV,
+	    		LiaisonState,
+	    		AVAIL
+	    		);
+	    	if (GetMV(manager, ManAllLiaisonDone)) {
+	    		Release(GetMV(_myMV, LiaisonLock));
+	    		break;
+	    	}
+	    	Wait(
+	    		GetMV(_myMV, LiaisonLock),
+	    		GetMV(_myMV, LiaisonCommCV) );
+	    	if (GetMV(manager, ManAllLiaisonDone)) {
+	    		Release(GetMV(_myMV, LiaisonLock));
+	    		break;
+	    	}
 	    } else {
-	    	Signal(LiaisonLineLock, l._lineCV); /* Signal Passenger */
+	    	Signal(LiaisonLineLock, GetMV(_myMV, LiaisonLineCV)); /* Signal Passenger */
 	    	Release(LiaisonLineLock); 
-	    	Wait(l._lock, l._commCV); /* Wait on Passenger */
+	    	Wait(
+	    		GetMV(_myMV, LiaisonLineLock),
+	    		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
 	    }
-	    l._state = BUSY;
+	    SetMV(_myMV, LiaisonState, BUSY);
 	    Printf1("Airport Liaison %d directed passenger %d of airline %d\n",
 	    	sizeof("Airport Liaison %d directed passenger %d of airline %d\n"),
-	    	concat3Num(_myIndex, l._currentPassenger, Passengers[l._currentPassenger]._ticket._airline));
-	    Signal(l._lock, l._commCV); /* Signal Passenger */
-	    Wait(l._lock, l._commCV); /* Wait for Passenger to say goodbye */
-	    Release(l._lock);
+	    	concat3Num(
+	    		_myIndex, 
+	    		GetMV(_myMV, LiaisonCurrentPassenger), 
+	    		GetMV(GetMV(_myMV, LiaisonCurrentPassenger), PassTicketAirline) );
+	    Signal(
+    		GetMV(_myMV, LiaisonLineLock),
+    		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
+	    Wait(
+    		GetMV(_myMV, LiaisonLineLock),
+    		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
+	    Release( GetMV(_myMV, LiaisonLineLock) );
 	    /* end Passenger Interaction */
 	}
 
