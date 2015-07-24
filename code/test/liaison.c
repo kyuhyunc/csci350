@@ -49,7 +49,7 @@ void startLiaison() {
 	    	"Airport Liaison %d directed passenger %d of airline %d\n",
 	    	sizeof("Airport Liaison %d directed passenger %d of airline %d\n"),
 	    	concat3Num(
-	    		_myIndex, 
+	    		_myIndex,
 	    		GetMV(
 	    			_myMV, 
 	    			LiaisonCurrentPassenger
@@ -61,7 +61,8 @@ void startLiaison() {
 	    				), 
 	    			PassTicketAirline
 	    			) 
-	    		);
+	    		)
+	    	);
 	    Signal(
     		GetMV(_myMV, LiaisonLineLock),
     		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
