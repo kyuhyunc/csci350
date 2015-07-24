@@ -18,6 +18,12 @@ void startLiaison() {
 
     _myMV = GetMV(liaisons, _myIndex);
 
+    Printf1(
+    		"Liaison's ID: %d\n",
+    		sizeof("Liaison's ID: %d\n"),
+    		_myMV
+    		);
+
 	while(true) {
 		/*
 			Passenger Interaction
