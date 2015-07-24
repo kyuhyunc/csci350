@@ -91,7 +91,21 @@ void startPassenger() {
 	}*/
 
 	if (GetMV(_liaison, LiaisonState) == BUSY) {
+
+		Printf1(
+			"Passenger's lineSize0: %d\n",
+			sizeof("Passenger's lineSize0: %d\n"),
+			GetMV(_liaison, LiaisonLineSize)
+			);
+
 		incrementMV(_liaison, LiaisonLineSize);
+
+		Printf1(
+			"Passenger's lineSize1: %d\n",
+			sizeof("Passenger's lineSize1: %d\n"),
+			GetMV(_liaison, LiaisonLineSize)
+			);
+
 		Printf0(
 			"LiaisonState == BUSY\n",
 			sizeof("LiaisonState == BUSY\n") );
