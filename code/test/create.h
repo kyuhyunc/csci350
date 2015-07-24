@@ -747,6 +747,8 @@ char* concatNumToString(char* str, int length, int num) { /* TODO - Not working 
 	/* null terminator */
 	concatString[length + 2] = '\0';
 
+	Printf0(concatString, length + 5);
+
 	return concatString;
 }
 
