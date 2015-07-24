@@ -133,11 +133,23 @@ void startPassenger() {
 		GetMV(_myMV, PassTicketAirline)
 		);
 	/*liaison._bagCount[my._ticket._airline] += my._numBaggages;*/
+	
+	Printf1(
+		"Passenger signaling. LiaisonCommCV: %d, LiaisonLock:%d\n",
+		sizeof("Passenger waiting. LiaisonCommCV: %d, LiaisonLock:%d\n"),
+		concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
+
 	SetMV(
 		GetMV(_liaison, LiaisonBagCount),
 		GetMV(_myMV, PassTicketAirline),
 		GetMV(_liaison, LiaisonBagCount) + GetMV(_myMV, PassNumBaggages)
 		);
+
+	Printf1(
+		"Passenger signaling. LiaisonCommCV: %d, LiaisonLock:%d\n",
+		sizeof("Passenger waiting. LiaisonCommCV: %d, LiaisonLock:%d\n"),
+		concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
+
 	/*liaison._currentPassenger = _myIndex;*/
 	SetMV(_liaison, LiaisonCurrentPassenger, _myMV);
 	
