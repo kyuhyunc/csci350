@@ -4,6 +4,12 @@
 
 #include "syscall.h"
 
+/* Utilities */
+typedef int bool;
+enum bool {false, true};
+#define NULL 0
+
+/* Number of people */
 #define NUM_PASSENGERS 10
 #define	NUM_LIASONS 5
 #define	NUM_AIRLINES 2
@@ -917,6 +923,12 @@ char* concatNumToString(char* str, int length, int num) { /* TODO - Not working 
 	return concatString;
 }
 
+int concat3Num(int i, int j, int k) {
+	return 1000000 * i + 1000 * j + k;
+} 
 
+int concat2Num(int i, int j) {
+	return 1000 * i + j;
+}
 
 
