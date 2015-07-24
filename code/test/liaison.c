@@ -23,6 +23,10 @@ void startLiaison() {
     		sizeof("Liaison's ID: %d\n"),
     		_myMV
     		);
+    Printf1(
+		"Liaison LiaisonCommCV: %d, LiaisonLock:%d\n",
+		sizeof("Liaison LiaisonCommCV: %d, LiaisonLock:%d\n"),
+		concat2Num(GetMV(_myMV, LiaisonCommCV), GetMV(_myMV, LiaisonLock)));
 
 	while(true) {
 		/*

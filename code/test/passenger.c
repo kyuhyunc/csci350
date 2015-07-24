@@ -78,6 +78,10 @@ void startPassenger() {
 			sizeof("Passenger's Liaison: %d\n"),
 			_liaison
 			);
+	Printf1(
+			"LiaisonCommCV: %d, LiaisonLock:%d\n",
+			sizeof("LiaisonCommCV: %d, LiaisonLock:%d\n"),
+			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
 
 	Printf1("Passenger %d chose Liaison %d with a line length %d\n", 
 		sizeof("Passenger %d chose Liaison %d with a line length %d\n"), 
@@ -142,10 +146,10 @@ void startPassenger() {
 			sizeof("Passenger's Liaison: %d\n"),
 			_liaison
 			);
-	
+
 	Printf1(
-			"Passenger signaling. CV: %d, Lock:%d\n",
-			sizeof("Passenger waiting. CV: %d, Lock:%d\n"),
+			"Passenger signaling. LiaisonCommCV: %d, LiaisonLock:%d\n",
+			sizeof("Passenger waiting. LiaisonCommCV: %d, LiaisonLock:%d\n"),
 			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
 
 	Signal(
