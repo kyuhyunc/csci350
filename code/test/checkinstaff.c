@@ -3,11 +3,13 @@
 
 void startCheckInStaff() {
 #define myAirlineMACRO GetMV(airlines, _myAirline)
-#define myMACRO GetMV(GetMV(GetMV(airlines, _myMACRO), AirlineCIS), _myIndex);
+#define myMACRO GetMV(GetMV(GetMV(airlines, _myMACRO), AirlineCIS), _myIndex)
 #define passenger GetMV(passengers, GetMV(my, CISCurrentPassenger))
 	/* Claim my CIS */
 	int _myAirline;
 	int _myIndex; /* ID for currentThread */
+	int _myMV;
+	
     Acquire(GlobalDataLock);
 	_myIndex = GetMV(NumActiveCIS, 0) % NUM_CIS_PER_AIRLINE;
 	_myAirline = GetMV(NumActiveCIS, 0) / NUM_CIS_PER_AIRLINE;
