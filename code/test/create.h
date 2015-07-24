@@ -169,7 +169,10 @@ void createScreeningOfficers();
 void createLiaisons();
 void createBaggages();
 void createPassengers();
+
 char* concatNumToString(char* str, int length, int num);
+void incrementMV(int mv, int index);
+void decrementMV(int mv, int index);
 
 /* Function Implementations */
 
@@ -631,11 +634,11 @@ void createScreeningOfficers() {
 	for (i = 0; i < NUM_PASSENGERS; ++i) {
 		SetMV(temp, i, -1);
 	}
-	SetMV(conveyorBelt, QueueData, temp);
+	SetMV(officersLine, QueueData, temp);
 	/* Queue Front */
-	SetMV(conveyorBelt, QueueRear, 0);
+	SetMV(officersLine, QueueRear, 0);
 	/* Queue Read */
-	SetMV(conveyorBelt, QueueFront, 0);
+	SetMV(officersLine, QueueFront, 0);
 
 
 
@@ -931,4 +934,18 @@ int concat2Num(int i, int j) {
 	return 1000 * i + j;
 }
 
+void incrementMV(int mv, int index) {
+	SetMV( /* increment NumActivePassengers */
+    	mv, 
+    	index, 
+    	GetMV(mv, index) + 1
+    	);
+}
 
+void decrementMV(int mv, int index) {
+	SetMV( /* increment NumActivePassengers */
+    	mv, 
+    	index, 
+    	GetMV(mv, index) - 1
+    	);
+}
