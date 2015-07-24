@@ -28,10 +28,6 @@ void startPassenger() {
 	int _liaison;
 	int temp0, temp1, temp2, temp3;
 
-	Printf0(
-		"startPassenger\n",
-		sizeof("startPassenger\n") );
-
     Acquire(GlobalDataLock);
     _myIndex = GetMV(NumActivePassengers, 0);
     incrementMV(NumActivePassengers, 0);
@@ -74,16 +70,6 @@ void startPassenger() {
 
 	}
 
-	Printf1(
-			"Passenger's mv: %d\n",
-			sizeof("Passenger's mv: %d\n"),
-			_myMV
-			);
-	Printf1(
-			"LiaisonCommCV: %d, LiaisonLock:%d\n",
-			sizeof("LiaisonCommCV: %d, LiaisonLock:%d\n"),
-			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
-
 	Printf1("Passenger %d chose Liaison %d with a line length %d\n", 
 		sizeof("Passenger %d chose Liaison %d with a line length %d\n"), 
 		concat3Num(_myIndex, _liaison, GetMV(_liaison, LiaisonLineSize)));
@@ -97,17 +83,9 @@ void startPassenger() {
 		decrementMV(_liaison, LiaisonLineSize);
 	}
 
-	Printf1("Passenger %d is moving along...\n", sizeof("Passenger %d is moving along...\n"), _myIndex);
-	
 	Printf1(
-		"LiaisonLock: %d\n",
-		sizeof("LiaisonLock: %d\n"),
-		GetMV(_liaison, LiaisonLock)
-		);
-
-	Printf1(
-			"LiaisonCommCV: %d, LiaisonLock:%d\n",
-			sizeof("LiaisonCommCV: %d, LiaisonLock:%d\n"),
+			"4: LiaisonCommCV: %d, LiaisonLock:%d\n",
+			sizeof("4: LiaisonCommCV: %d, LiaisonLock:%d\n"),
 			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
 
 	/* Go to Liaison */
@@ -115,11 +93,6 @@ void startPassenger() {
 	Acquire(GetMV(_liaison, LiaisonLock));
 	Release(LiaisonLineLock);
 
-	Printf1(
-			"LiaisonCommCV: %d, LiaisonLock:%d\n",
-			sizeof("LiaisonCommCV: %d, LiaisonLock:%d\n"),
-			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
-	
 	/* Give Liaison my Passenger info */
 	/*liaison._passCount[my._ticket._airline]++;*/
 	incrementMV(
@@ -136,16 +109,21 @@ void startPassenger() {
 	/*liaison._currentPassenger = _myIndex;*/
 	SetMV(_liaison, LiaisonCurrentPassenger, _myMV);
 
+	Printf1(
+			"5: LiaisonCommCV: %d, LiaisonLock:%d\n",
+			sizeof("5: LiaisonCommCV: %d, LiaisonLock:%d\n"),
+			concat2Num(GetMV(_liaison, LiaisonCommCV), GetMV(_liaison, LiaisonLock)) );
+
 	Signal(
 		GetMV(_liaison, LiaisonLock), 
 		GetMV(_liaison, LiaisonCommCV) ); /* Signal Liaison */
 	/*Wait(liaison._lock, liaison._commCV);*/ /* Wait for Liaison */
-	Wait(
+	/*Wait(
 		GetMV(_liaison, LiaisonLock), 
 		GetMV(_liaison, LiaisonCommCV) );
 	Printf1("Passenger %d of Airline %d is directed to the check-in counter\n", 
 		sizeof("Passenger %d of Airline %d is directed to the check-in counter\n"),
-		concat2Num(_myIndex, GetMV(_myMV, PassTicketAirline)));
+		concat2Num(_myIndex, GetMV(_myMV, PassTicketAirline)));*/
 	/*Signal(
 		GetMV(_liaison, LiaisonLock), 
 		GetMV(_liaison, LiaisonCommCV) );*/ /* Signal Liaison */

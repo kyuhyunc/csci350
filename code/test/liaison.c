@@ -35,21 +35,11 @@ void startLiaison() {
 	    Acquire(LiaisonLineLock);
 	    Acquire(GetMV(_myMV, LiaisonLock)); 
 	    if (GetMV(_myMV, LiaisonLineSize) == 0) {
-	    	Printf1(
-				"Liaison state before: %d\n",
-				sizeof("Liaison state before: %d\n"),
-				GetMV(_myMV, LiaisonState)
-				);
 	    	SetMV(
 	    		_myMV,
 	    		LiaisonState,
 	    		AVAIL
 	    		);
-	    	Printf1(
-				"Liaison state: %d\n",
-				sizeof("Liaison state: %d\n"),
-				GetMV(_myMV, LiaisonState)
-				);
 	    	Release(LiaisonLineLock);
 	    	if (GetMV(manager, ManAllLiaisonDone)) {
 	    		Release(GetMV(_myMV, LiaisonLock));
@@ -64,10 +54,6 @@ void startLiaison() {
 	    		GetMV(_myMV, LiaisonCommCV) );
 	    	if (GetMV(manager, ManAllLiaisonDone)) {
 	    		Release(GetMV(_myMV, LiaisonLock));
-	    		Printf0(
-		    		"ManAllLiaisonDone\n",
-		    		sizeof("ManAllLiaisonDone\n")
-		    		);
 	    		break;
 	    	}
 	    } else {
@@ -75,18 +61,16 @@ void startLiaison() {
 				"Liaison signal. CV: %d, Lock:%d\n",
 				sizeof("Liaison signal. CV: %d, Lock:%d\n"),
 				concat2Num(GetMV(_myMV, LiaisonLineCV), LiaisonLineLock));
-	    	Signal(LiaisonLineLock, GetMV(_myMV, LiaisonLineCV)); /* Signal Passenger */
-	    	Release(LiaisonLineLock); 
 	    	
-	    	Printf1(
-				"LiaisonLock: %d\n",
-				sizeof("LiaisonLock: %d\n"),
-				GetMV(_myMV, LiaisonLock) );
+	    	Signal(LiaisonLineLock, GetMV(_myMV, LiaisonLineCV)); /* Signal Passenger */
+	    	
+	    	Release(LiaisonLineLock); 
 
 	    	Printf1(
 				"Liaison wait. CV: %d, Lock:%d\n",
 				sizeof("Liaison wait. CV: %d, Lock:%d\n"),
 				concat2Num(GetMV(_myMV, LiaisonCommCV), GetMV(_myMV, LiaisonLock)));
+	    	
 	    	Wait(
 	    		GetMV(_myMV, LiaisonLock),
 	    		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
