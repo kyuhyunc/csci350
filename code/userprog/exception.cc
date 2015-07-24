@@ -708,8 +708,6 @@ int CreateLock_Syscall(int vaddr, int size) {
 		// Add data size to stream
 		ss << size;
 
-		std::cout << ss.str() << "__" << std::endl;
-
 	    sendMessage(outPktHdr, outMailHdr, ss.str());
 
 	    ss.str( receiveMessage(MAILBOX, inPktHdr, inMailHdr) );
@@ -2134,7 +2132,6 @@ void Printf2_Syscall(unsigned int vaddr, int len, int num1, int num2) {
 */
 int ConcatNumToString_Syscall(unsigned int vaddr, unsigned int vaddr2, int len, int num) {
 	char* buf;
-	std::cout << "ConcatNumToString_Syscall: " << std::endl;
 	if (!(buf = new char[len + 3])) {
 		printf("Error allocating kernel buffer for Printf1!\n");
 		return -1;
@@ -2164,7 +2161,6 @@ int ConcatNumToString_Syscall(unsigned int vaddr, unsigned int vaddr2, int len, 
 	ss << num;
 	char *data = new char[ss.str().length()];
     std::strcpy(data, ss.str().c_str());
-	printf("Hmm: %d\n", data);
 	return (int)data;
 }
 
