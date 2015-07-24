@@ -108,8 +108,8 @@ void startPassenger() {
 
 		Printf1(
 			"Passenger waiting. CV: %d, Lock:%d\n",
-			sizeof("Passenger waiting. CV: %d, Lock:%d\n") 
-			concat2Num(GetMV(_liaison, LiaisonLineCV), LiaisonLineLock));
+			sizeof("Passenger waiting. CV: %d, Lock:%d\n"),
+			concat2Num(GetMV(_liaison, LiaisonLineCV), LiaisonLineLock) );
 		Wait(
 			LiaisonLineLock, 
 			GetMV(_liaison, LiaisonLineCV)
