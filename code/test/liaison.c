@@ -74,7 +74,7 @@ void startLiaison() {
 	    	Signal(LiaisonLineLock, GetMV(_myMV, LiaisonLineCV)); /* Signal Passenger */
 	    	Release(LiaisonLineLock); 
 	    	Wait(
-	    		GetMV(_myMV, LiaisonLineLock),
+	    		GetMV(_myMV, LiaisonLock),
 	    		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
 	    }
 	    Printf0(

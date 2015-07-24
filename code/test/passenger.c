@@ -136,6 +136,12 @@ void startPassenger() {
 		);
 	/*liaison._currentPassenger = _myIndex;*/
 	SetMV(_liaison, LiaisonCurrentPassenger, _myMV);
+	
+	Printf1(
+			"Passenger signaling. CV: %d, Lock:%d\n",
+			sizeof("Passenger waiting. CV: %d, Lock:%d\n"),
+			concat2Num(GetMV(_liaison, LiaisonLineCV), LiaisonLineLock) );
+
 	Signal(
 		GetMV(_liaison, LiaisonLock), 
 		GetMV(_liaison, LiaisonCommCV) ); /* Signal Liaison */
