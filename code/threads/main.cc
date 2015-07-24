@@ -91,6 +91,11 @@ enum state {
     AVAIL, BUSY
 };
 
+struct SendDestination {
+    MailBoxAddress mailbox;
+    NetworkAddress machineID;
+};
+
 class ServerLock {
 public:
     ServerLock(int s, int o, std::string n) {
@@ -552,12 +557,18 @@ void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
         //Therefore, put the id in waitqueue so it can be acquired
         //when current thread release lock.
         if(ServerLockVector[index]->state == BUSY) {
-        	DEBUG('o', "Lock->Acquire -- Lock is busy, %d is going on waitQ\n", inPktHdr.from);
-            ServerLockVector[index]->waitQ->Append((void*)inPktHdr.from);
+        	DEBUG('o', "Lock is busy, machine %d mailbox %d is going on waitQ\n", inPktHdr.from, inMailHdr.from);
+
+            // store address destination
+            SendDestination * sd = new SendDestination();
+            sd->mailbox = inMailHdr.from;
+            sd->machineID = inPktHdr.from;
+
+            ServerLockVector[index]->waitQ->Append((void*) sd);
             SLock->Release();
             return;
         } else { // lock is available! "Acquire" this lock
-        	DEBUG('o', "Lock->Acquire -- Lock is avaiable!, %d acquired lock\n", inPktHdr.from);
+        	DEBUG('o', "Lock is available, machine %d mailbox %d acquired lock\n", inPktHdr.from, inMailHdr.from);
         	ServerLockVector[index]->state = BUSY;
         }
     } 
@@ -580,18 +591,18 @@ void ReleaseFromWaitQ(	const PacketHeader &inPktHdr,
 ) {
 
 	if(!ServerLockVector[lockIndex]->waitQ->IsEmpty()) {
-    	int nextClient = (int)ServerLockVector[lockIndex]->waitQ->Remove();
+    	SendDestination * nextClient = (SendDestination*) ServerLockVector[lockIndex]->waitQ->Remove();
         DEBUG('o', "Lock->Release -- Giving lock %d to thread %d in waitQueue\n", lockIndex, nextClient);
         std::stringstream ss;
         ss << lockIndex;
 
         PacketHeader waitPktHdr;
 	    waitPktHdr.to = inPktHdr.to;
-	    waitPktHdr.from = nextClient;
+	    waitPktHdr.from = nextClient->machineID;
 
 	    MailHeader waitMailHdr;
 	    waitMailHdr.to = inMailHdr.to;
-	    waitMailHdr.from = 1; // TODO - Project 4
+	    waitMailHdr.from = nextClient->mailbox; // TODO - Project 4
 
         // everyone creates the lock, but only the server that received the request
         // from the client sends a message back to the client
@@ -680,7 +691,13 @@ void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &
         }else{
         	// everything is good to go! Thread will wait until Signal is called
             ReleaseFromWaitQ(inPktHdr, outPktHdr, inMailHdr, outMailHdr, LockIndex);
-            ServerCVVector[CVIndex]->waitQ->Append((void*)inPktHdr.from);
+            
+            // store send location
+            SendDestination * sd = new SendDestination();
+            sd->mailbox = inMailHdr.from;
+            sd->machineID = inPktHdr.from;
+
+            ServerCVVector[CVIndex]->waitQ->Append((void*) sd);
             ServerCVVector[CVIndex]->CVCounter++;
             CVLock->Release();
             return; // Don't send a message
@@ -696,6 +713,7 @@ void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &
     CVLock->Release();
 }
 
+// Signals the person waiting
 std::string SignalFunctionality(
     const PacketHeader &inPktHdr, 
     const MailHeader &inMailHdr, 
@@ -734,21 +752,21 @@ std::string SignalFunctionality(
         }else{
 
             // everything is good to go! Waiting thread will be signaled
-            int nextClient = (int)ServerCVVector[CVIndex]->waitQ->Remove();
+            SendDestination * nextClient = (SendDestination*) ServerCVVector[CVIndex]->waitQ->Remove();
 
             SLock->Acquire();
-            ServerLockVector[LockIndex]->waitQ->Append((void*)nextClient);
+            ServerLockVector[LockIndex]->waitQ->Append((void*) nextClient);
             SLock->Release();
-
+/*
             ss << nextClient;
 
             PacketHeader waitPktHdr;
             waitPktHdr.to = inPktHdr.to;
-            waitPktHdr.from = nextClient;
+            waitPktHdr.from = nextClient->machineID;
 
             MailHeader waitMailHdr;
             waitMailHdr.to = inMailHdr.to;
-            waitMailHdr.from = 1; // TODO - Project 4
+            waitMailHdr.from = nextClient->mailbox; // TODO - Project 4
 
             // everyone creates the lock, but only the server that received the request
             // from the client sends a message back to the client
@@ -756,7 +774,7 @@ std::string SignalFunctionality(
             if (currentFS == postOffice->getMachineID()) {
                 sendMessageToClient(waitPktHdr, outPktHdr, waitMailHdr, outMailHdr, ss.str());
             }
-
+*/
             ServerCVVector[CVIndex]->CVCounter--;
 
             if(ServerCVVector[CVIndex]->waitQ->IsEmpty()) {
@@ -779,6 +797,7 @@ std::string SignalFunctionality(
 
 void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex) {
     DEBUG('o', "Server called Signal\n");
+    // Signals the thread waiting
     std::string ss = SignalFunctionality(inPktHdr, inMailHdr, LockIndex, CVIndex);
 
     PacketHeader outPktHdr;
@@ -787,13 +806,15 @@ void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int
     // from the client sends a message back to the client
     // this is to preserve global data alignment
     if (currentFS == postOffice->getMachineID()) {
-        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss); // send error message
+        // Send message to the thread that called Signal
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss);
     }
 
 }
 void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex) {
     DEBUG('o', "Server called BroadCast\n");
     while(ServerCVVector[CVIndex]->CVCounter != 0) {
+        // Signals the thread waiting
         SignalFunctionality(inPktHdr, inMailHdr, LockIndex, CVIndex);
     }
     std::stringstream ss;
@@ -805,7 +826,8 @@ void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
     // from the client sends a message back to the client
     // this is to preserve global data alignment
     if (currentFS == postOffice->getMachineID()) {
-        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
+        // Send message to the thread that called Broadcast
+        sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     }
 
 }
@@ -981,6 +1003,7 @@ void ServerFromClient() {
     while (true) {
     	// Receive the next message
     	postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);
+printf("Server %d received message from client %d mailbox %d\n", postOffice->getMachineID(), inPktHdr.from, inMailHdr.from);
     	fflush(stdout);
 
         // Tack on clientmachine# and clientmailbox# to buffer
@@ -1004,6 +1027,7 @@ void ServerFromClient() {
             inPktHdr.to = i;
             inMailHdr.to = 1; //mailbox number is 1
             inMailHdr.from = 1; 
+printf("Server %d is forwarding message to server %d\n", postOffice->getMachineID(), i);
             postOffice->Send(inPktHdr, inMailHdr, buffer);
         }
 
@@ -1051,10 +1075,11 @@ void ServerFromServer() {
         // Receive a server forwarded message
         postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
         fflush(stdout);
-printf("inPktHdr.to = %i\n", inPktHdr.to);
+/*printf("inPktHdr.to = %i\n", inPktHdr.to);
 printf("inPktHdr.from = %i\n", inPktHdr.from);
 printf("inMailHdr.to = %i\n", inMailHdr.to);
-printf("inMailHdr.from = %i\n", inMailHdr.from);
+printf("inMailHdr.from = %i\n", inMailHdr.from);*/
+printf("Server %d received forwarded message from server %d\n", postOffice->getMachineID(), inPktHdr.from);
 
 
         // Extract the timestamp and forwarding server machine ID
@@ -1103,7 +1128,6 @@ printf("inMailHdr.from = %i\n", inMailHdr.from);
             if (postOffice->getMachineID() == currentFS) {
                 // if the request was from this server,
                 // wait for all other servers to send OK
-                // TODO
                 for (int i=1; i < NumServers; i++) {
                     postOffice->Receive(2, &iphOK, &imhOK, bufOK);
                     fflush(stdout);
@@ -1113,7 +1137,6 @@ printf("inMailHdr.from = %i\n", inMailHdr.from);
             else {
                 // if the request was from a different server,
                 // send OK to that server
-                // TODO
                 iphOK.to = currentFS;
                 imhOK.to = 2; // mailbox #2
                 imhOK.from = 2;

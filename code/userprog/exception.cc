@@ -711,7 +711,7 @@ int CreateLock_Syscall(int vaddr, int size) {
 	//**********************************************************************
 	#ifdef NETWORK
 	
-		DEBUG('o', "Client called CreateLock\n");
+		DEBUG('o', "Client machine %d mailbox %d called CreateLock\n", postOffice->getMachineID(), currentThread->mailboxNum);
 
         currentThread->ChooseRandServer();
 
@@ -747,7 +747,7 @@ int CreateLock_Syscall(int vaddr, int size) {
 	    int lockID = -1; // -1 is error
 	    ss >> lockID;
 
-	    DEBUG('o', "Client received lock #%d\n", lockID);
+		DEBUG('o', "Client machine %d mailbox %d received lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, lockID);
 
 	    return lockID;
 
@@ -854,7 +854,7 @@ int DestroyLock_Syscall(int index) {
 
 	#ifdef NETWORK 
 
-	DEBUG('o', "Client called DestroyLock\n");
+    DEBUG('o', "Client machine %d mailbox %d called DestroyLock\n", postOffice->getMachineID(), currentThread->mailboxNum);
 
     currentThread->ChooseRandServer();
 
@@ -885,7 +885,7 @@ int DestroyLock_Syscall(int index) {
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client destroyed lock #%d\n", result);
+    DEBUG('o', "Client machine %d mailbox %d destroyed lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
     return result;
 
@@ -995,7 +995,7 @@ int Acquire_Syscall(int index) {
 
 	#ifdef NETWORK 
 
-	DEBUG('o', "Client called Acquire\n");
+    DEBUG('o', "Client machine %d mailbox %d called Acquire on lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, index);
 
     currentThread->ChooseRandServer();
 
@@ -1013,11 +1013,11 @@ int Acquire_Syscall(int index) {
 	ss << " ";
 	ss << index;
 
-	printf("currentThread: %s\n", currentThread->getName());
+//	printf("currentThread: %s\n", currentThread->getName());
 
     sendMessage(outPktHdr, outMailHdr, ss.str());
 
-	DEBUG('o', "Client is about to Receive message in AcuireLOCK\n");
+//	DEBUG('o', "Client is about to Receive message in AcuireLOCK\n");
     char buffer[MaxMailSize];
     // Wait for message from server -- comes with lock ID
     postOffice->Receive(currentThread->mailboxNum, &inPktHdr, &inMailHdr, buffer);
@@ -1029,7 +1029,7 @@ int Acquire_Syscall(int index) {
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client acquired lock #%d\n", result);
+    DEBUG('o', "Client machine %d mailbox %d acquired lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
     return result;
 
@@ -1101,7 +1101,7 @@ int Release_Syscall(int index) {
 
 	#ifdef NETWORK 
 
-	DEBUG('o', "Client called Release\n");
+    DEBUG('o', "Client machine %d mailbox %d called Release on Lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, index);
 
     currentThread->ChooseRandServer();
 
@@ -1132,7 +1132,7 @@ int Release_Syscall(int index) {
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client Released lock #%d\n", result);
+    DEBUG('o', "Client machine %d mailbox %d released lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
     return result;
 
@@ -1242,7 +1242,7 @@ int CreateCV_Syscall(int vaddr, int size) {
 
 	#ifdef NETWORK 
 
-		DEBUG('o', "Client called CreateCV\n");
+        DEBUG('o', "Client machine %d mailbox %d called CreateCV\n", postOffice->getMachineID(), currentThread->mailboxNum);
 
         currentThread->ChooseRandServer();
 
@@ -1284,7 +1284,7 @@ int CreateCV_Syscall(int vaddr, int size) {
 	    int result = -1; // -1 is error
 	    ss >> result;
 
-	    DEBUG('o', "Client created cv #%d\n", result);
+        DEBUG('o', "Client machine %d mailbox %d received CV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
 	    return result;
 
@@ -1391,7 +1391,7 @@ int DestroyCV_Syscall(int index) {
 
 	#ifdef NETWORK 
 
-		DEBUG('o', "Client called DestroyLock\n");
+        DEBUG('o', "Client machine %d mailbox %d called DestroyCV\n", postOffice->getMachineID(), currentThread->mailboxNum);
 
         currentThread->ChooseRandServer();
 
@@ -1422,7 +1422,7 @@ int DestroyCV_Syscall(int index) {
 	    int result = -1; // -1 is error
 	    ss >> result;
 
-	    DEBUG('o', "Client destroyed cv #%d\n", result);
+        DEBUG('o', "Client machine %d mailbox %d destroyed CV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
 	    return result;
 
@@ -1532,7 +1532,7 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
 
 	#ifdef NETWORK 
 
-		DEBUG('o', "Client called Wait\n");
+        DEBUG('o', "Client machine %d mailbox %d called Wait on CV #%d with Lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, CVIndex, lockIndex);
 
         currentThread->ChooseRandServer();
 
@@ -1558,7 +1558,7 @@ int Wait_Syscall(int lockIndex, int CVIndex) {
 	    int result = -1; // -1 is error
 	    ss >> result;
 
-	    DEBUG('o', "Client woke up from Wait #%d\n", result);
+        DEBUG('o', "Client machine %d mailbox %d woke up from Wait #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
 	    return result;
 
@@ -1699,7 +1699,7 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
 
 	#ifdef NETWORK 
 
-		DEBUG('o', "Client called Signal\n");
+        DEBUG('o', "Client machine %d mailbox %d called Signal on CV #%d with Lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, CVIndex, lockIndex);
 
         currentThread->ChooseRandServer();
 
@@ -1725,7 +1725,7 @@ int Signal_Syscall(int lockIndex, int CVIndex) {
 	    int result = -1; // -1 is error
 	    ss >> result;
 
-	    DEBUG('o', "Client Signaled #%d\n", result);
+        DEBUG('o', "Client machine %d mailbox %d Signaled CV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
 	    return result;
 
@@ -1820,7 +1820,7 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 
 	#ifdef NETWORK 
 
-		DEBUG('o', "Client called Broadcast\n");
+        DEBUG('o', "Client machine %d mailbox %d called Broadcast on CV #%d with Lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, CVIndex, lockIndex);
 
         currentThread->ChooseRandServer();
 
@@ -1846,7 +1846,7 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 	    int result = -1; // -1 is error
 	    ss >> result;
 
-	    DEBUG('o', "Client Broadcasted #%d\n", result);
+        DEBUG('o', "Client machine %d mailbox %d broadcasted #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
 	    return result;
 
@@ -1948,7 +1948,7 @@ int Broadcast_Syscall(int lockIndex, int CVIndex) {
 
 int CreateMV_Syscall(int vaddr, int nameLength, int size) {
 
-    DEBUG('o', "Client called CreateMV\n");
+    DEBUG('o', "Client machine %d mailbox %d called CreateMV\n", postOffice->getMachineID(), currentThread->mailboxNum);
 
     currentThread->ChooseRandServer();
 
@@ -1987,13 +1987,15 @@ int CreateMV_Syscall(int vaddr, int nameLength, int size) {
     int result = -1; // -1 is error
     ss >> result;
 
+    DEBUG('o', "Client machine %d mailbox %d created MV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
+
     return result;
 
 }
 
 int GetMV_Syscall(int mv, int index) {
 
-    DEBUG('o', "Client called GetMV\n");
+    DEBUG('o', "Client machine %d mailbox %d called GetMV\n", postOffice->getMachineID(), currentThread->mailboxNum);
 
     currentThread->ChooseRandServer();
 
@@ -2019,7 +2021,7 @@ int GetMV_Syscall(int mv, int index) {
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client GotMV #%d\n", result);
+    DEBUG('o', "Client machine %d mailbox %d got MV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
     return result;
 
@@ -2027,7 +2029,7 @@ int GetMV_Syscall(int mv, int index) {
 
 int SetMV_Syscall(int mv, int index, int value) {
 
-    DEBUG('o', "Client called SetMV\n");
+    DEBUG('o', "Client machine %d mailbox %d called SetMV\n", postOffice->getMachineID(), currentThread->mailboxNum);
 
     currentThread->ChooseRandServer();
 
@@ -2055,7 +2057,7 @@ int SetMV_Syscall(int mv, int index, int value) {
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client SetMV #%d\n", result);
+    DEBUG('o', "Client machine %d mailbox %d set MV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
     return result;
 
@@ -2063,7 +2065,7 @@ int SetMV_Syscall(int mv, int index, int value) {
 
 int DestroyMV_Syscall(int mv) {
 
-    DEBUG('o', "Client called DestroyMV\n");
+    DEBUG('o', "Client machine %d mailbox %d called DestroyMV\n", postOffice->getMachineID(), currentThread->mailboxNum);
 
     currentThread->ChooseRandServer();
 
@@ -2087,7 +2089,7 @@ int DestroyMV_Syscall(int mv) {
     int result = -1; // -1 is error
     ss >> result;
 
-    DEBUG('o', "Client DestroyEDMV #%d\n", result);
+    DEBUG('o', "Client machine %d mailbox %d destroyed MV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, result);
 
     return result;
 
