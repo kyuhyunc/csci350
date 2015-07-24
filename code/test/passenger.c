@@ -45,6 +45,7 @@ void startPassenger() {
 		GetMV(liaisons, 0),
 		LiaisonLineSize
 		);
+	_liaison = GetMV(liaisons, 0);
 	/* Find shortest line */
 	for (i = 1; i < NUM_LIASONS; i++) {
 		/*if (Liaisons[i]._lineSize < _minLineSize) {
