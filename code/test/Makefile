@@ -154,11 +154,11 @@ client5: client5.o start.o
 	$(LD) $(LDFLAGS) start.o client1.o -o client5.coff
 	../bin/coff2noff client5.coff client5
 
-# passenger.o: passenger.c
-# 	$(CC) $(CFLAGS) -c passenger.c
-# passenger: passenger.o start.o
-# 	$(LD) $(LDFLAGS) start.o client1.o -o passenger.coff
-# 	../bin/coff2noff passenger.coff passenger
+passenger.o: passenger.c
+	$(CC) $(CFLAGS) -c passenger.c
+passenger: passenger.o start.o
+	$(LD) $(LDFLAGS) start.o client1.o -o passenger.coff
+	../bin/coff2noff passenger.coff passenger
 
 # screeningofficer.o: screeningofficer.c
 # 	$(CC) $(CFLAGS) -c screeningofficer.c
