@@ -149,7 +149,6 @@ void startPassenger() {
 	Signal(
 		GetMV(_liaison, LiaisonLock), 
 		GetMV(_liaison, LiaisonCommCV) ); /* Signal Liaison */
-	Wait(liaison._lock, liaison._commCV); /* Wait for Liaison */
 	Wait(
 		GetMV(_liaison, LiaisonLock), 
 		GetMV(_liaison, LiaisonCommCV) );
