@@ -157,6 +157,8 @@ int OfficersLineCV;
 /* Utility */
 char concatString[100];
 
+int xyz[1000];
+
 /* Function Declarations */
 void doCreates();
 void createGlobalData();
