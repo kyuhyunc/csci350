@@ -13,11 +13,20 @@ typedef int bool;
 enum bool {false, true};
 
 /* States used by various employees */
-/*enum State {
+enum State {
     AVAIL,
     BUSY,
     ONBREAK
-};*/
+};
+
+/* Number of people */
+#define NUM_PASSENGERS 10
+#define	NUM_LIASONS 5
+#define	NUM_AIRLINES 2
+#define	NUM_CIS_PER_AIRLINE 3
+#define	NUM_CARGO_HANDLERS 9
+#define	NUM_SCREENING_OFFICERS 8
+#define	NUM_SECURITY_INSPECTORS 8
 
 /*
 	Structs
