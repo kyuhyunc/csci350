@@ -31,11 +31,21 @@ void startLiaison() {
 	    Acquire(LiaisonLineLock);
 	    Acquire(GetMV(_myMV, LiaisonLock)); 
 	    if (GetMV(_myMV, LiaisonLineSize) == 0) {
+	    	Printf1(
+				"Liaison state before: %d\n",
+				sizeof("Liaison state before: %d\n"),
+				GetMV(_myMV, LiaisonLineSize)
+				);
 	    	SetMV(
 	    		_myMV,
 	    		LiaisonState,
 	    		AVAIL
 	    		);
+	    	Printf1(
+				"Liaison state: %d\n",
+				sizeof("Liaison state: %d\n"),
+				GetMV(_myMV, LiaisonLineSize)
+				);
 	    	Release(LiaisonLineLock);
 	    	if (GetMV(manager, ManAllLiaisonDone)) {
 	    		Release(GetMV(_myMV, LiaisonLock));
