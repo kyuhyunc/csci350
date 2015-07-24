@@ -72,6 +72,12 @@ void startPassenger() {
 
 	}
 
+	Printf1(
+			"Passenger's Liaison: %d\n",
+			sizeof("Passenger's Liaison: %d\n"),
+			_liaison
+			);
+
 	Printf1("Passenger %d chose Liaison %d with a line length %d\n", 
 		sizeof("Passenger %d chose Liaison %d with a line length %d\n"), 
 		concat3Num(_myIndex, _liaison, GetMV(_liaison, LiaisonLineSize)));
