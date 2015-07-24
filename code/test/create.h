@@ -327,8 +327,23 @@ void createCargoHandlers() {
 	conveyorBelt = CreateMV(
 		"conveyBelt",
 		sizeof("conveyBelt"),
-		NUM_PASSENGERS * 3
+		3
 		); 
+	/* Data */
+	temp = CreateMV(
+		"conveyBeltData",
+		sizeof("conveyBeltData"),
+		NUM_PASSENGERS*3
+		);
+	for (i = 0; i < NUM_PASSENGERS*3; ++i) {
+		SetMV(temp, i, -1);
+	}
+	SetMV(conveyorBelt, QueueData, temp);
+	/* Queue Front */
+	SetMV(conveyorBelt, QueueRear, 0);
+	/* Queue Read */
+	SetMV(conveyorBelt, QueueFront, 0);
+
 
 	/* Cargo Handlers */
 	cargoHandlers = CreateMV(
