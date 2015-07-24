@@ -196,6 +196,24 @@ bool SecurityFailResults[NUM_PASSENGERS];
 /*
 	Utilities	
 */
+char* concatNumToString(char* str, int length, int num) { /* TODO - Not working Properly */
+	int i;
+	for (i=0; i < length - 1; i++) {
+		concatString[i] = str[i];
+	}
+	/* hundreds place */
+	concatString[length - 1] = '0' + num / 100;
+	/* tens place */
+	concatString[length] = '0' + (num % 100) / 10;
+	/* one's place */
+	concatString[length + 1] = '0' + num % 10;
+	/* null terminator */
+	concatString[length + 2] = '\0';
+
+	Printf0(concatString, length + 5);
+
+	return concatString;
+}
 
 int concat3Num(int i, int j, int k) {
 	return 1000000 * i + 1000 * j + k;
