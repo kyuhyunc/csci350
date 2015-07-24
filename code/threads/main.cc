@@ -709,6 +709,7 @@ void CreateMV(
             if(MonitorVars[i]->name == name && MonitorVars[i]->size() == size) {
                 index = i;   
                 ss << i;
+                std::cout << "Found MV: " << i << ", name: " << name << ", size: " << size << std::endl;
                 break;
             }
         }
@@ -718,6 +719,7 @@ void CreateMV(
             printf("Invalid monitor variable size of %d in CreateMV\n", size);
             ss << -1;
         } else {
+            std::cout << "Created MV: " << MonitorVars.size() << ", name: " << name << ", size: " << size << std::endl;
             MonitorVars.push_back(new MonitorVariable(size, name));
             ss << MonitorVars.size() - 1;
         } 
@@ -771,7 +773,7 @@ void SetMV(
         printf("Monitor Variable: %d is null inGetMV\n", mv);
         ss << -1;
     } else if ( index < 0 || index >= MonitorVars.at(mv)->size() ) {
-        printf("Invalid index: %d in SetMV\n", index);
+        printf("Invalid index: %d in SetMV: %d, actual size: %d, value: %d\n", index, mv, MonitorVars.at(mv)->size(), value);
         ss << -1;
     } else {
         MonitorVars.at(mv)->at(index) = value;

@@ -258,6 +258,14 @@ Printf2:
 	j	$31
 	.end Printf2
 
+	.globl ConcatNumToString
+	.ent	ConcatNumToString
+ConcatNumToString:
+	addiu $2,$0,SC_ConcatNumToString
+	syscall
+	j	$31
+	.end ConcatNumToString
+
 /* dummy function to keep gcc happy */
         .globl  __main
         .ent    __main
