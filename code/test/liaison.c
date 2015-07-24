@@ -5,6 +5,11 @@ void startLiaison() {
 	int _myIndex; /* ID for currentThread */
 	int _myMV;
 
+	Printf0(
+	    		"startLiaison\n",
+	    		sizeof("startLiaison\n")
+	    		);
+
     Acquire(GlobalDataLock);
 	/*_myIndex = NumActiveLiaisons++;*/
 	_myIndex = GetMV(NumActiveLiaisons, 0);
@@ -30,6 +35,10 @@ void startLiaison() {
 	    		Release(GetMV(_myMV, LiaisonLock));
 	    		break;
 	    	}
+	    	Printf0(
+	    		"About to go to sleep\n",
+	    		sizeof("About to go to sleep\n")
+	    		);
 	    	Wait(
 	    		GetMV(_myMV, LiaisonLock),
 	    		GetMV(_myMV, LiaisonCommCV) );
@@ -44,6 +53,10 @@ void startLiaison() {
 	    		GetMV(_myMV, LiaisonLineLock),
 	    		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
 	    }
+	    Printf0(
+	    		"About to help\n",
+	    		sizeof("About to help\n")
+	    		);
 	    SetMV(_myMV, LiaisonState, BUSY);
 	    Printf1(
 	    	"Airport Liaison %d directed passenger %d of airline %d\n",
