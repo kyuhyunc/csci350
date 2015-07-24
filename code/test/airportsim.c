@@ -196,6 +196,8 @@ bool SecurityFailResults[NUM_PASSENGERS];
 /*
 	Utilities	
 */
+char concatString[100];
+
 char* concatNumToString(char* str, int length, int num) { /* TODO - Not working Properly */
 	int i;
 	for (i=0; i < length - 1; i++) {
