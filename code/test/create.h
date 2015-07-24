@@ -176,6 +176,40 @@ void decrementMV(int mv, int index);
 
 /* Function Implementations */
 
+void queue_insert (int queue, int index) {
+    if (GetMV(queue, QueueRear) == NUM_PASSENGERS*3-1)
+        Printf0("ERROR: QUEUE OVERFLOW\n", sizeof("ERROR: QUEUE OVERFLOW\n"));
+    else {
+/*        queue->_array[++rear] = index;*/
+    	SetMV(GetMV(queue, QueueData), GetMV(queue, QueueRear), index);
+    	SetMV(queue, QueueRear, GetMV(queue, QueueRear) + 1); /* increment rear*/
+    }
+}
+
+int queue_pop (int queue) {
+	int ret;
+    if (GetMV(queue, QueueFront) >= GetMV(queue, QueueRear)) {
+        Printf0("ERROR: QUEUE IS EMPTY\n", sizeof("ERROR: QUEUE IS EMPTY\n"));
+        return -1;
+    }
+/*    return queue->_array[front++];*/
+    ret = GetMV(GetMV(queue, QueueData), GetMV(queue, QueueFront));
+    SetMV(queue, QueueFront, GetMV(queue, QueueFront) + 1);
+
+    return ret;
+}
+
+int queue_size (int queue) {
+    if (GetMV(queue, QueueFront) >= GetMV(queue, QueueRear)) return 0;
+/*    return rear - front + 1;*/
+    return GetMV(queue, QueueRear) - GetMV(queue, QueueFront);
+}
+
+bool queue_empty (int queue) {
+    if (queue_size (queue) == 0) return true;
+    else return false;
+}
+
 void doCreates() {
 	int i;
 	int passenger;
