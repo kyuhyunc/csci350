@@ -372,7 +372,7 @@ void createScreeningOfficers() {
 void createLiaisons() {
 	int i, liason, temp;
 
-	/* Create Array of Screening Officers (SO) */
+	/* Create Array of Liaisons */
 	liaisons = CreateMV(
 						"lias",
 						sizeof("lias"),
@@ -973,6 +973,7 @@ void initPassengers() {
 				GetMV(GetMV(airlines, airline), AirlineWeightCount) + bagWeight
 			);
 		}
+
 	}
 }
 
