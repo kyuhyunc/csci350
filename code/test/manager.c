@@ -1,67 +1,53 @@
 #include "create.h"
 
-#define NULL 0
-
-
-typedef int bool;
-enum bool {false, true};
-
-
-/*
-	Utilities	
-*/
-
-int concat3Num(int i, int j, int k) {
-	return 1000000 * i + 1000 * j + k;
-} 
-
-int concat2Num(int i, int j) {
-	return 1000 * i + j;
-}
-
-
 void startManager() {
-#define cis Airlines[i]._cis[j]
-	int i, j; /* for-loop iterator */
+	int i, j, liaison, person, airlineMV; /* for-loop iterator */
 	while (true) {
 		int numReadyAirlines = 0;
 		/*
 			Check-in Staff 
 		*/
-		if (!Manager._allCISDone) {
+		if (!GetMV(manager, ManAllCISDone)) {
 			int numDoneAirline = 0;
+			int cis;
 			for (i = 0; i < NUM_AIRLINES; ++i) {
-				if (!Airlines[i]._CISclosed) {
-					Acquire(Airlines[i]._lock);
-					if (Airlines[i]._numCheckedinPassengers == Airlines[i]._numExpectedPassengers){
-						if (Airlines[i]._numOnBreakCIS == NUM_CIS_PER_AIRLINE) {
+				airlineMV = GetMV(airlines, i);
+				if ( !GetMV( airlineMV, AirlineCISClosed ) ) {
+					Acquire( GetMV(airlineMV, AirlineLock) );
+					if ( GetMV(airlineMV, AirlineNumCheckedinPassengers) == GetMV(airlineMV, AirlineNumExpectedPassenger) )	{
+						if ( GetMV(airlineMV, AirlineNumOnBreakCIS) == NUM_CIS_PER_AIRLINE ) {
 							/* All Passenger have JUST went through, send CIS home */
-							Release(Airlines[i]._lock); /* TODO is this necessary? */
+							Release( GetMV(airlineMV, AirlineLock) );
 							numDoneAirline++;
 							for (j = 0; j < NUM_CIS_PER_AIRLINE; ++j) {
-								/*Acquire(cis._lock);*/
-								cis._done = true;
-								Signal(Airlines[i]._lock, cis._commCV);
-								/*Release(cis._lock);*/
+								cis = GetMV( GetMV(airlineMV, AirlineCIS), i );
+								SetMV(cis, CISDone, true);
+								Signal( GetMV(airlineMV, AirlineLock), GetMV(cis, CISCommCV) );
 							}
-							Airlines[i]._CISclosed = true;
+							SetMV( airlineMV, AirlineCISClosed, true );
 						} else {
-							Release(Airlines[i]._lock); /* TODO is this necessary? */
+							Release( GetMV(airlineMV, AirlineLock) );
 						}
 					} else {
 						/* There are still passengers to serve */
-						Release(Airlines[i]._lock);/* TODO is this necessary? */
+						Release( GetMV(airlineMV, AirlineLock) );
 						for (j = 0; j < NUM_CIS_PER_AIRLINE; ++j) {
-							Acquire(Airlines[i]._cisLineLock);
-							Acquire(Airlines[i]._execLineLock);
-							Acquire(cis._lock);
-							if ((!queue_empty(&Airlines[i]._execQueue) || cis._lineSize) && cis._state == ONBREAK) {
+							Acquire( GetMV(airlineMV, AirlineCISLineLock) );
+							Acquire( GetMV(airlineMV, AirlineExecLineLock) );
+							Acquire( GetMV(cis, CISLock) );
+							if (
+								( 
+									!queue_empty( GetMV(airlineMV, AirlineExecQueue)) 
+									|| GetMV(cis, CISLineSize) 
+								) 
+								&&  GetMV(cis, CISState) == ONBREAK
+							){
 /*								Signal(cis._lock, cis._commCV);*/
-								Signal(Airlines[i]._lock, cis._commCV);
+								Signal( GetMV(airlineMV, AirlineLock), GetMV( cis, CISCommCV ) );
 							}
-							Release(cis._lock);
-							Release(Airlines[i]._execLineLock);
-							Release(Airlines[i]._cisLineLock);
+							Acquire( GetMV(cis, CISLock) );
+							Acquire( GetMV(airlineMV, AirlineExecLineLock) );
+							Acquire( GetMV(airlineMV, AirlineCISLineLock) );
 						}
 					}
 				} else {
@@ -69,15 +55,16 @@ void startManager() {
 				}	
 			}
 			if (numDoneAirline == NUM_AIRLINES) {
-				Manager._allCISDone = true;
+				SetMV( manager, ManAllCISDone, true );
 				/* Exit all Liaisons too! */
 				/* If all CIS are done, so are all Liaisons */
-				Manager._allLiaisonsDone = true;
+				SetMV( manager, ManAllLiaisonDone, true );
 				for(i = 0; i < NUM_LIASONS; ++i) {
-					Signal(Liaisons[i]._lock, Liaisons[i]._commCV);
+					liaison = GetMV( liaisons, i );
+					Signal( GetMV(liaison, LiaisonLock), GetMV(liaison, LiaisonCommCV) );
 				}
 			} else {
-				Manager._allCISDone = false;
+				SetMV( manager, ManAllCISDone, false );
 			}
 		} /* end if(!_allCISDone) */
 #undef cis
@@ -86,28 +73,31 @@ void startManager() {
 		/*
 			Check Conveyor Belt - Cargo Handlers
 		*/
-		if (!Manager._allCargoDone) {
+		if (!GetMV(manager, ManAllCargoDone)) {
 			int numDone = 0;
 			bool msgToCargo = true;
+			int ch;
 
 			Acquire(ConveyorLock);
 			for (i = 0; i < NUM_AIRLINES; ++i) {
-/*Printf1("Number loaded: %d, number expected: %d\n", sizeof("Number loaded: %d, number expected: %d\n"), concat2Num(Airlines[i]._numExpectedBaggages, Airlines[i]._numLoadedBaggages));*/
-				if (Airlines[i]._numExpectedBaggages == Airlines[i]._numLoadedBaggages) {
+				airlineMV = GetMV(airlines, i);
+				if ( GetMV(airlineMV, AirlineNumExpectedBaggages) == GetMV(airlineMV, AirlineNumLoadedBaggages) ) {
 					numDone++;
 				}
 			}
 			if (numDone == NUM_AIRLINES) {
-/*Printf0("All Cargo Handlers done!\n", sizeof("All Cargo Handlers done!\n"));*/
-				Manager._allCargoDone = true;
+				SetMV( manager, ManAllCargoDone, true );
 				for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
-					Signal(ConveyorLock, CargoHandlers[i]._commCV);
+					Signal( ConveyorLock, GetMV( GetMV( cargoHandlers, i ), CHCommCV ) );
 				}
 			}
 			for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
-				if (!queue_empty(&ConveyorBelt) && CargoHandlers[i]._state == ONBREAK) {
-					Signal(ConveyorLock, CargoHandlers[i]._commCV);
-
+				ch = GetMV( cargoHandlers, i );
+				if (
+					!queue_empty(conveyorBelt) 
+					&& GetMV( ch, CHState ) == ONBREAK
+				){
+					Signal( ConveyorLock, GetMV(ch, CHCommCV) );
 					if (msgToCargo) {
 						Printf0("Airport manager calls back all the cargo handlers from break\n",
 							sizeof("Airport manager calls back all the cargo handlers from break\n"));
@@ -124,8 +114,9 @@ void startManager() {
 		*/
 		Acquire(OfficersLineLock);
 		for (i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
-			if (!queue_empty(&OfficersLine) && ScreeningOfficers[i]._state == ONBREAK) {
-				Signal(OfficersLineLock, ScreeningOfficers[i]._commCV);
+			person = GetMV( screeningOfficers, i );
+			if ( !queue_empty(officersLine) &&  GetMV(person, SOState) == ONBREAK ) {
+				Signal( OfficersLineLock, GetMV( person, SOCommCV ) );
 			}
 		}
 		Release(OfficersLineLock);
@@ -135,20 +126,23 @@ void startManager() {
 			Check Boarding Lounge
 		*/
 		for (i = 0; i < NUM_AIRLINES; ++i) {
-			if (Airlines[i]._boarded) {
+			airlineMV = GetMV( airlines, i );
+			if (GetMV(airlineMV, AirlineBoarded)) {
 				numReadyAirlines++;
-			} else if(Airlines[i]._numExpectedBaggages == Airlines[i]._numLoadedBaggages
-				&& Airlines[i]._numExpectedPassengers == Airlines[i]._numReadyPassengers) {
+			} else if(
+				GetMV( airlineMV, AirlineNumExpectedBaggages ) == GetMV( airlineMV, AirlineNumLoadedBaggages )
+				&& GetMV( airlineMV, AirlineNumExpectedPassenger ) == GetMV( airlineMV, AirlineNumReadyPassengers ) 
+			){
 				Printf1("Airport manager gives a boarding call to airline %d\n",
 					sizeof("Airport manager gives a boarding call to airline %d\n"),
 					i);
-				for (j = 0; j < Airlines[i]._numReadyPassengers; ++j) {
-					Acquire(Airlines[i]._lock);
-					Signal(Airlines[i]._lock, Airlines[i]._boardLoungeCV);
-					Release(Airlines[i]._lock);
+				for (j = 0; j <  GetMV( airlineMV, AirlineNumReadyPassengers ); ++j) {
+					Acquire( GetMV(airlineMV, AirlineLock) );
+					Signal( GetMV(airlineMV, AirlineLock), GetMV(airlineMV, AirlineBoardLoungeCV) );
+					Release( GetMV(airlineMV, AirlineLock) );
 				}
 				numReadyAirlines++;
-				Airlines[i]._boarded = true;
+				SetMV( airlineMV, AirlineBoarded, true );
 			}
 		}
 
@@ -165,7 +159,7 @@ void startManager() {
 
 			for (i = 0; i < NUM_LIASONS; ++i) {
 				for (j = 0; j < NUM_AIRLINES; ++j) {
-					pass_cnt_liaisons += Liaisons[i]._passCount[j];
+					pass_cnt_liaisons += GetMV(  GetMV( GetMV(liaisons, i), LiaisonPassCount ), j  );
 				}
 			}
 			Printf1("Passenger count reported by airport liaison = %d\n",
@@ -174,7 +168,7 @@ void startManager() {
 
 			for (i = 0; i < NUM_AIRLINES; ++i) {	
 				for (j = 0; j < NUM_CIS_PER_AIRLINE; ++j) {
-					pass_cnt_CIS += Airlines[i]._cis[j]._passCount;
+					pass_cnt_CIS +=  GetMV( GetMV( GetMV( GetMV(airlines, i), AirlineCIS ), j ), CISPassCount);
 				}
 			}
 			Printf1("Passenger count reported by airline check-in staff = %d\n",
@@ -182,7 +176,7 @@ void startManager() {
 				pass_cnt_CIS);
 
 			for (i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {	
-				pass_cnt_SI += SecurityInspectors[i]._passCount;
+				pass_cnt_SI +=  GetMV(GetMV(securityInspectors, i), SIPassCount);
 			}
 			Printf1("Passenger count reported by security inspector = %d\n",
 				sizeof("Passenger count reported by security inspector = %d\n"),
@@ -191,13 +185,13 @@ void startManager() {
 			for (i = 0; i < NUM_AIRLINES; ++i) {	
 				Printf1("From setup: Baggage count of airline %d = %d\n",
 					sizeof("From setup: Baggage count of airline %d = %d\n"),
-					concat2Num(i, Airlines[i]._numExpectedBaggages));
+					concat2Num(i, GetMV(GetMV(airlines, i), AirlineNumExpectedBaggages)));
 			}
 
 			for (i = 0; i < NUM_AIRLINES; ++i) {	
 				bag_cnt_liaison = 0;
 				for (j = 0; j < NUM_LIASONS; ++j) {	
-					bag_cnt_liaison += Liaisons[j]._bagCount[i];
+					bag_cnt_liaison +=  GetMV(GetMV(GetMV(liaisons, j), LiaisonBagCount), i);
 				}
 				Printf1("From airport liaison: Baggage count of airline %d = %d\n",
 					sizeof("From airport liaison: Baggage count of airline %d = %d\n"),
@@ -207,7 +201,7 @@ void startManager() {
 			for (i = 0; i < NUM_AIRLINES; ++i) {
 				bag_cnt_cargo = 0;
 				for (j = 0; j < NUM_CARGO_HANDLERS; ++j) {	
-					bag_cnt_cargo += CargoHandlers[j]._bagCount[i];
+					bag_cnt_cargo +=  GetMV(GetMV(GetMV(cargoHandlers, j), CHBagCount), i);
 				}
 				Printf1("From cargo handlers: Baggage count of airline %d = %d\n",
 					sizeof("From cargo handlers: Baggage count of airline %d = %d\n"),
@@ -217,13 +211,13 @@ void startManager() {
 			for (i = 0; i < NUM_AIRLINES; ++i) {
 				Printf1("From setup: Baggage weight of airline %d = %d\n",
 					sizeof("From setup: Baggage weight of airline %d = %d\n"),
-					concat2Num(i, Airlines[i]._weightCount));
+					concat2Num(i, GetMV( GetMV(airlines, i), AirlineWeightCount )));
 			}
 
 			for (i = 0; i < NUM_AIRLINES; ++i) {
 				weight_cnt_CIS = 0;
 				for (j = 0; j < NUM_CIS_PER_AIRLINE; ++j) {
-					weight_cnt_CIS += Airlines[i]._cis[j]._weightCount;
+					weight_cnt_CIS += GetMV(GetMV(GetMV(GetMV( airlines, i ), AirlineCIS ), j), CISWeightCount);
 				}
 				Printf1("From airline check-in staff: Baggage weight of airline %d = %d\n",
 					sizeof("From airline check-in staff: Baggage weight of airline %d = %d\n"),
@@ -233,7 +227,7 @@ void startManager() {
 			for (i = 0; i < NUM_AIRLINES; ++i) {
 				weight_cnt_cargo = 0;
 				for (j = 0; j < NUM_CARGO_HANDLERS; ++j) {
-					weight_cnt_cargo += CargoHandlers[j]._weightCount[i];
+					weight_cnt_cargo += GetMV(GetMV(GetMV(cargoHandlers, j), CHWeightCount), i);
 				}
 				Printf1("From cargo handlers: Baggage weight of airline %d = %d\n", 
 				sizeof("From cargo handlers: Baggage weight of airline %d = %d\n"),
@@ -243,17 +237,16 @@ void startManager() {
 			Printf0("================================================\n", sizeof("================================================\n"));
 
 			/* tell all Screening Officers to go home */
-			Manager._allSODone = true;
+			SetMV(manager, ManAllSODone, true);
 			for (i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
-				Signal(OfficersLineLock, ScreeningOfficers[i]._commCV);
+				Signal( OfficersLineLock, GetMV(GetMV(screeningOfficers, i), SOCommCV) );
 			}
 
 			/* tell all Security Inspectors to go home */
-			Manager._allSIDone = true;
+			SetMV(manager, ManAllSIDone, true);
 			for (i = 0; i < NUM_SECURITY_INSPECTORS; ++i) {
-				Signal(SecurityInspectors[i]._lock, SecurityInspectors[i]._commCV);
+				Signal( GetMV(GetMV(securityInspectors, i), SILock), GetMV(GetMV(securityInspectors, i), SICommCV) );
 			}
-
 			break;
 		}
 
@@ -272,3 +265,4 @@ int main() {
 	doCreates();
     startManager();
 }
+
