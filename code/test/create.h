@@ -506,8 +506,11 @@ void initAirlines() {
 
 void initCIS(int airline) {
 	int i, cis, cisArray, temp;
-	cisArray = CreateMV("CIS", 
-						sizeof("CIS"), 
+	cisArray = CreateMV(concatNumToString(
+                            "aCIS",
+                            sizeof("aCIS"),
+                            airline), 
+						sizeof("aCIS") + 3, 
 						NUM_CIS_PER_AIRLINE
 						);
 	SetMV(airline, AirlineCIS, cisArray);
@@ -520,7 +523,7 @@ void initCIS(int airline) {
 				concatNumToString(
 						"CISL", 
 						sizeof("CISL"), 
-						i
+						100 * airline + i
 					), 
 				sizeof("CISL") + 3
 			);
@@ -530,7 +533,7 @@ void initCIS(int airline) {
 				concatNumToString(
 					"CISLCV", 
 					sizeof("CISLCV"), 
-					i
+					100 * airline + i
 				), 
 				sizeof("CISLCV") + 3
 			);
@@ -540,7 +543,7 @@ void initCIS(int airline) {
 				concatNumToString(
 					"CISComCV", 
 					sizeof("CISComCV"), 
-					i
+					100 * airline + i
 				), 
 				sizeof("CISComCV") + 3
 			);
