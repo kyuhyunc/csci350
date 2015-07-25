@@ -310,8 +310,8 @@ void createGlobalData() {
 
 	/* Data for Security Personel */
 	SecurityFailResults = CreateMV(
-		"SecurityFailResults",
-		sizeof("SecurityFailResults"),
+		"SecFails",
+		sizeof("SecFails"),
 		NUM_PASSENGERS
 		);
 
