@@ -23,5 +23,7 @@ void createWait() {
 }
 
 int main() {
-	createWait();
+	Fork(createWait, "createWait", sizeof("createWait"));
+	Fork(createWait, "createWait", sizeof("createWait"));
+	Fork(createWait, "createWait", sizeof("createWait"));
 }
