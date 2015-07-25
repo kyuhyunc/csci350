@@ -26,7 +26,7 @@ void startManager() {
 							}
 							SetMV( airlineMV, AirlineCISClosed, true );
 						} else {
-							Release( airlineMV, AirlineLock );
+							Release( GetMV(airlineMV, AirlineLock) );
 						}
 					} else {
 						/* There are still passengers to serve */
@@ -86,7 +86,7 @@ void startManager() {
 				}
 			}
 			if (numDone == NUM_AIRLINES) {
-				GetMV( manager, ManAllCargoDone, true );
+				SetMV( GetMV(manager, ManAllCargoDone), true );
 				for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
 					Signal( ConveyorLock, GetMV( GetMV( cargoHandlers, i ), CHCommCV ) );
 				}
@@ -94,10 +94,10 @@ void startManager() {
 			for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
 				ch = GetMV( cargoHandlers, i );
 				if (
-					!queue_empty(ConveyorBelt) 
+					!queue_empty(conveyorBelt) 
 					&& GetMV( ch, CHState ) == ONBREAK
 				){
-					Signal( conveyorLock, GetMV(ch, CHCommCV) );
+					Signal( ConveyorLock, GetMV(ch, CHCommCV) );
 					if (msgToCargo) {
 						Printf0("Airport manager calls back all the cargo handlers from break\n",
 							sizeof("Airport manager calls back all the cargo handlers from break\n"));
@@ -115,7 +115,7 @@ void startManager() {
 		Acquire(OfficersLineLock);
 		for (i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
 			person = GetMV( screeningOfficers, i );
-			if ( !queue_empty(OfficersLine) &&  GetMV(person, SOState) == ONBREAK ) {
+			if ( !queue_empty(officersLine) &&  GetMV(person, SOState) == ONBREAK ) {
 				Signal( OfficersLineLock, GetMV( person, SOCommCV ) );
 			}
 		}
