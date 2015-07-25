@@ -232,7 +232,7 @@ printf("evict_type = FIFO\n");
 #endif
 
 #ifdef NETWORK
-    postOffice = new PostOffice(netname, rely, 10);
+    postOffice = new PostOffice(netname, rely, NUM_MAILBOXES);
 #endif
 }
 
