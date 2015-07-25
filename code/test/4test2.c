@@ -24,7 +24,7 @@ void createSignal() {
 	Exit(0);
 }
 
-void setMV() {
+void setMV() { 
 	int firstMV, secondMV;
 	int MVsetting1, MVsetting2;
 	Printf0("Setting MV!\n", sizeof("SettingMV!\n"));

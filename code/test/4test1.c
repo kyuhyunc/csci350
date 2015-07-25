@@ -39,7 +39,7 @@ void useMV() {
 	Printf1(
 	"Checking MV %d %d %d\n", 
 	sizeof("Checking MV %d %d %d\n"),
-	1000000*gettingMV1 + 1000*gettingMV2 + 21);
+	1000000*gettingMV1 + 1000*gettingMV2 + 0);
 }
 int main() {
 	Fork(createWait, "createWait", sizeof("createWait"));
