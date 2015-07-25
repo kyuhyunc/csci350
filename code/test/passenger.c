@@ -51,13 +51,13 @@ void startPassenger() {
 /*		Wait(myAirline._execLineLock, myAirline._execLineLock); *//* Wait on CIS */
 		Wait(GetMV(_myAirline, AirlineExecLineLock), GetMV(_myAirline, AirlineExecLineCV)); /* Wait on CIS */
         _myCIS = GetMV(_myMV, PassCISID);
-Printf1("Passenger %d woke up (executive)\n", sizeof("Passenger %d woke up (executive)\n"), _myIndex);
+/*Printf1("Passenger %d woke up (executive)\n", sizeof("Passenger %d woke up (executive)\n"), _myIndex);*/
 	} else { /* Economy */
 		Acquire(GetMV(_myAirline, AirlineCISLineLock));
 		/* Find shortest line */
 		_minLineSize = GetMV(GetMV(GetMV(_myAirline, AirlineCIS), 0), CISLineSize); /* declare at top of startPassenger */
 		_myCIS = GetMV(GetMV(_myAirline, AirlineCIS), 0);
-Printf1("GetMV(_myAirline, AirlineCIS) = %d\n", sizeof("GetMV(_myAirline, AirlineCIS) = %d\n"), GetMV(_myAirline, AirlineCIS));
+/*Printf1("GetMV(_myAirline, AirlineCIS) = %d\n", sizeof("GetMV(_myAirline, AirlineCIS) = %d\n"), GetMV(_myAirline, AirlineCIS));*/
 		for (i = 0; i < NUM_CIS_PER_AIRLINE; ++i) {
 			int nextSize = GetMV(GetMV(GetMV(_myAirline, AirlineCIS), i), CISLineSize);
 			if ( nextSize < _minLineSize ) {
@@ -70,13 +70,13 @@ Printf1("GetMV(_myAirline, AirlineCIS) = %d\n", sizeof("GetMV(_myAirline, Airlin
 			concat3Num(_myIndex, GetMV(_myMV, PassTicketAirline), _myCIS), _minLineSize);
 			incrementMV(_myCIS, CISLineSize);
 		Wait( GetMV(_myAirline, AirlineCISLineLock), GetMV( _myCIS, CISLineCV ) );
-Printf1("Passenger %d woke up\n", sizeof("Passenger %d woke up\n"), _myIndex);
+/*Printf1("Passenger %d woke up\n", sizeof("Passenger %d woke up\n"), _myIndex);*/
 	}
 	Acquire( GetMV(_myCIS, CISLock) );
 
-Printf1("_myMV = %d\n", sizeof("_myMV = %d\n"), _myMV);
+/*Printf1("_myMV = %d\n", sizeof("_myMV = %d\n"), _myMV);
 Printf1("_myAirline = %d\n", sizeof("_myairline = %d\n"), _myAirline);
-Printf1("_myCIS = %d\n", sizeof("_myCIS = %d\n"), _myCIS);
+Printf1("_myCIS = %d\n", sizeof("_myCIS = %d\n"), _myCIS);*/
 
 	if ( GetMV(_myMV, PassTicketExecutive) ) {
 		Release( GetMV(_myAirline, AirlineExecLineLock) );

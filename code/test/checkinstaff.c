@@ -31,9 +31,9 @@ Printf1("_myAirlineMV = %d\n", sizeof("_myAirlineMV = %d\n"), _myAirlineMV);
 			SetMV(_myMV, CISState, ONBREAK);
 			/* 'Clock Out' for Break */
 			incrementMV(_myAirlineMV, AirlineNumOnBreakCIS);
-/*Printf1("Cis %d going to sleep\n", sizeof("Cis %d going to sleep\n"), _myIndex);*/
+Printf1("Cis %d going to sleep\n", sizeof("Cis %d going to sleep\n"), _myIndex);
 			Wait(GetMV(_myAirlineMV, AirlineLock), GetMV(_myMV, CISCommCV)); /* Wait on Manager */ /* TODO - make sure okay to wait on aiport lock... maybe better? */
-/*Printf1("Cis %d woke up by manager\n", sizeof("Cis %d woke up by manager\n"), _myMACROIndex);*/
+Printf1("Cis %d woke up by manager\n", sizeof("Cis %d woke up by manager\n"), _myIndex);
 			/* Time to go home! TGIF! */
 			if (GetMV(_myMV, CISDone)) {
 				Printf1("Airline check-in staff %d of airline %d is closing the counter\n",
@@ -76,7 +76,8 @@ Printf1("_myAirlineMV = %d\n", sizeof("_myAirlineMV = %d\n"), _myAirlineMV);
 /*Printf1("Cis %d of airline %d goes to sleep\n", sizeof("Cis %d of airline %d goes to sleep\n"), _myIndex*1000+_myAirlineIndex);*/
 			Wait(GetMV(_myMV, CISLock), GetMV(_myMV, CISCommCV)); 
 		} /* Otherwise, Manager woke you up for no reason */
-		if (GetMV(_myMV, CISCurrentPassenger) != -1) {
+        passenger = GetMV(_myMV, CISCurrentPassenger);
+		if (passenger != -1) {
 			int i;
 			/* Assign seat number */
 			Acquire(GetMV(_myAirlineMV, AirlineLock));
