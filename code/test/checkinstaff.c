@@ -3,7 +3,7 @@
 
 void startCheckInStaff() {
 #define myAirlineMACRO GetMV(airlines, _myAirline)
-#define passengerMACRO GetMV(myMACRO, CISCurrentPassenger)
+#define passengerMACRO GetMV(_myMV, CISCurrentPassenger)
 	/* Claim my CIS */
 	int _myAirline;
 	int _myIndex; /* ID for currentThread */
@@ -18,7 +18,7 @@ void startCheckInStaff() {
 
     while (true) {
 		/* Check lines */
-		Acquire(GetMV(myAirlineMACRO, AirlineLock);
+		Acquire(GetMV(myAirlineMACRO, AirlineLock));
 		if (GetMV(_myMV, CISLineSize) == 0 && queue_empty(GetMV(myAirlineMACRO, AirlineExecQueue))) {
 			/*Printf0("1\n", sizeof("1\n"));*/
 			SetMV(_myMV, CISState, ONBREAK);
