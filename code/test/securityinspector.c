@@ -55,7 +55,7 @@ void startSecurityInspector() {
     				concat2Num(_myIndex, GetMV(_myMV, SINewPassenger)));
     		}
     		if (guilty) {
-                SetMV(GetMV(GetMV(_myMV, SINewPassenger), PassFurtherQuestioning), true);
+                SetMV(GetMV(_myMV, SINewPassenger), PassFurtherQuestioning, true);
     			Printf1("Security inspector %d asks passenger %d to go for further examination\n", 
     				sizeof("Security inspector %d asks passenger %d to go for further examination\n"),
     				concat2Num(_myIndex, GetMV(_myMV, SINewPassenger)));
