@@ -358,6 +358,7 @@ void sendMessageToClient(
 printf("inPktHdr.from = %i\n", inPktHdr.from);
 printf("inMailHdr.to = %i\n", inMailHdr.to);
 printf("inMailHdr.from = %i\n", inMailHdr.from);*/
+DEBUG('o', "About to send message to client\n");
     if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
         printf("Something bad happens in Server. Unable to send message \n");
     }
@@ -427,6 +428,7 @@ void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const
     // from the client sends a message back to the client
     // this is to preserve global data alignment
     if (currentFS == postOffice->getMachineID()) {
+        DEBUG('o', "Server sent client %d mailbox %d a lock index of %d\n", inPktHdr.from, inMailHdr.from, index);
         sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     }
 
@@ -510,6 +512,7 @@ void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const s
     // from the client sends a message back to the client
     // this is to preserve global data alignment
     if (currentFS == postOffice->getMachineID()) {
+        DEBUG('o', "Server sent client %d mailbox %d a CV index of %d\n", inPktHdr.from, inMailHdr.from, index);
         sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     }
 
@@ -552,9 +555,11 @@ void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
     // from the client sends a message back to the client
     // this is to preserve global data alignment
     if (currentFS == postOffice->getMachineID()) {
+        DEBUG('o', "Server sent client %d mailbox %d a destroyed CV index of %d\n", inPktHdr.from, inMailHdr.from, index);
         sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     }
 
+    DEBUG('o', "Server is returning a destroyed CV index of %d\n", index);
     CVLock->Release();
 }
 void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index) {
@@ -596,8 +601,11 @@ void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
     // from the client sends a message back to the client
     // this is to preserve global data alignment
     if (currentFS == postOffice->getMachineID()) {
+        DEBUG('o', "Server sent client %d mailbox %d an acquired lock index of %d\n", inPktHdr.from, inMailHdr.from, index);
         sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     }
+
+    DEBUG('o', "Server is returning an acquired lock index of %d\n", index);
 
     SLock->Release();
     
@@ -671,9 +679,11 @@ void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
     // from the client sends a message back to the client
     // this is to preserve global data alignment
     if (currentFS == postOffice->getMachineID()) {
+        DEBUG('o', "Server sent client %d mailbox %d a release lock index of %d\n", inPktHdr.from, inMailHdr.from, index);
         sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     }
 
+    DEBUG('o', "Server is returning a released lock index of %d\n", index);
     SLock->Release();
     
 }
@@ -706,7 +716,8 @@ void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &
         }
         // If this is not the first thread to call wait, AND they passed in the incorrect lock, send error
         if(ServerCVVector[CVIndex]->waitingLock != ServerLockVector[LockIndex]) {
-            printf("Parameter lock does not match the waitingLock\n ");
+            printf("Parameter lock does not match the waitingLock.(Wait)\n");
+            printf("Parameter lock = %s, waitingLock = %s\n", ServerCVVector[CVIndex]->waitingLock->name.c_str(), ServerLockVector[LockIndex]->name.c_str());
             ss << -1;
         }else{
         	// everything is good to go! Thread will wait until Signal is called
@@ -727,9 +738,11 @@ void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &
     // from the client sends a message back to the client
     // this is to preserve global data alignment
     if (currentFS == postOffice->getMachineID()) {
+        DEBUG('o', "Server sent client %d mailbox %d a wait error message\n", inPktHdr.from, inMailHdr.from);
         sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); // send error message
     }
 
+    DEBUG('o', "Server is returning a wait error message\n");
     CVLock->Release();
 }
 
@@ -767,7 +780,7 @@ std::string SignalFunctionality(
         }
         // If this is not the first thread to call wait, AND they passed in the incorrect lock, send error
         if(ServerCVVector[CVIndex]->waitingLock != ServerLockVector[LockIndex]) {
-            printf("Condition Lock does not match waitingLock\n");
+            printf("Condition Lock does not match waitingLock.(Signal)\n");
             ss << -1;
         }else{
 
@@ -827,9 +840,11 @@ void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int
     // this is to preserve global data alignment
     if (currentFS == postOffice->getMachineID()) {
         // Send message to the thread that called Signal
+        DEBUG('o', "Server sent client %d mailbox %d a confirmation of signal\n", inPktHdr.from, inMailHdr.from);
         sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss);
     }
 
+    DEBUG('o', "Server is returning a confirmation of signal\n");
 }
 void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex) {
     DEBUG('o', "Server called BroadCast\n");
@@ -847,9 +862,11 @@ void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const 
     // this is to preserve global data alignment
     if (currentFS == postOffice->getMachineID()) {
         // Send message to the thread that called Broadcast
+        DEBUG('o', "Server sent client %d mailbox %d a confirmation of broadcast\n", inPktHdr.from, inMailHdr.from);
         sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str());
     }
 
+    DEBUG('o', "Server is returning a confirmation of broadcast\n");
 }
 
 /*
@@ -887,7 +904,8 @@ void CreateMV(
             ss << -1;
         } else {
             MonitorVars.push_back(new MonitorVariable(size, name));
-            ss << MonitorVars.size() - 1;
+            index = MonitorVars.size() - 1;
+            ss << index;
         } 
     }
     PacketHeader outPktHdr;
@@ -896,8 +914,11 @@ void CreateMV(
     // from the client sends a message back to the client
     // this is to preserve global data alignment
     if (currentFS == postOffice->getMachineID()) {
+        DEBUG('o', "Server sent client %d mailbox %d an MV index of %d\n", inPktHdr.from, inMailHdr.from, index);
         sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
     }
+
+    DEBUG('o', "Server is returning an MV index of %d\n", index);
 
     MVLock->Release();
 }
@@ -937,8 +958,11 @@ void GetMV(
     // from the client sends a message back to the client
     // this is to preserve global data alignment
     if (currentFS == postOffice->getMachineID()) {
+        DEBUG('o', "Server sent client %d mailbox %d an MV value of %d\n", inPktHdr.from, inMailHdr.from, index);
         sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
     }
+
+    DEBUG('o', "Server is returning an MV value of %d\n", index);
 
     MVLock->Release();
 }
@@ -952,6 +976,7 @@ void SetMV(
     const int value) 
 {
     MVLock->Acquire();
+    DEBUG('o', "Server called SetMV\n");
     //
     std::stringstream ss;
     // Check if client passed in MV within bounds
@@ -983,8 +1008,11 @@ void SetMV(
     // from the client sends a message back to the client
     // this is to preserve global data alignment
     if (currentFS == postOffice->getMachineID()) {
+        DEBUG('o', "Server sent client %d mailbox %d a newly set MV value of %d\n", inPktHdr.from, inMailHdr.from, index);
         sendMessageToClient(inPktHdr, outPktHdr, inMailHdr, outMailHdr, ss.str()); 
     }
+
+    DEBUG('o', "Server set an MV value of %d\n", index);
 
     //
     MVLock->Release();
@@ -996,6 +1024,7 @@ void DestroyMV(
     const int mv) 
 {
     MVLock->Acquire();
+    DEBUG('o', "Server called DestroyMV\n");
     //
     std::stringstream ss;
 
@@ -1050,8 +1079,9 @@ void ServerFromClient() {
 
     while (true) {
     	// Receive the next message
+DEBUG('o', "About to receive client's request\n");
     	postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);
-printf("Server %d received message from client %d mailbox %d\n", postOffice->getMachineID(), inPktHdr.from, inMailHdr.from);
+DEBUG('o', "Server %d received message from client %d mailbox %d\n", postOffice->getMachineID(), inPktHdr.from, inMailHdr.from);
     	fflush(stdout);
 
         // Tack on clientmachine# and clientmailbox# to buffer
@@ -1080,8 +1110,8 @@ printf("Server %d received message from client %d mailbox %d\n", postOffice->get
         for(int i = 0; i < NumServers; i++) {
             inPktHdr.to = i;
             inMailHdr.to = 1; //mailbox number is 1
-            inMailHdr.from = 1; 
-printf("Server %d is forwarding message to server %d\n", postOffice->getMachineID(), i);
+            inMailHdr.from = 0; 
+DEBUG('o', "Server %d is forwarding message to server %d\n", postOffice->getMachineID(), i);
             postOffice->Send(inPktHdr, inMailHdr, buffer);
         }
 
@@ -1127,16 +1157,19 @@ void ServerFromServer() {
 
     while (true) {
         // Receive a server forwarded message
+DEBUG('o', "About to receive server's forwarded request\n");
         postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
         fflush(stdout);
 /*printf("inPktHdr.to = %i\n", inPktHdr.to);
 printf("inPktHdr.from = %i\n", inPktHdr.from);
 printf("inMailHdr.to = %i\n", inMailHdr.to);
 printf("inMailHdr.from = %i\n", inMailHdr.from);*/
-printf("Server %d received forwarded message from server %d\n", postOffice->getMachineID(), inPktHdr.from);
+DEBUG('o', "Server %d received forwarded message from server %d\n", postOffice->getMachineID(), inPktHdr.from);
 
 
         // Extract the timestamp and forwarding server machine ID
+        ss.str(""); // clear stringstream
+        ss.clear(); // for reuse
         ss << buffer;
 
         ss >> inPktHdr.from;
@@ -1183,6 +1216,7 @@ printf("Server %d received forwarded message from server %d\n", postOffice->getM
                 // if the request was from this server,
                 // wait for all other servers to send OK
                 for (int i=1; i < NumServers; i++) {
+DEBUG('o', "About to receive server's OK acknowledgement\n");
                     postOffice->Receive(2, &iphOK, &imhOK, bufOK);
                     fflush(stdout);
                 }
