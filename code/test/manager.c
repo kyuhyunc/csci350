@@ -1,7 +1,6 @@
 #include "create.h"
 
 void startManager() {
-#define cis Airlines[i]._cis[j]
 	int i, j, liaison, person, airlineMV; /* for-loop iterator */
 	while (true) {
 		int numReadyAirlines = 0;
