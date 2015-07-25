@@ -17,13 +17,13 @@ void startSecurityInspector() {
             SetMV(_myMV, SIState, AVAIL);
 			/* Done? */
             if (GetMV(manager, ManAllSIDone)) {
-                Release(_myMV, SILock);
+                Release(GetMV(_myMV, SILock));
                 break;
             }
             Wait( GetMV(_myMV, SILock), GetMV(_myMV, SICommCV) ); /* Wait for Passenger to come */
 			/* Done? */
 			if (GetMV(manager, ManAllSIDone)) {
-                Release(_myMV, SILock);
+                Release(GetMV(_myMV, SILock));
                 break;
             }
             SetMV(_myMV, SIState, BUSY);
@@ -55,7 +55,7 @@ void startSecurityInspector() {
     				concat2Num(_myIndex, GetMV(_myMV, SINewPassenger)));
     		}
     		if (guilty) {
-				Passengers[mySI._newPassenger]._furtherQuestioning = true;
+                SetMV(GetMV(GetMV(_myMV, SINewPassenger), PassFurtherQuestioning), true);
     			Printf1("Security inspector %d asks passenger %d to go for further examination\n", 
     				sizeof("Security inspector %d asks passenger %d to go for further examination\n"),
     				concat2Num(_myIndex, GetMV(_myMV, SINewPassenger)));
@@ -65,7 +65,7 @@ void startSecurityInspector() {
     				concat2Num(_myIndex, GetMV(_myMV, SINewPassenger)));
                 incrementMV(_myMV, SIPassCount);
     		}
-            SetMV(_myMV, SINewPassenger, -1)
+            SetMV(_myMV, SINewPassenger, -1);
             Signal(GetMV(_myMV, SILock), GetMV(_myMV, SINewPassCV));
     	}
         Release( GetMV(_myMV, SILock) );
