@@ -405,10 +405,14 @@ bool test10_broadcast() {
 *
 *
 */
+void CreateLock11(){
+	CreateLock("multiple", sizeof("multiple"));
+	Exit(0);
+}
 int main() {
 /*        test6_waitAndSignal() &&*/
 /*        test10_broadcast()*/
-	if (
+	/*if (
 		test0_createLock() &&
 		test1_deleteLock() &&
 		test2_acquireLock() &&
@@ -422,5 +426,13 @@ int main() {
 		Printf0("All tests passed!\n", sizeof("All tests passed!\n"));
 	} else {
 		Printf0("Not all tests passed...\n", sizeof("Not all tests passed...\n"));
+	}*/
+	/*
+	Exec("../test/4test1", sizeof("../test/4test1"));
+	Exec("../test/4test2", sizeof("../test/4test2"));
+	*/
+	int i;
+	for(i = 0; i < 20; i++) {
+		Fork(CreateLock11, "Creating", sizeof("Creating"));
 	}
 }
