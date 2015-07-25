@@ -77,25 +77,31 @@ void startCheckInStaff() {
 			Release(GetMV(myAirlineMACRO, AirlineLock));
 			/* Deal with baggage */
 			Acquire(ConveyorLock);
-			for (i = 0; i < passenger._numBaggages; ++i) {
+			for (i = 0; i < GetMV(passengerMACRO, PassNumBaggages); ++i) {
 				/*Printf0("3\n", sizeof("1\n"));*/
 /*				#define bIndex (passenger._id * 3) + i
 				#define bag Baggages[bIndex]*/
-				#define bag Baggages[(passenger._id*3)+i]
-				bag._airline = _myAirline; /* Tag the bag */
+				/*#define bag Baggages[(passenger._id*3)+i]*/
+				SetMV(
+					GetMV(
+						baggages,
+						GetMV(passengerMACRO, PassIndex) * 3 + i
+						),
+					_myAirline
+					);
 /*				queue_insert(&ConveyorBelt, bIndex);*/
-				queue_insert(&ConveyorBelt, passenger._id*3+i);
+				queue_insert(&ConveyorBelt, GetMV(passengerMACRO, PassIndex)*3+i);
 				Printf1("Airline check-in staff %d of airline %d dropped bags to the conveyor system \n",
 					sizeof("Airline check-in staff %d of airline %d dropped bags to the conveyor system \n"),
 					concat2Num(_myIndex, _myAirline));
 /*				myAirline._numExpectedBaggages++;*/
 				GetMV(myMACRO, CISWeightCount) += bag._weight;
-				#undef bag
+				/*#undef bag*/
 /*				#undef bIndex*/
 			}
 			Release(ConveyorLock);
 			/* Direct Passenger to Airline */
-			if (passenger._ticket._executive) {
+			if (GetMV(passengerMACRO, PassTicketExecutive)) {
 				Printf2("Airline check-in staff %d of airline %d informs executive class passenger %d to board at gate %d\n",
 					sizeof("Airline check-in staff %d of airline %d informs executive class passenger %d to board at gate %d\n"),
 /*					concat3Num(_myAirline, GetMV(my, CISCurrentPassenger), _myAirline), _myIndex);*/
@@ -113,7 +119,7 @@ void startCheckInStaff() {
 		Release(GetMV(myMACRO, CISLock));
 	} /* end while */
 	Exit(0);
-#undef passenger
+#undef passengerMACRO
 #undef myMACRO
 #undef myAirlineMACRO
 }
