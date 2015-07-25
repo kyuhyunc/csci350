@@ -15,7 +15,6 @@ void startManager() {
 				if ( !GetMV( airlineMV, AirlineCISClosed ) ) {
 					Acquire( GetMV(airlineMV, AirlineLock) );
 					if ( GetMV(airlineMV, AirlineNumCheckedinPassengers) == GetMV(airlineMV, AirlineNumExpectedPassenger) )	{
-						if (Airlines[i]._numOnBreakCIS == NUM_CIS_PER_AIRLINE) {
 						if ( GetMV(airlineMV, AirlineNumOnBreakCIS) == NUM_CIS_PER_AIRLINE ) {
 							/* All Passenger have JUST went through, send CIS home */
 							Release( GetMV(airlineMV, AirlineLock) );
@@ -25,17 +24,17 @@ void startManager() {
 								SetMV(cis, CISDone, true);
 								Signal( GetMV(airlineMV, AirlineLock), GetMV(cis, CISCommCV) );
 							}
-							SetMV( airlineMV, AirlineCISClosed, true )
+							SetMV( airlineMV, AirlineCISClosed, true );
 						} else {
 							Release( airlineMV, AirlineLock );
 						}
 					} else {
 						/* There are still passengers to serve */
-						Release( airlineMV, AirlineLock );
+						Release( GetMV(airlineMV, AirlineLock) );
 						for (j = 0; j < NUM_CIS_PER_AIRLINE; ++j) {
-							Acquire( airlineMV, AirlineCISLineLock );
-							Acquire( airlineMV, AirlineExecLineLock );
-							Acquire( cis, CISLock );
+							Acquire( GetMV(airlineMV, AirlineCISLineLock) );
+							Acquire( GetMV(airlineMV, AirlineExecLineLock) );
+							Acquire( GetMV(cis, CISLock) );
 							if (
 								( 
 									!queue_empty( GetMV(airlineMV, AirlineExecQueue)) 
@@ -46,9 +45,9 @@ void startManager() {
 /*								Signal(cis._lock, cis._commCV);*/
 								Signal( GetMV(airlineMV, AirlineLock), GetMV( cis, CISCommCV ) );
 							}
-							Release( cis, CISLock );
-							Release( airlineMV, AirlineExecLineLock );
-							Release( airlineMV, AirlineCISLineLock );
+							Acquire( GetMV(cis, CISLock) );
+							Acquire( GetMV(airlineMV, AirlineExecLineLock) );
+							Acquire( GetMV(airlineMV, AirlineCISLineLock) );
 						}
 					}
 				} else {
@@ -98,7 +97,7 @@ void startManager() {
 					!queue_empty(ConveyorBelt) 
 					&& GetMV( ch, CHState ) == ONBREAK
 				){
-					Signal( ConveyorLock, GetMV(ch, CHCommCV) );
+					Signal( conveyorLock, GetMV(ch, CHCommCV) );
 					if (msgToCargo) {
 						Printf0("Airport manager calls back all the cargo handlers from break\n",
 							sizeof("Airport manager calls back all the cargo handlers from break\n"));
@@ -138,10 +137,9 @@ void startManager() {
 					sizeof("Airport manager gives a boarding call to airline %d\n"),
 					i);
 				for (j = 0; j <  GetMV( airlineMV, AirlineNumReadyPassengers ); ++j) {
-					Acquire( airlineMV, AirlineLock );
-					Signal(Airlines[i]._lock, Airlines[i]._boardLoungeCV);
+					Acquire( GetMV(airlineMV, AirlineLock) );
 					Signal( GetMV(airlineMV, AirlineLock), GetMV(airlineMV, AirlineBoardLoungeCV) );
-					Release( airlineMV, AirlineLock );
+					Release( GetMV(airlineMV, AirlineLock) );
 				}
 				numReadyAirlines++;
 				SetMV( airlineMV, AirlineBoarded, true );
@@ -267,3 +265,4 @@ int main() {
 	doCreates();
     startManager();
 }
+
