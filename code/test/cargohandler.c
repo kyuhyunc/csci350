@@ -1,43 +1,26 @@
 #include "create.h"
 
-#define NULL 0
-
-
-typedef int bool;
-enum bool {false, true};
-
-
-/*
-	Utilities	
-*/
-
-int concat3Num(int i, int j, int k) {
-	return 1000000 * i + 1000 * j + k;
-} 
-
-int concat2Num(int i, int j) {
-	return 1000 * i + j;
-}
 
 
 void startCargoHandler() {
-#define my CargoHandlers[_myIndex]
+#define myMACRO GetMV(cargoHandlers, _myIndex)
 	/* Claim my Liaison */
 	int _myIndex; /* ID for currentThread */
 	int bIndex;
     Acquire(GlobalDataLock);
-    _myIndex = NumActiveCargoHandlers++;
+    _myIndex = GetMV(NumActiveCargoHandlers, 0);
+    incrementMV(NumActiveCargoHandlers, 0);
     Release(GlobalDataLock);
 	
 	while (true) {
-		#define bag Baggages[bIndex]
+		#define bagMACRO GetMV(baggages, bIndex)
 		Acquire(ConveyorLock);
-		if (queue_empty(&ConveyorBelt)) {
-			my._state = ONBREAK;
+		if (queue_empty(conveyorBelt)) {
+			SetMV(myMACRO, CHState, ONBREAK);
 			Printf1("Cargo Handler %d is going for a break\n", sizeof("Cargo Handler %d is going for a break\n"), _myIndex);
-			Wait(ConveyorLock, my._commCV);
+			Wait(ConveyorLock, GetMV(myMACRO, CHCommCV));
 			/* Done? */
-			if (Manager._allCargoDone) {
+			if (GetMV(manager, ManAllCargoDone)) {
 				Release(ConveyorLock);
 				break;
 			}
@@ -45,22 +28,26 @@ void startCargoHandler() {
 				sizeof("Cargo Handler %d returned from break\n"),
 				_myIndex);
 		} else {
-			bIndex = queue_pop(&ConveyorBelt);
+			bIndex = queue_pop(conveyorBelt);
 			Printf1("Cargo Handler %d picked bag of airline %d with weighing %d lbs\n",
 				sizeof("Cargo Handler %d picked bag of airline %d with weighing %d lbs\n"),
-				concat3Num(_myIndex, bag._airline, bag._weight));
-			Airlines[bag._airline]._numLoadedBaggages++;
-			my._bagCount[bag._airline]++;
-			my._weightCount[bag._airline] += bag._weight;
+				concat3Num(_myIndex, GetMV(bagMACRO, BaggageAirline), GetMV(bagMACRO, BaggageWeight)));
+
+			incrementMV(GetMV(airlines, GetMV(bagMACRO, BaggageAirline)), AirlineNumLoadedBaggages);
+
+			incrementMV(GetMV(myMACRO, CHBagCount), GetMV(bagMACRO, BaggageAirline));
+
+			SetMV(GetMV(myMACRO, CHWeightCount), GetMV(bagMACRO, BaggageAirline), GetMV(myMACRO, CHWeightCount) + GetMV(bagMACRO, BaggageWeight));
 		}
 		Release(ConveyorLock);	
 		Yield();
-		#undef bag	
+		#undef bagMACRO	
 	}
 	Exit(0);
-#undef my
+#undef myMACRO
 }
 
 int main() {
+	doCreates();
     startCargoHandler();
 }

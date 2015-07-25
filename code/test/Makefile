@@ -31,7 +31,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
-all: halt matmult sort matmult2exec matmult2fork sort2exec sort2fork testfiles testprint testexit testexithelper 4test1 4test2 airportsim airstart clientsim passenger liaison client1 client2
+all: halt matmult sort matmult2exec matmult2fork sort2exec sort2fork testfiles testprint testexit testexithelper 4test1 4test2 airportsim airstart clientsim passenger liaison client1 client2 checkinstaff manager securityinspector cargohandler screeningofficer
 	#client1 client2 client3 client4 client5 passenger screeningofficer checkinstaff liaison securityinspector manager cargohandler
 
 start.o: start.s ../userprog/syscall.h
@@ -177,17 +177,17 @@ passenger: passenger.o start.o
 	$(LD) $(LDFLAGS) start.o passenger.o -o passenger.coff
 	../bin/coff2noff passenger.coff passenger
 
-# screeningofficer.o: screeningofficer.c
-# 	$(CC) $(CFLAGS) -c screeningofficer.c
-# screeningofficer: screeningofficer.o start.o
-# 	$(LD) $(LDFLAGS) start.o screeningofficer.o -o screeningofficer.coff
-# 	../bin/coff2noff screeningofficer.coff screeningofficer
+screeningofficer.o: screeningofficer.c
+	$(CC) $(CFLAGS) -c screeningofficer.c
+screeningofficer: screeningofficer.o start.o
+	$(LD) $(LDFLAGS) start.o screeningofficer.o -o screeningofficer.coff
+	../bin/coff2noff screeningofficer.coff screeningofficer
 
-# checkinstaff.o: checkinstaff.c
-# 	$(CC) $(CFLAGS) -c checkinstaff.c
-# checkinstaff: checkinstaff.o start.o
-# 	$(LD) $(LDFLAGS) start.o checkinstaff.o -o checkinstaff.coff
-# 	../bin/coff2noff checkinstaff.coff checkinstaff
+checkinstaff.o: checkinstaff.c
+	$(CC) $(CFLAGS) -c checkinstaff.c
+checkinstaff: checkinstaff.o start.o
+	$(LD) $(LDFLAGS) start.o checkinstaff.o -o checkinstaff.coff
+	../bin/coff2noff checkinstaff.coff checkinstaff
 
 liaison.o: liaison.c
 	$(CC) $(CFLAGS) -c liaison.c
@@ -195,29 +195,29 @@ liaison: liaison.o start.o
 	$(LD) $(LDFLAGS) start.o liaison.o -o liaison.coff
 	../bin/coff2noff liaison.coff liaison
 
-# manager.o: manager.c
-# 	$(CC) $(CFLAGS) -c manager.c
-# manager: manager.o start.o
-# 	$(LD) $(LDFLAGS) start.o manager.o -o manager.coff
-# 	../bin/coff2noff manager.coff manager
+manager.o: manager.c
+	$(CC) $(CFLAGS) -c manager.c
+manager: manager.o start.o
+	$(LD) $(LDFLAGS) start.o manager.o -o manager.coff
+	../bin/coff2noff manager.coff manager
 
-# securityinspector.o: securityinspector.c
-# 	$(CC) $(CFLAGS) -c securityinspector.c
-# securityinspector: securityinspector.o start.o
-# 	$(LD) $(LDFLAGS) start.o securityinspector.o -o securityinspector.coff
-# 	../bin/coff2noff securityinspector.coff securityinspector
+securityinspector.o: securityinspector.c
+	$(CC) $(CFLAGS) -c securityinspector.c
+securityinspector: securityinspector.o start.o
+	$(LD) $(LDFLAGS) start.o securityinspector.o -o securityinspector.coff
+	../bin/coff2noff securityinspector.coff securityinspector
 
-# cargohandler.o: cargohandler.c
-# 	$(CC) $(CFLAGS) -c cargohandler.c
-# cargohandler: cargohandler.o start.o
-# 	$(LD) $(LDFLAGS) start.o cargohandler.o -o cargohandler.coff
-# 	../bin/coff2noff cargohandler.coff cargohandler
+cargohandler.o: cargohandler.c
+	$(CC) $(CFLAGS) -c cargohandler.c
+cargohandler: cargohandler.o start.o
+	$(LD) $(LDFLAGS) start.o cargohandler.o -o cargohandler.coff
+	../bin/coff2noff cargohandler.coff cargohandler
 
 clean:
 	rm -f *.o *.coff
 	rm halt sort matmult sort2exec sort2fork matmult2exec matmult2fork testfiles testprint testexit testexithelper 4test1 4test2 airportsim airstart clientsim 
-	rm passenger liaison 
+	rm passenger liaison checkinstaff manager securityinspector cargohandler screeningofficer
 	rm client1 client2
 	# client3 client4 client5 
-	#rm  screeningofficer checkinstaff manager securityinspector cargohandler
+	#rm  screeningofficer   
 	rm *~

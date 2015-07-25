@@ -26,6 +26,10 @@ void startPassenger() {
 	int _myMV;
 	int _minLineSize;
 	int _liaison;
+	int _myAirline;
+	int _myCIS;
+	int _myOff;
+	int _myInsp;
 	int temp0, temp1, temp2, temp3;
 
     Acquire(GlobalDataLock);
@@ -139,6 +143,126 @@ void startPassenger() {
 		GetMV(_liaison, LiaisonCommCV) ); /* Signal Liaison */
 	Release(GetMV(_liaison, LiaisonLock));
 	/* end Liaison Interaction */
+
+	/*
+		Check-in Staff Interaction
+	*/
+	_myAirline = GetMV(airlines, GetMV(_myMV, PassTicketAirline));
+	if (GetMV(_myMV, PassTicketExecutive)) {
+		Acquire(GetMV(_myAirline, AirlineExecLineLock));
+		queue_insert( GetMV(_myAirline, AirlineExecQueue), _myMV );
+		Printf1("Passenger %d of Airline %d is waiting in the executive class line\n", 
+			sizeof("Passenger %d of Airline %d is waiting in the executive class line\n"),
+			concat2Num(_myIndex, GetMV(_myMV, PassTicketAirline)));
+/*		Wait(myAirline._execLineLock, myAirline._execLineLock); *//* Wait on CIS */
+		Wait(GetMV(_myAirline, AirlineExecLineLock), GetMV(_myAirline, AirlineExecLineCV)); /* Wait on CIS */
+	} else { /* Economy */
+		Acquire(GetMV(_myAirline, AirlineCISLineLock));
+		/* Find shortest line */
+		_minLineSize = GetMV(GetMV(GetMV(_myAirline, AirlineCIS), 0), CISLineSize); /* declare at top of startPassenger */
+		_myCIS = GetMV(GetMV(_myAirline, AirlineCIS), 0);
+		for (i = 0; i < NUM_CIS_PER_AIRLINE; ++i) {
+			int nextSize = GetMV(GetMV(GetMV(_myAirline, AirlineCIS), i), CISLineSize);
+			if ( nextSize < _minLineSize ) {
+				_minLineSize = nextSize;
+				_myCIS = GetMV(GetMV(_myAirline, AirlineCIS), i);
+			}
+		}
+		Printf2("Passenger %d of Airline %d chose Airline Check-In staff %d with a line length %d\n", 
+			sizeof("Passenger %d of Airline %d chose Airline Check-In staff %d with a line length %d\n"),
+			concat3Num(_myIndex, GetMV(_myMV, PassTicketAirline), _myCIS), _minLineSize);
+			incrementMV(_myCIS, CISLineSize);
+		Wait( GetMV(_myAirline, AirlineCISLineLock), GetMV( _myCIS, CISLineCV ) );
+	}
+	Acquire( GetMV(_myCIS, CISLock) );
+	if ( GetMV(_myMV, PassTicketExecutive) ) {
+		Release( GetMV(_myAirline, AirlineExecLineLock) );
+	} else {
+		decrementMV( _myCIS, CISLineSize );
+		Release( GetMV(_myAirline, AirlineCISLineLock) );
+	}
+	/* Give baggage to CIS */
+	incrementMV( _myCIS, CISPassCount );
+	SetMV( _myCIS, CISBagCount, GetMV(_myCIS, CISBagCount) + GetMV(_myMV, PassNumBaggages) );
+	SetMV( _myCIS, CISCurrentPassenger, _myMV );
+	Signal( GetMV(_myCIS, CISLock), GetMV(_myCIS, CISCommCV) ); /* Signal CIS */
+	Wait( GetMV(_myCIS, CISLock), GetMV(_myCIS, CISCommCV) ); /* Wait CIS */
+	Printf1("Passenger %d of Airline %d was informed to board at gate %d\n",
+		sizeof("Passenger %d of Airline %d was informed to board at gate %d\n"),
+		concat3Num(_myIndex, GetMV(_myMV, PassTicketAirline), GetMV(_myMV, PassTicketAirline)));
+	Signal( GetMV(_myCIS, CISLock), GetMV(_myCIS, CISCommCV) );
+	Release( GetMV(_myCIS, CISLock) );
+	/* end Check-in Staff Interaction */
+
+	/*
+		Screening Officer Interaction
+	*/
+	Acquire(OfficersLineLock);
+	queue_insert(officersLine, _myMV);
+	Wait(OfficersLineLock, OfficersLineCV);
+	_myOff = GetMV(_myMV, PassOfficerID);
+	Printf1("Passenger %d gives the hand-luggage to screening officer %d\n",
+		sizeof("Passenger %d gives the hand-luggage to screening officer %d\n"),
+		concat2Num(_myIndex, _myOff));
+	Acquire( GetMV(_myOff, SOLock) );
+	Release(OfficersLineLock);
+	Signal( GetMV(_myOff, SOLock), GetMV(_myOff, SOCommCV) );
+	Wait( GetMV(_myOff, SOLock), GetMV(_myOff, SOCommCV) );
+	/* officer lock is released below! */
+	/* end Screening Officer Interaction */
+
+	/*
+		Security Inspector Interaction
+	*/
+	_myInsp = GetMV( _myMV, PassInspectorID );
+	Printf1("Passenger %d moves to security inspector %d\n",
+		sizeof("Passenger %d moves to security inspector %d\n"),
+		concat2Num(_myIndex, _myInsp));
+	Acquire( GetMV(_myInsp, SILock) );
+	Release( GetMV(_myOff, SOLock) );
+	SetMV( _myInsp, SINewPassenger, _myMV );
+	if ( GetMV(_myInsp, SIState) == AVAIL ) {/* Wake up inspector */
+		Signal( GetMV(_myInsp, SILock), GetMV(_myInsp, SICommCV) );
+	}
+	Wait( GetMV(_myInsp, SILock), GetMV(_myInsp, SINewPassCV) );
+	if ( GetMV( _myMV,  PassFurtherQuestioning) ) {
+		Printf1("Passenger %d goes for futher questioning\n", 
+			sizeof("Passenger %d goes for futher questioning\n"),
+			_myIndex);
+		Release( GetMV(_myInsp, SILock) );
+		for (i = 0; i < 10; ++i) {
+			Yield(); /* Simulate Further questioning */
+		}
+		Printf1("Passenger %d comes back to security inspector %d after further examination\n",
+			sizeof("Passenger %d comes back to security inspector %d after further examination\n"),
+			concat2Num(_myIndex, _myInsp));
+		Acquire( GetMV( _myInsp, SILock ) );
+		incrementMV(_myInsp, SIRtnPassSize);
+		if ( GetMV(_myInsp, SIState) == AVAIL ) {
+			Signal( GetMV(_myInsp, SILock), GetMV(_myInsp, SICommCV) );
+		}
+		Wait(GetMV(_myInsp, SILock), GetMV(_myInsp, SIRtnPassCV));
+		SetMV( _myInsp, SIRtnPassenger, _myMV );
+		Signal(GetMV(_myInsp, SILock), GetMV(_myInsp, SIRtnPassCV));
+		Wait(GetMV(_myInsp, SILock), GetMV(_myInsp, SIRtnPassCV));
+	}	
+	Release( GetMV(_myInsp, SILock) );
+	/* end Security Inspector Interaction */
+
+	/*
+		Reached the Boarding Lounge
+	*/
+	Acquire( GetMV(_myAirline, AirlineLock) );
+	incrementMV( _myAirline, AirlineNumReadyPassengers );
+	Printf1("Passenger %d of Airline %d reached the gate %d\n",
+		sizeof("Passenger %d of Airline %d reached the gate %d\n"),
+		concat3Num(_myIndex, _myAirline, _myAirline));
+	Wait( GetMV(_myAirline, AirlineLock), GetMV(_myAirline, AirlineBoardLoungeCV) ); /* Wait for boarding call by manager */
+	Printf1("Passenger %d of Airline %d boarded airline %d\n",
+		sizeof("Passenger %d of Airline %d boarded airline %d\n"),
+		concat3Num(_myIndex, _myAirline, _myAirline));
+	Release( GetMV(_myAirline, AirlineLock) );
+	/* End Boarding Lounge */
 
 	Exit(0);
 }
