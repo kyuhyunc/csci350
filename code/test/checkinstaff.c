@@ -19,7 +19,7 @@ void startCheckInStaff() {
     while (true) {
 		/* Check lines */
 		Acquire(GetMV(myAirlineMACRO, AirlineLock);
-		if (GetMV(myMACRO, CISLIneSize) == 0 && queue_empty(GetMV(myAirlineMACRO, AirlineExecQueue))) {
+		if (GetMV(myMACRO, CISLineSize) == 0 && queue_empty(GetMV(myAirlineMACRO, AirlineExecQueue))) {
 			/*Printf0("1\n", sizeof("1\n"));*/
 			SetMV(myMACRO, CISState, ONBREAK);
 			/* 'Clock Out' for Break */
@@ -41,7 +41,7 @@ void startCheckInStaff() {
 			decrementMV(myAirlineMACRO, AirlineNumOnBreakCIS);
 		}
 		/* Start helping a passenger */
-		SetMV(my, CISState, BUSY);
+		SetMV(myMACRO, CISState, BUSY);
 		Acquire(GetMV(myAirlineMACRO, AirlineCISLineLock));
 		Acquire(GetMV(myAirlineMACRO, AirlineExecLineLock));
 		if (queue_size(GetMV(myAirlineMACRO, AirlineExecQueue)) > 0) {
@@ -56,7 +56,7 @@ void startCheckInStaff() {
 			Printf1("Airline check-in staff %d of airline %d serves an economy class passenger and executive class line length = %d\n",
 				sizeof("Airline check-in staff %d of airline %d serves an economy class passenger and executive class line length = %d\n"),
 				concat3Num(_myIndex, _myAirline, queue_size(GetMV(myAirlineMACRO, AirlineExecQueue))));
-			Signal(GetMV(myAirlineMACRO, AirlineCISLineLock), GetMV(myMACRO, CISLine));
+			Signal(GetMV(myAirlineMACRO, AirlineCISLineLock), GetMV(myMACRO, CISLineCV));
 /*Printf1("Cis %d of airline %d wakes up passenger\n", sizeof("Cis %d of airline %d wakes up passenger\n"), _myIndex*1000+_myAirline);*/
 		}
 		/* Interact with Passenger */
@@ -72,7 +72,7 @@ void startCheckInStaff() {
 			int i;
 			/* Assign seat number */
 			Acquire(GetMV(myAirlineMACRO, AirlineLock));
-			SetMV(passenger, PassengerTicketSeat, GetMV(myAirlineMACRO, AirlineNumCheckedinPassengers));
+			SetMV(passengerMACRO, PassTicketSeat, GetMV(myAirlineMACRO, AirlineNumCheckedinPassengers));
 			IncrementMV(myAirlineMACRO, AirlineNumCheckedinPassengers);
 			Release(GetMV(myAirlineMACRO, AirlineLock));
 			/* Deal with baggage */
@@ -87,15 +87,24 @@ void startCheckInStaff() {
 						baggages,
 						GetMV(passengerMACRO, PassIndex) * 3 + i
 						),
+					BaggageAirline,
 					_myAirline
 					);
 /*				queue_insert(&ConveyorBelt, bIndex);*/
-				queue_insert(&ConveyorBelt, GetMV(passengerMACRO, PassIndex)*3+i);
+				queue_insert(conveyorBelt, GetMV(passengerMACRO, PassIndex)*3+i);
 				Printf1("Airline check-in staff %d of airline %d dropped bags to the conveyor system \n",
 					sizeof("Airline check-in staff %d of airline %d dropped bags to the conveyor system \n"),
 					concat2Num(_myIndex, _myAirline));
 /*				myAirline._numExpectedBaggages++;*/
-				GetMV(myMACRO, CISWeightCount) += bag._weight;
+				SetMV(
+					myMACRO,
+					CISWeightCount, 
+					GetMV(myMACRO, CISWeightCount) 
+					+ GetMV(
+						baggages,
+						GetMV(passengerMACRO, PassIndex) * 3 + i
+						)
+					);
 				/*#undef bag*/
 /*				#undef bIndex*/
 			}
