@@ -13,9 +13,9 @@ void createSignal() {
 
 	Acquire(secondLock);
 	Signal(secondLock, secondCV);
-	printf0("after signal in test 2", sizeof("after signal in test 2"));
+	Printf0("after signal in test 2", sizeof("after signal in test 2"));
 	Release(secondLock);
-	printf0("after release in test 2",  sizeof("after release in test 2"));
+	Printf0("after release in test 2",  sizeof("after release in test 2"));
 
 	Exit(0);
 }
