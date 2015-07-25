@@ -12,7 +12,8 @@ void startCheckInStaff() {
     Acquire(GlobalDataLock);
 	_myIndex = GetMV(NumActiveCIS, 0) % NUM_CIS_PER_AIRLINE;
 	_myAirline = GetMV(NumActiveCIS, 0) / NUM_CIS_PER_AIRLINE;
-	_myMV = GetMV(GetMV(_myAirline, AirlineCIS), _myIndex);
+/*	_myMV = GetMV(GetMV(_myAirline, AirlineCIS), _myIndex);*/
+    _myMV = GetMV(GetMV(GetMV(airlines, _myAirline), AirlineCIS), _myIndex);
     incrementMV(NumActiveCIS, 0);
     Release(GlobalDataLock);
 
