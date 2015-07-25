@@ -9,7 +9,7 @@ void startCargoHandler() {
 	int bIndex;
     Acquire(GlobalDataLock);
     _myIndex = GetMV(NumActiveCargoHandlers, 0);
-    IncrementMV(NumActiveCargoHandlers, 0);
+    incrementMV(NumActiveCargoHandlers, 0);
     Release(GlobalDataLock);
 	
 	while (true) {
@@ -18,7 +18,7 @@ void startCargoHandler() {
 		if (queue_empty(conveyorBelt)) {
 			SetMV(myMACRO, CHState, ONBREAK);
 			Printf1("Cargo Handler %d is going for a break\n", sizeof("Cargo Handler %d is going for a break\n"), _myIndex);
-			Wait(ConveyorLock, GetMV(myMACRO, CHCommCV);
+			Wait(ConveyorLock, GetMV(myMACRO, CHCommCV));
 			/* Done? */
 			if (GetMV(manager, ManAllCargoDone)) {
 				Release(ConveyorLock);
@@ -33,9 +33,9 @@ void startCargoHandler() {
 				sizeof("Cargo Handler %d picked bag of airline %d with weighing %d lbs\n"),
 				concat3Num(_myIndex, GetMV(bagMACRO, BaggageAirline), GetMV(bagMACRO, BaggageWeight)));
 
-			IncrementMV(GetMV(airlines, GetMV(bagMACRO, BaggageAirline)), AirlineNumLoadedBaggages);
+			incrementMV(GetMV(airlines, GetMV(bagMACRO, BaggageAirline)), AirlineNumLoadedBaggages);
 
-			IncrementMV(GetMV(myMACRO, CHBagCount), GetMV(bagMACRO, BaggageAirline));
+			incrementMV(GetMV(myMACRO, CHBagCount), GetMV(bagMACRO, BaggageAirline));
 
 			SetMV(GetMV(myMACRO, CHWeightCount), GetMV(bagMACRO, BaggageAirline), GetMV(myMACRO, CHWeightCount) + GetMV(bagMACRO, BaggageWeight));
 		}
@@ -48,5 +48,6 @@ void startCargoHandler() {
 }
 
 int main() {
+	doCreates();
     startCargoHandler();
 }
