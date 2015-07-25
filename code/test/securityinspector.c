@@ -1,97 +1,75 @@
 #include "create.h"
 
-#define NULL 0
-
-
-typedef int bool;
-enum bool {false, true};
-
-
-/*
-	Utilities	
-*/
-
-int concat3Num(int i, int j, int k) {
-	return 1000000 * i + 1000 * j + k;
-} 
-
-int concat2Num(int i, int j) {
-	return 1000 * i + j;
-}
-
 void startSecurityInspector() {
-	#define mySI SecurityInspectors[_myIndex]
-	int _myIndex;
+	int _myIndex, _myMV;
 	/* Claim my security insepctor */
 	Acquire(GlobalDataLock);
 /*    _myIndex = NumActiveScreeningOfficers++;*/
 	_myIndex = NumActiveSecurityInspectors++;
+    _myMV = GetMV( securityInspectors, _myIndex );
     Release(GlobalDataLock);
 
     /* Start work */
     while (true) {
     	bool suspicious, guilty;
-    	Acquire(mySI._lock);
-/*Printf1("SI %d has _newPassenger", sizeof("SI %d has _newPassneger"), _myIndex);
-Printf1("%d\n", sizeof("%d\n"), mySI._newPassenger);*/
-    	if (mySI._rtnPassSize == 0 && mySI._newPassenger == -1) {
-    		mySI._state = AVAIL;
+    	Acquire( GetMV(_myMV, SILock) );
+        if ( GetMV(_myMV, SIRtnPassSize) == 0 && GetMV(_myMV, SINewPassenger) == -1 ) {
+            SetMV(_myMV, SIState, AVAIL);
 			/* Done? */
-			if (Manager._allSIDone) {
-				Release(mySI._lock);
-				break;
-			}
-    		Wait(mySI._lock, mySI._commCV); /* Wait for Passenger to come */
+            if (GetMV(manager, ManAllSIDone)) {
+                Release(_myMV, SILock);
+                break;
+            }
+            Wait( GetMV(_myMV, SILock), GetMV(_myMV, SICommCV) ); /* Wait for Passenger to come */
 			/* Done? */
-			if (Manager._allSIDone) {
-				Release(mySI._lock);
-				break;
-			}
-    		mySI._state = BUSY;
+			if (GetMV(manager, ManAllSIDone)) {
+                Release(_myMV, SILock);
+                break;
+            }
+            SetMV(_myMV, SIState, BUSY);
     	}
-    	if (mySI._rtnPassSize > 0) { /* priority to returning passengers */
-    		while (mySI._rtnPassSize > 0) {
-    			Signal(mySI._lock, mySI._rtnPassCV); /* Wake up passener */
-    			Wait(mySI._lock, mySI._rtnPassCV); /* Wait on passenger */
+        if ( GetMV(_myMV, SIRtnPassSize) > 0 ) { /* priority to returning passengers */
+    		while ( GetMV( _myMV, SIRtnPassSize ) > 0 ) {
+                Signal( GetMV(_myMV, SILock), GetMV(_myMV, SIRtnPassCV) ); /* Wake up passener */
+                Wait( GetMV(_myMV, SILock), GetMV(_myMV, SIRtnPassCV) ); /* Wait on passenger */
     			Printf1("Security inspector %d permits returning passenger %d to board\n",
     				sizeof("Security inspector %d permits returning passenger %d to board\n"),
-    				concat2Num(_myIndex, mySI._rtnPassenger));
-    			mySI._passCount++;
+    				concat2Num(_myIndex, GetMV(_myMV, SIRtnPassenger)));
+                incrementMV(_myMV, SIPassCount);
 /*    			mySI._rtnPassenger--;*/
-				mySI._rtnPassSize--;
-    			Signal(mySI._lock, mySI._rtnPassCV);
+				decrementMV(_myMV, SIPassCount);
+                Signal( GetMV(_myMV, SILock), GetMV(_myMV, SIRtnPassCV) );
     		}
-    		mySI._rtnPassenger = -1;
+            SetMV( _myMV, SIRtnPassenger, -1 );
     	}
-    	if (mySI._newPassenger != -1) { /* I have a new passenger to help */ 
-    		suspicious = (mySI._newPassenger * 23) % 10 > 7; /* Psuedo Random */
-    		guilty = suspicious || SecurityFailResults[mySI._newPassenger];
+        if ( GetMV(_myMV, SINewPassenger) != -1 ) { /* I have a new passenger to help */ 
+            suspicious = (GetMV(_myMV, SINewPassenger) * 23) % 10 > 7; /* Psuedo Random */
+            guilty = suspicious || GetMV( SecurityFailResults, GetMV(GetMV(_myMV, SINewPassenger), PassIndex) );            
     		if (suspicious) {
     			Printf1("Security Inspector %d is suspicious of the hand luggage of passenger %d\n",
     				sizeof("Security Inspector %d is suspicious of the hand luggage of passenger %d\n"),
-    				concat2Num(_myIndex, mySI._newPassenger));
+    				concat2Num(_myIndex, GetMV(_myMV, SINewPassenger)));
     		} else {
     			Printf1("Security Inspector %d is not suspicious of the hand luggage of passenger %d\n",
     				sizeof("Security Inspector %d is not suspicious of the hand luggage of passenger %d\n"),
-    				concat2Num(_myIndex, mySI._newPassenger));
+    				concat2Num(_myIndex, GetMV(_myMV, SINewPassenger)));
     		}
     		if (guilty) {
 				Passengers[mySI._newPassenger]._furtherQuestioning = true;
     			Printf1("Security inspector %d asks passenger %d to go for further examination\n", 
     				sizeof("Security inspector %d asks passenger %d to go for further examination\n"),
-    				concat2Num(_myIndex, mySI._newPassenger));
+    				concat2Num(_myIndex, GetMV(_myMV, SINewPassenger)));
     		} else {
     			Printf1("Security inspector %d allows passenger %d to board \n",
     				sizeof("Security inspector %d allows passenger %d to board \n"),
-    				concat2Num(_myIndex, mySI._newPassenger));
-    			mySI._passCount++;
+    				concat2Num(_myIndex, GetMV(_myMV, SINewPassenger)));
+                incrementMV(_myMV, SIPassCount);
     		}
-    		mySI._newPassenger = -1;
-    		Signal(mySI._lock, mySI._newPassCV);
+            SetMV(_myMV, SINewPassenger, -1)
+            Signal(GetMV(_myMV, SILock), GetMV(_myMV, SINewPassCV));
     	}
-    	Release(mySI._lock);
+        Release( GetMV(_myMV, SILock) );
     }
-    #undef mySI
 	Exit(0);
 }
 
