@@ -86,7 +86,7 @@ void startManager() {
 				}
 			}
 			if (numDone == NUM_AIRLINES) {
-				SetMV( GetMV(manager, ManAllCargoDone), true );
+				SetMV( manager, ManAllCargoDone, true );
 				for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
 					Signal( ConveyorLock, GetMV( GetMV( cargoHandlers, i ), CHCommCV ) );
 				}
