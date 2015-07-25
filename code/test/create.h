@@ -175,7 +175,7 @@ void createPassengers();
 
 void doInitialize();
 void initAirlines();
-void initCIS(int airline);
+void initCIS(int airline, int index);
 void initCargoHandlers();
 void initManager();
 void initSecurityInspectors();
@@ -455,7 +455,7 @@ void initAirlines() {
 								sizeof("aCISLock") + 3)
 							);
 
-		initCIS(airline);
+		initCIS(airline, i);
 
 		/* Queue */
 		execQueue = CreateMV(
@@ -504,7 +504,7 @@ void initAirlines() {
 	}
 }
 
-void initCIS(int airline) {
+void initCIS(int airline, int index) {
 	int i, cis, cisArray, temp;
 	cisArray = CreateMV(concatNumToString(
                             "aCIS",
@@ -515,7 +515,7 @@ void initCIS(int airline) {
 						);
 	SetMV(airline, AirlineCIS, cisArray);
 	for (i = 0; i < NUM_CIS_PER_AIRLINE; ++i) {
-		cis = CreateMV(concatNumToString("cis", sizeof("cis"), i), sizeof("cis") + 3, 11);
+		cis = CreateMV(concatNumToString("cis", sizeof("cis"), 100 * index + i), sizeof("cis") + 3, 11);
 		SetMV(cisArray, i, cis);
 		/* Init CIS */
 
@@ -523,7 +523,7 @@ void initCIS(int airline) {
 				concatNumToString(
 						"CISL", 
 						sizeof("CISL"), 
-						100 * airline + i
+						100 * index + i
 					), 
 				sizeof("CISL") + 3
 			);
@@ -533,7 +533,7 @@ void initCIS(int airline) {
 				concatNumToString(
 					"CISLCV", 
 					sizeof("CISLCV"), 
-					100 * airline + i
+					100 * index + i
 				), 
 				sizeof("CISLCV") + 3
 			);
@@ -543,7 +543,7 @@ void initCIS(int airline) {
 				concatNumToString(
 					"CISComCV", 
 					sizeof("CISComCV"), 
-					100 * airline + i
+					100 * index + i
 				), 
 				sizeof("CISComCV") + 3
 			);
