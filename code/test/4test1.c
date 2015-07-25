@@ -15,9 +15,9 @@ void createWait() {
 
 	Acquire(firstLock);
 	Wait(firstLock, firstCV);
-	printf0("after wait in test 1", sizeof("after wait in test 1"));
+	Printf0("after wait in test 1", sizeof("after wait in test 1"));
 	Release(firstLock);
-	printf0("after release in test 1", sizeof("after release in test 1"));
+	Printf0("after release in test 1", sizeof("after release in test 1"));
 
 	Exit(0);
 }
