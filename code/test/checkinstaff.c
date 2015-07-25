@@ -17,6 +17,11 @@ void startCheckInStaff() {
     _myMV = GetMV(GetMV(_myAirlineMV, AirlineCIS), _myIndex);
     incrementMV(NumActiveCIS, 0);
     Release(GlobalDataLock);
+Printf1("NumActiveCIS = %d\n", sizeof("NumActiveCIS = %d\n"), NumActiveCIS);
+Printf1("_myIndex = %d\n", sizeof("_myIndex = %d\n"), _myIndex);
+Printf1("_myAirlineIndex = %d\n", sizeof("_myAirlineIndex = %d\n"), _myAirlineIndex);
+Printf1("_myMV = %d\n", sizeof("_myMV = %d\n"), _myMV);
+Printf1("_myAirlineMV = %d\n", sizeof("_myAirlineMV = %d\n"), _myAirlineMV);
 
     while (true) {
 		/* Check lines */
@@ -50,7 +55,7 @@ void startCheckInStaff() {
 			passenger = queue_pop( GetMV(_myAirlineMV, AirlineExecQueue) );
 			SetMV(_myMV, CISCurrentPassenger, passenger);
 			/*passenger._cisID = _myIndex;*/
-			SetMV(passenger, PassCISID, _myIndex);
+			SetMV(passenger, PassCISID, _myMV);
 			Printf1("Airline check-in staff %d of airline %d serves an executive class passenger and economy line length = %d\n",
 				sizeof("Airline check-in staff %d of airline %d serves an executive class passenger and economy line length = %d\n"),
 				concat3Num(_myIndex, _myAirlineIndex, GetMV(_myMV, CISLineSize)));

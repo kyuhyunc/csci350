@@ -513,9 +513,12 @@ void initCIS(int airline, int index) {
 						sizeof("aCIS") + 3, 
 						NUM_CIS_PER_AIRLINE
 						);
+Printf1("cisArray = %d\n", sizeof("cisArray = %d\n"), cisArray);
+Printf1("airline = %d\n", sizeof("airline = %d\n"), airline);
 	SetMV(airline, AirlineCIS, cisArray);
 	for (i = 0; i < NUM_CIS_PER_AIRLINE; ++i) {
 		cis = CreateMV(concatNumToString("cis", sizeof("cis"), 100 * index + i), sizeof("cis") + 3, 11);
+Printf1("cis = %d\n", sizeof("cis = %d\n"), cis);
 		SetMV(cisArray, i, cis);
 		/* Init CIS */
 
