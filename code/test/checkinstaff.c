@@ -4,7 +4,7 @@
 void startCheckInStaff() {
 #define myAirlineMACRO GetMV(airlines, _myAirline)
 #define myMACRO GetMV(GetMV(GetMV(airlines, _myMACRO), AirlineCIS), _myIndex)
-#define passenger GetMV(passengers, GetMV(my, CISCurrentPassenger))
+#define passengerMACRO GetMV(myMACRO, CISCurrentPassenger)
 	/* Claim my CIS */
 	int _myAirline;
 	int _myIndex; /* ID for currentThread */
@@ -46,7 +46,8 @@ void startCheckInStaff() {
 		Acquire(GetMV(myAirlineMACRO, AirlineExecLineLock));
 		if (queue_size(GetMV(myAirlineMACRO, AirlineExecQueue)) > 0) {
 			SetMV(myMACRO, CISCurrentPassenger, queue_pop(GetMV(myAirlineMACRO, AirlineExecQueue)));
-			passenger._cisID = _myIndex;
+			/*passenger._cisID = _myIndex;*/
+			SetMV(passengerMACRO, PassCISID, _myIndex);
 			Printf1("Airline check-in staff %d of airline %d serves an executive class passenger and economy line length = %d\n",
 				sizeof("Airline check-in staff %d of airline %d serves an executive class passenger and economy line length = %d\n"),
 				concat3Num(_myIndex, _myAirline, GetMV(myMACRO, CISLineSize)));
