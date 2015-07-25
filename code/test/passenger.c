@@ -163,7 +163,6 @@ void startPassenger() {
 			int nextSize = GetMV(GetMV(GetMV(_myAirline, AirlineCIS), i), CISLineSize);
 			if ( nextSize < _minLineSize ) {
 				_minLineSize = nextSize;
-				my._cisID = i;
 				_myCIS = GetMV(GetMV(_myAirline, AirlineCIS), i);
 			}
 		}
@@ -173,13 +172,12 @@ void startPassenger() {
 			incrementMV(_myCIS, CISLineSize);
 		Wait( GetMV(_myAirline, AirlineCISLineLock), GetMV( _myCIS, CISLineCV ) );
 	}
-	Acquire(myCIS._lock);
 	Acquire( GetMV(_myCIS, CISLock) );
 	if ( GetMV(_myMV, PassTicketExecutive) ) {
-		Release( _myAirline, AirlineExecLineLock );
+		Release( GetMV(_myAirline, AirlineExecLineLock) );
 	} else {
 		decrementMV( _myCIS, CISLineSize );
-		Release( _myAirline, AirlineCISLineLock );
+		Release( GetMV(_myAirline, AirlineCISLineLock) );
 	}
 	/* Give baggage to CIS */
 	incrementMV( _myCIS, CISPassCount );
