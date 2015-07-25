@@ -106,6 +106,7 @@ enum bool {false, true};
 #define PassTicketExecutive 7
 #define PassTicketAirline 8
 #define PassTicketSeat 9
+#define PassIndex 10
 
 /* Baggage */
 #define BaggageAirline 0
@@ -371,7 +372,7 @@ void createScreeningOfficers() {
 void createLiaisons() {
 	int i, liason, temp;
 
-	/* Create Array of Screening Officers (SO) */
+	/* Create Array of Liaisons */
 	liaisons = CreateMV(
 						"lias",
 						sizeof("lias"),
@@ -892,7 +893,7 @@ void initPassengers() {
 						i
 					),
 					sizeof("Pass") + 3,
-					10
+					11
 				);
 		SetMV(passengers, i, pass);
 		/*
@@ -900,6 +901,9 @@ void initPassengers() {
 		*/
 		/* PassID */
 		SetMV(pass, PassID, pass);
+
+		/* PassIndex */
+		SetMV(pass, PassIndex, i);
 
 		/* PassInspectorID */
 		SetMV(pass, PassInspectorID, -1);
@@ -969,6 +973,7 @@ void initPassengers() {
 				GetMV(GetMV(airlines, airline), AirlineWeightCount) + bagWeight
 			);
 		}
+
 	}
 }
 

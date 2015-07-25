@@ -1067,8 +1067,14 @@ printf("Server %d received message from client %d mailbox %d\n", postOffice->get
         std::copy(newbuf.begin(), newbuf.end(), buffer);
         buffer[newbuf.size()] = '\0';
 
-        inPktHdr.length += 4;
-        inMailHdr.length += 4;
+        if ((inMailHdr.from / 10) > 0) {
+            inPktHdr.length += 5;
+            inMailHdr.length += 5;
+        }
+        else {
+            inPktHdr.length += 4;
+            inMailHdr.length += 4;
+        }
 
         //forward the message from clients to the other servers
         for(int i = 0; i < NumServers; i++) {

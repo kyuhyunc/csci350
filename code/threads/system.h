@@ -43,7 +43,7 @@ extern Lock* locktablelock;
 #define NumCVs		1000
 extern Table* cvtable;
 extern Lock* cvtablelock;
-#define NumProcesses	10
+#define NumProcesses	50
 extern Table* processTable;
 extern Lock* processLock;
 
@@ -126,6 +126,9 @@ extern SynchDisk *synchDisk;
 #ifdef NETWORK
 
 #include "post.h"
+
+#define NUM_MAILBOXES   50
+
 // SF - Server Function
 // These constants are used in a server 
 // to determine which function the sender wants to execute
