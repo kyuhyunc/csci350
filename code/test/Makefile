@@ -195,11 +195,11 @@ liaison: liaison.o start.o
 	$(LD) $(LDFLAGS) start.o liaison.o -o liaison.coff
 	../bin/coff2noff liaison.coff liaison
 
-# manager.o: manager.c
-# 	$(CC) $(CFLAGS) -c manager.c
-# manager: manager.o start.o
-# 	$(LD) $(LDFLAGS) start.o manager.o -o manager.coff
-# 	../bin/coff2noff manager.coff manager
+manager.o: manager.c
+	$(CC) $(CFLAGS) -c manager.c
+manager: manager.o start.o
+	$(LD) $(LDFLAGS) start.o manager.o -o manager.coff
+	../bin/coff2noff manager.coff manager
 
 securityinspector.o: securityinspector.c
 	$(CC) $(CFLAGS) -c securityinspector.c
@@ -219,5 +219,5 @@ clean:
 	rm passenger liaison checkinstaff manager securityinspector cargohandler screeningofficer
 	rm client1 client2
 	# client3 client4 client5 
-	#rm  screeningofficer checkinstaff securityinspector cargohandler
+	#rm  screeningofficer   
 	rm *~
