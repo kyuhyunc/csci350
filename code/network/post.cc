@@ -266,6 +266,7 @@ PostOffice::Send(PacketHeader pktHdr, MailHeader mailHdr, char* data)
     char* buffer = new char[MaxPacketSize];	// space to hold concatenated
 						// mailHdr + data
 
+//printf("data = %s\n", data);
     ASSERT(mailHdr.length <= MaxMailSize);
     ASSERT(0 <= mailHdr.to && mailHdr.to < numBoxes);
     

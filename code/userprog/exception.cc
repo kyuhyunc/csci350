@@ -854,7 +854,7 @@ int DestroyLock_Syscall(int index) {
 
 	#ifdef NETWORK 
 
-    DEBUG('o', "Client machine %d mailbox %d called DestroyLock\n", postOffice->getMachineID(), currentThread->mailboxNum);
+    DEBUG('o', "Client machine %d mailbox %d called DestroyLock on Lock #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, index);
 
     currentThread->ChooseRandServer();
 
@@ -1391,7 +1391,7 @@ int DestroyCV_Syscall(int index) {
 
 	#ifdef NETWORK 
 
-        DEBUG('o', "Client machine %d mailbox %d called DestroyCV\n", postOffice->getMachineID(), currentThread->mailboxNum);
+        DEBUG('o', "Client machine %d mailbox %d called DestroyCV on CV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, index);
 
         currentThread->ChooseRandServer();
 
@@ -2029,7 +2029,7 @@ int GetMV_Syscall(int mv, int index) {
 
 int SetMV_Syscall(int mv, int index, int value) {
 
-    DEBUG('o', "Client machine %d mailbox %d called SetMV on MV #%d index #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, mv, index);
+    DEBUG('o', "Client machine %d mailbox %d called SetMV on MV #%d index #%d for value %d\n", postOffice->getMachineID(), currentThread->mailboxNum, mv, index, value);
 
     currentThread->ChooseRandServer();
 
@@ -2065,7 +2065,7 @@ int SetMV_Syscall(int mv, int index, int value) {
 
 int DestroyMV_Syscall(int mv) {
 
-    DEBUG('o', "Client machine %d mailbox %d called DestroyMV\n", postOffice->getMachineID(), currentThread->mailboxNum);
+    DEBUG('o', "Client machine %d mailbox %d called DestroyMV on MV #%d\n", postOffice->getMachineID(), currentThread->mailboxNum, mv);
 
     currentThread->ChooseRandServer();
 
