@@ -31,7 +31,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
-all: halt matmult sort matmult2exec matmult2fork sort2exec sort2fork testfiles testprint testexit testexithelper 4test1 4test2 airportsim airstart clientsim passenger liaison client1 client2 checkinstaff manager securityinspector cargohandler
+all: halt matmult sort matmult2exec matmult2fork sort2exec sort2fork testfiles testprint testexit testexithelper 4test1 4test2 airportsim airstart clientsim passenger liaison client1 client2 checkinstaff manager securityinspector cargohandler screeningofficer
 	#client1 client2 client3 client4 client5 passenger screeningofficer checkinstaff liaison securityinspector manager cargohandler
 
 start.o: start.s ../userprog/syscall.h
@@ -177,11 +177,11 @@ passenger: passenger.o start.o
 	$(LD) $(LDFLAGS) start.o passenger.o -o passenger.coff
 	../bin/coff2noff passenger.coff passenger
 
-# screeningofficer.o: screeningofficer.c
-# 	$(CC) $(CFLAGS) -c screeningofficer.c
-# screeningofficer: screeningofficer.o start.o
-# 	$(LD) $(LDFLAGS) start.o screeningofficer.o -o screeningofficer.coff
-# 	../bin/coff2noff screeningofficer.coff screeningofficer
+screeningofficer.o: screeningofficer.c
+	$(CC) $(CFLAGS) -c screeningofficer.c
+screeningofficer: screeningofficer.o start.o
+	$(LD) $(LDFLAGS) start.o screeningofficer.o -o screeningofficer.coff
+	../bin/coff2noff screeningofficer.coff screeningofficer
 
 checkinstaff.o: checkinstaff.c
 	$(CC) $(CFLAGS) -c checkinstaff.c
@@ -216,7 +216,7 @@ cargohandler: cargohandler.o start.o
 clean:
 	rm -f *.o *.coff
 	rm halt sort matmult sort2exec sort2fork matmult2exec matmult2fork testfiles testprint testexit testexithelper 4test1 4test2 airportsim airstart clientsim 
-	rm passenger liaison checkinstaff manager securityinspector cargohandler
+	rm passenger liaison checkinstaff manager securityinspector cargohandler screeningofficer
 	rm client1 client2
 	# client3 client4 client5 
 	#rm  screeningofficer checkinstaff securityinspector cargohandler
