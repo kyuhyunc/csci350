@@ -8,13 +8,6 @@
 
 #define NULL 0
 
-#define NUM_PASSENGERS 10
-#define	NUM_LIASONS 5
-#define	NUM_AIRLINES 2
-#define	NUM_CIS_PER_AIRLINE 3
-#define	NUM_CARGO_HANDLERS 9
-#define	NUM_SCREENING_OFFICERS 8
-#define	NUM_SECURITY_INSPECTORS 8
 
 typedef int bool;
 enum bool {false, true};
@@ -25,6 +18,15 @@ enum State {
     BUSY,
     ONBREAK
 };
+
+/* Number of people */
+#define NUM_PASSENGERS 10
+#define	NUM_LIASONS 5
+#define	NUM_AIRLINES 2
+#define	NUM_CIS_PER_AIRLINE 3
+#define	NUM_CARGO_HANDLERS 9
+#define	NUM_SCREENING_OFFICERS 8
+#define	NUM_SECURITY_INSPECTORS 8
 
 /*
 	Structs
@@ -195,12 +197,23 @@ bool SecurityFailResults[NUM_PASSENGERS];
 	Utilities	
 */
 char concatString[100];
+
 char* concatNumToString(char* str, int length, int num) { /* TODO - Not working Properly */
 	int i;
-	for (i=0; i < length; i++) {
+	for (i=0; i < length - 1; i++) {
 		concatString[i] = str[i];
 	}
-	concatString[length] = (char)num;
+	/* hundreds place */
+	concatString[length - 1] = '0' + num / 100;
+	/* tens place */
+	concatString[length] = '0' + (num % 100) / 10;
+	/* one's place */
+	concatString[length + 1] = '0' + num % 10;
+	/* null terminator */
+	concatString[length + 2] = '\0';
+
+	Printf0(concatString, length + 5);
+
 	return concatString;
 }
 

@@ -51,6 +51,8 @@
 #define SC_Printf1	31
 #define SC_Printf2	32
 
+#define SC_ConcatNumToString	33
+
 #define MAXFILENAME 256
 
 #ifndef IN_ASM

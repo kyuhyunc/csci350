@@ -138,6 +138,9 @@ public:
     MonitorVariable(const int size, const std::string &name)
     :_size(size), _name(name) {
         _data = new int[size];
+        for (int i=0; i < size; i++) {
+            _data[i] = 0;
+        }
     }
     ~MonitorVariable() {
         delete _data;
@@ -351,10 +354,10 @@ void sendMessageToClient(
     std::strcpy(data, msg.c_str());
 
     initializeNetworkMessageHeaders(inPktHdr, outPktHdr, inMailHdr, outMailHdr, strlen(data));
-printf("inPktHdr.to = %i\n", inPktHdr.to);
+/*printf("inPktHdr.to = %i\n", inPktHdr.to);
 printf("inPktHdr.from = %i\n", inPktHdr.from);
 printf("inMailHdr.to = %i\n", inMailHdr.to);
-printf("inMailHdr.from = %i\n", inMailHdr.from);
+printf("inMailHdr.from = %i\n", inMailHdr.from);*/
     if(!postOffice->Send(outPktHdr, outMailHdr, data)) {
         printf("Something bad happens in Server. Unable to send message \n");
     }
