@@ -23,7 +23,7 @@ void startCheckInStaff() {
 			/*Printf0("1\n", sizeof("1\n"));*/
 			SetMV(_myMV, CISState, ONBREAK);
 			/* 'Clock Out' for Break */
-			IncrementMV(myAirlineMACRO, AirlineNumOnBreakCIS);
+			incrementMV(myAirlineMACRO, AirlineNumOnBreakCIS);
 /*Printf1("Cis %d going to sleep\n", sizeof("Cis %d going to sleep\n"), _myIndex);*/
 			Wait(GetMV(myAirlineMACRO, AirlineLock), GetMV(_myMV, CISCommCV)); /* Wait on Manager */ /* TODO - make sure okay to wait on aiport lock... maybe better? */
 /*Printf1("Cis %d woke up by manager\n", sizeof("Cis %d woke up by manager\n"), _myMACROIndex);*/
@@ -73,7 +73,7 @@ void startCheckInStaff() {
 			/* Assign seat number */
 			Acquire(GetMV(myAirlineMACRO, AirlineLock));
 			SetMV(passengerMACRO, PassTicketSeat, GetMV(myAirlineMACRO, AirlineNumCheckedinPassengers));
-			IncrementMV(myAirlineMACRO, AirlineNumCheckedinPassengers);
+			incrementMV(myAirlineMACRO, AirlineNumCheckedinPassengers);
 			Release(GetMV(myAirlineMACRO, AirlineLock));
 			/* Deal with baggage */
 			Acquire(ConveyorLock);
