@@ -117,7 +117,7 @@ void startCheckInStaff() {
 				Printf2("Airline check-in staff %d of airline %d informs executive class passenger %d to board at gate %d\n",
 					sizeof("Airline check-in staff %d of airline %d informs executive class passenger %d to board at gate %d\n"),
 /*					concat3Num(_myAirlineIndex, GetMV(my, CISCurrentPassenger), _myAirlineIndex), _myIndex);*/
-					concat3Num(_myIndex, _myAirlineIndex, GetMV(_myMV, CISCurrentPassenger)), _myAirlineIndex);
+					concat3Num(_myIndex, _myAirlineIndex, GetMV(GetMV(_myMV, CISCurrentPassenger), PassIndex)), _myAirlineIndex);
 			} else {
 				Printf2("Airline check-in staff %d of airline %d informs economy class passenger %d to board at gate %d\n",
 					sizeof("Airline check-in staff %d of airline %d informs economy class passenger %d to board at gate %d\n"),
