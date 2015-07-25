@@ -171,11 +171,11 @@ passenger: passenger.o start.o
 # 	$(LD) $(LDFLAGS) start.o screeningofficer.o -o screeningofficer.coff
 # 	../bin/coff2noff screeningofficer.coff screeningofficer
 
-# checkinstaff.o: checkinstaff.c
-# 	$(CC) $(CFLAGS) -c checkinstaff.c
-# checkinstaff: checkinstaff.o start.o
-# 	$(LD) $(LDFLAGS) start.o checkinstaff.o -o checkinstaff.coff
-# 	../bin/coff2noff checkinstaff.coff checkinstaff
+checkinstaff.o: checkinstaff.c
+	$(CC) $(CFLAGS) -c checkinstaff.c
+checkinstaff: checkinstaff.o start.o
+	$(LD) $(LDFLAGS) start.o checkinstaff.o -o checkinstaff.coff
+	../bin/coff2noff checkinstaff.coff checkinstaff
 
 liaison.o: liaison.c
 	$(CC) $(CFLAGS) -c liaison.c
