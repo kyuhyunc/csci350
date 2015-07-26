@@ -223,6 +223,44 @@ Printf1("_myCIS = %d\n", sizeof("_myCIS = %d\n"), _myCIS);*/
 	/* officer lock is released below! */
 	/* end Screening Officer Interaction */
 
+	/*
+		Security Inspector Interaction
+	*/
+	_myInsp = GetMV( _myMV, PassInspectorID );
+	Printf1("Passenger %d moves to security inspector %d\n",
+		sizeof("Passenger %d moves to security inspector %d\n"),
+		concat2Num(_myIndex, _myInsp));
+	Acquire( GetMV(_myInsp, SILock) );
+	Release( GetMV(_myOff, SOLock) );
+	SetMV( _myInsp, SINewPassenger, _myMV );
+	if ( GetMV(_myInsp, SIState) == AVAIL ) {/* Wake up inspector */
+		Signal( GetMV(_myInsp, SILock), GetMV(_myInsp, SICommCV) );
+	}
+	Wait( GetMV(_myInsp, SILock), GetMV(_myInsp, SINewPassCV) );
+	if ( GetMV( _myMV,  PassFurtherQuestioning) ) {
+		Printf1("Passenger %d goes for futher questioning\n", 
+			sizeof("Passenger %d goes for futher questioning\n"),
+			_myIndex);
+		Release( GetMV(_myInsp, SILock) );
+		for (i = 0; i < 10; ++i) {
+			Yield(); /* Simulate Further questioning */
+		}
+		Printf1("Passenger %d comes back to security inspector %d after further examination\n",
+			sizeof("Passenger %d comes back to security inspector %d after further examination\n"),
+			concat2Num(_myIndex, _myInsp));
+		Acquire( GetMV( _myInsp, SILock ) );
+		incrementMV(_myInsp, SIRtnPassSize);
+		if ( GetMV(_myInsp, SIState) == AVAIL ) {
+			Signal( GetMV(_myInsp, SILock), GetMV(_myInsp, SICommCV) );
+		}
+		Wait(GetMV(_myInsp, SILock), GetMV(_myInsp, SIRtnPassCV));
+		SetMV( _myInsp, SIRtnPassenger, _myMV );
+		Signal(GetMV(_myInsp, SILock), GetMV(_myInsp, SIRtnPassCV));
+		Wait(GetMV(_myInsp, SILock), GetMV(_myInsp, SIRtnPassCV));
+	}	
+	Release( GetMV(_myInsp, SILock) );
+	/* end Security Inspector Interaction */
+
 
 	Exit(0);
 }
