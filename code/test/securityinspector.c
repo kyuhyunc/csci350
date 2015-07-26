@@ -14,6 +14,7 @@ void startSecurityInspector() {
     	bool suspicious, guilty;
     	Acquire( GetMV(_myMV, SILock) );
         if ( GetMV(_myMV, SIRtnPassSize) == 0 && GetMV(_myMV, SINewPassenger) == -1 ) {
+Printf1("SI %d passes Acquire\n", sizeof("SI %d passes Acquire\n"), _myIndex);
             SetMV(_myMV, SIState, AVAIL);
 			/* Done? */
             if (GetMV(manager, ManAllSIDone)) {
@@ -43,7 +44,8 @@ void startSecurityInspector() {
             SetMV( _myMV, SIRtnPassenger, -1 );
     	}
         if ( GetMV(_myMV, SINewPassenger) != -1 ) { /* I have a new passenger to help */ 
-            suspicious = (GetMV(_myMV, SINewPassenger) * 23) % 10 > 7; /* Psuedo Random */
+/*            suspicious = (GetMV(_myMV, SINewPassenger) * 23) % 10 > 7; *//* Psuedo Random */
+            suspicious = 1;
             guilty = suspicious || GetMV( SecurityFailResults, GetMV(GetMV(_myMV, SINewPassenger), PassIndex) );            
     		if (suspicious) {
     			Printf1("Security Inspector %d is suspicious of the hand luggage of passenger %d\n",

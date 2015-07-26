@@ -73,6 +73,19 @@ Printf0("Manager Start\n", sizeof("Manager Start\n"));
 		} /* end if(!_allCISDone) */
 		/* end CIS */
 
+		/*
+			Screening Officers
+		*/
+		Acquire(OfficersLineLock);
+		for (i = 0; i < NUM_SCREENING_OFFICERS; ++i) {
+			person = GetMV( screeningOfficers, i );
+			if ( !queue_empty(officersLine) &&  GetMV(person, SOState) == ONBREAK ) {
+				Signal( OfficersLineLock, GetMV( person, SOCommCV ) );
+			}
+		}
+		Release(OfficersLineLock);
+		/* end Screening Officers */
+
 	}
 	Exit(0);
 }

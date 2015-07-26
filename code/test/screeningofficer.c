@@ -4,10 +4,12 @@
 void startScreeningOfficer() {
 	#define mySOMACRO GetMV(screeningOfficers, _myIndex)
 	int _myIndex;
+    int _myMV;
 	/* Claim my screening officer */
 	Acquire(GlobalDataLock);
     _myIndex = GetMV(NumActiveScreeningOfficers, 0);
     incrementMV(NumActiveScreeningOfficers, 0);
+    _myMV = GetMV(screeningOfficers, _myIndex);
     Release(GlobalDataLock);
 
     /* Get to work! */
@@ -36,15 +38,16 @@ void startScreeningOfficer() {
 			Acquire(GetMV(mySOMACRO, SOLock));
 			SetMV(mySOMACRO, SOState, BUSY);
 			SetMV(mySOMACRO, SOCurrentPassenger, queue_pop(officersLine));
-			SetMV(GetMV(passengers, GetMV(mySOMACRO, SOCurrentPassenger)), PassOfficerID, _myIndex);
+/*			SetMV(GetMV(passengers, GetMV(mySOMACRO, SOCurrentPassenger)), PassOfficerID, _myIndex);*/
+            SetMV(GetMV(mySOMACRO, SOCurrentPassenger), PassOfficerID, _myMV);
 			Signal(OfficersLineLock, OfficersLineCV); /* Wake up passenger */
 			Release(OfficersLineLock);
 			Wait(GetMV(mySOMACRO, SOLock), GetMV(mySOMACRO, SOCommCV)); /* Wait for passenger to approach */
 			/* Generate PASS/FAIL Results */
 			suspicionLevel = (17 * GetMV(mySOMACRO, SOCurrentPassenger)) % 10; /* PSUEDO rand() */
-			SetMV(SecurityFailResults, GetMV(mySOMACRO, SOCurrentPassenger), suspicionLevel > 8);
+			SetMV(SecurityFailResults, GetMV(GetMV(mySOMACRO, SOCurrentPassenger), PassIndex), suspicionLevel > 8);
 
-			if (GetMV(SecurityFailResults, GetMV(mySOMACRO, SOCurrentPassenger))) { /* FAIL */
+			if (GetMV(SecurityFailResults, GetMV(GetMV(mySOMACRO, SOCurrentPassenger), PassIndex))) { /* FAIL */
 				Printf1("Screening officer %d is suspicious of the hand luggage of passenger %d\n",
 					sizeof("Screening officer %d is suspicious of the hand luggage of passenger %d\n"),
 					concat2Num(_myIndex, GetMV(mySOMACRO, SOCurrentPassenger)));
@@ -69,6 +72,10 @@ void startScreeningOfficer() {
 						Release(GetMV(inspector, SILock));
 						break;
 					}
+else {
+Printf1("GetMV(inspector, SIState) = %d\n", sizeof("GetMV(inspector, SIState) = %d\n"), GetMV(inspector, SIState));
+Printf1("GetMV(inspector, SINewPassenger) = %d\n", sizeof("GetMV(inspector, SINewPassenger) = %d\n"), GetMV(inspector, SINewPassenger));
+}
 					Release(GetMV(inspector, SILock));
 				}
 				Release(InspectorLineLock);
@@ -80,7 +87,7 @@ void startScreeningOfficer() {
 /*				Wait(GetMV(mySOMACRO, SOLock), GetMV(mySOMACRO, SOCommCV));*/
 			}
 			/* Found an inspetor for the passenger */
-			SetMV(GetMV(passengers, GetMV(mySOMACRO, SOCurrentPassenger)), PassInspectorID, shortestLineIndex);
+			SetMV(GetMV(passengers, GetMV(GetMV(mySOMACRO, SOCurrentPassenger), PassIndex)), PassInspectorID, shortestLineIndex);
 			Printf1("Screening officer %d directs passenger %d to security inspector %d\n",
 				sizeof("Screening officer %d directs passenger %d to security inspector %d\n"),
 				concat3Num(_myIndex, GetMV(mySOMACRO, SOCurrentPassenger), shortestLineIndex));
