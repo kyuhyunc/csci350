@@ -92,6 +92,7 @@ Printf0("Manager Start\n", sizeof("Manager Start\n"));
 Printf0("All baggages have been processed!\n", sizeof("All baggages have been processed!\n"));
 				SetMV( manager, ManAllCargoDone, true );
 				for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
+Printf1("Lock = %d, CV = %d\n", sizeof("Lock = %d, CV = %d\n"), concat2Num(ConveyorLock, GetMV(GetMV(cargoHandlers, i), CHCommCV)));
 					Signal( ConveyorLock, GetMV( GetMV( cargoHandlers, i ), CHCommCV ) );
 				}
 			}

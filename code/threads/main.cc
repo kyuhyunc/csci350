@@ -779,13 +779,14 @@ std::string SignalFunctionality(
     }else {
         //if there is nothing to signal, then send the error message to client.
         if(ServerCVVector[CVIndex]->waitQ->IsEmpty()) {
-            printf("There is nothing to signal. Can't process Signal.(Signal)\n");
+            printf("There is nothing to signal for Lock %d CV %d.(Signal)\n", LockIndex, CVIndex);
             printf("Came from machine %d mailbox %d\n", inPktHdr.from, inMailHdr.from);
             ss << -1;
         }
         // If this is not the first thread to call wait, AND they passed in the incorrect lock, send error
         if(ServerCVVector[CVIndex]->waitingLock != ServerLockVector[LockIndex]) {
-            printf("Condition Lock does not match waitingLock.(Signal)\n");
+            printf("Condition Lock %d does not match waitingLock.(Signal)\n", LockIndex);
+            printf("Came from machine %d mailbox %d\n", inPktHdr.from, inMailHdr.from);
             ss << -1;
         }else{
 

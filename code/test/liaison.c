@@ -106,6 +106,7 @@ void startLiaison() {
 	    Release( GetMV(_myMV, LiaisonLock) );
 	    /* end Passenger Interaction */
 	}
+    Printf1("Liaison %d is going home\n", sizeof("Liaison %d is going home\n"), _myIndex);
 	Exit(0);
 }
 

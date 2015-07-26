@@ -142,6 +142,9 @@ Printf1("Cis %d of airline %d woke up\n", sizeof("Cis %d of airline %d woke up\n
 		SetMV(_myMV, CISCurrentPassenger, -1);
 		Release(GetMV(_myMV, CISLock));
 	} /* end while */
+    Printf1("Airline check-in staff %d of airline %d is going home\n",
+					sizeof("Airline check-in staff %d of airline %d is going home\n"),
+					concat2Num(_myIndex, _myAirlineIndex));
 	Exit(0);
 }
 
