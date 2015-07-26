@@ -22,7 +22,6 @@ void startCargoHandler() {
 			}
 			SetMV(myMACRO, CHState, ONBREAK);
 			Printf1("Cargo Handler %d is going for a break\n", sizeof("Cargo Handler %d is going for a break\n"), _myIndex);
-Printf1("Lock = %d, CV = %d\n", sizeof("Lock = %d, CV = %d\n"), concat2Num(ConveyorLock, GetMV(myMACRO, CHCommCV)));
 			Wait(ConveyorLock, GetMV(myMACRO, CHCommCV));
 			/* Done? */
 			if (GetMV(manager, ManAllCargoDone)) {
@@ -42,7 +41,10 @@ Printf1("Lock = %d, CV = %d\n", sizeof("Lock = %d, CV = %d\n"), concat2Num(Conve
 
 			incrementMV(GetMV(myMACRO, CHBagCount), GetMV(bagMACRO, BaggageAirline));
 
-			SetMV(GetMV(myMACRO, CHWeightCount), GetMV(bagMACRO, BaggageAirline), GetMV(myMACRO, CHWeightCount) + GetMV(bagMACRO, BaggageWeight));
+			SetMV(
+                GetMV(myMACRO, CHWeightCount),
+                GetMV(bagMACRO, BaggageAirline),
+                GetMV(GetMV(myMACRO, CHWeightCount), GetMV(bagMACRO, BaggageAirline)) + GetMV(bagMACRO, BaggageWeight));
 		}
 		Release(ConveyorLock);	
 		Yield();

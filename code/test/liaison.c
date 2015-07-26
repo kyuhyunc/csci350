@@ -49,10 +49,14 @@ void startLiaison() {
 	    		"About to go to sleep\n",
 	    		sizeof("About to go to sleep\n")
 	    		);
+Printf1("Lock = %d, CV = %d\n", sizeof("Lock = %d, CV = %d\n"), concat2Num(GetMV(_myMV, LiaisonLock), GetMV(_myMV, LiaisonCommCV)));
 	    	Wait(
 	    		GetMV(_myMV, LiaisonLock),
 	    		GetMV(_myMV, LiaisonCommCV) );
+Printf1("Liaison %d woke up\n", sizeof("Liaison %d woke up\n"), _myIndex);
+Printf1("GetMV(manager, ManAllLiaisonDone\n", sizeof("GetMV(manager, ManAllLiaisonDone\n"), GetMV(manager, ManAllLiaisonDone));
 	    	if (GetMV(manager, ManAllLiaisonDone)) {
+Printf0("Made it into break\n", sizeof("Made it into break\n"));
 	    		Release(GetMV(_myMV, LiaisonLock));
 	    		break;
 	    	}

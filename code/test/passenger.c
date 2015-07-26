@@ -119,7 +119,7 @@ void startPassenger() {
 	SetMV(
 		GetMV(_liaison, LiaisonBagCount),
 		GetMV(_myMV, PassTicketAirline),
-		GetMV(_liaison, LiaisonBagCount) + GetMV(_myMV, PassNumBaggages)
+        GetMV(GetMV(_liaison, LiaisonBagCount), GetMV(_myMV, PassTicketAirline)) + GetMV(_myMV, PassNumBaggages)
 		);
 
 	/*liaison._currentPassenger = _myIndex;*/
@@ -275,7 +275,6 @@ Printf1("_myCIS = %d\n", sizeof("_myCIS = %d\n"), _myCIS);*/
 		concat3Num(_myIndex, _myAirline, _myAirline));
 	Release( GetMV(_myAirline, AirlineLock) );
 	/* End Boarding Lounge */
-
 
 	Exit(0);
 }
