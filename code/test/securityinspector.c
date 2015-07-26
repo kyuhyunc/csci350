@@ -14,7 +14,6 @@ void startSecurityInspector() {
     	bool suspicious, guilty;
     	Acquire( GetMV(_myMV, SILock) );
         if ( GetMV(_myMV, SIRtnPassSize) == 0 && GetMV(_myMV, SINewPassenger) == -1 ) {
-Printf1("SI %d passes Acquire\n", sizeof("SI %d passes Acquire\n"), _myIndex);
             SetMV(_myMV, SIState, AVAIL);
 			/* Done? */
             if (GetMV(manager, ManAllSIDone)) {

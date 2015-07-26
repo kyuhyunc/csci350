@@ -73,15 +73,15 @@ void startScreeningOfficer() {
 						Release(GetMV(inspector, SILock));
 						break;
 					}
-else {
+/*else {
 Printf1("GetMV(inspector, SIState) = %d\n", sizeof("GetMV(inspector, SIState) = %d\n"), GetMV(inspector, SIState));
 Printf1("GetMV(inspector, SINewPassenger) = %d\n", sizeof("GetMV(inspector, SINewPassenger) = %d\n"), GetMV(inspector, SINewPassenger));
-}
+}*/
 					Release(GetMV(inspector, SILock));
 				}
 				Release(InspectorLineLock);
 				if (shortestLineIndex == -1) {
-					Printf1("SO %d is about to Yield\n", sizeof("SO %d is about to Yield\n"), _myIndex);
+/*					Printf1("SO %d is about to Yield\n", sizeof("SO %d is about to Yield\n"), _myIndex);*/
 					Yield();
 				}
 				#undef inspector
