@@ -1297,7 +1297,6 @@ DEBUG('o', "About to receive server's OK acknowledgement\n");
                     ss >> index1;
                     ss >> index2;
                     ss >> index3;
-                    std::cout<<"BEFORE CALLING SETMV"<<index1<<" "<<index2<<" "<<index3<<" "<<std::endl;
                     SetMV(inPktHdr, inMailHdr, index1, index2, index3);
                     break;
                 case DestroyMV_SF :
