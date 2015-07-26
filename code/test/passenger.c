@@ -206,5 +206,23 @@ Printf1("_myCIS = %d\n", sizeof("_myCIS = %d\n"), _myCIS);*/
 	Release( GetMV(_myCIS, CISLock) );
 	/* end Check-in Staff Interaction */
 
+    /*
+		Screening Officer Interaction
+	*/
+	Acquire(OfficersLineLock);
+	queue_insert(officersLine, _myMV);
+	Wait(OfficersLineLock, OfficersLineCV);
+	_myOff = GetMV(_myMV, PassOfficerID);
+	Printf1("Passenger %d gives the hand-luggage to screening officer %d\n",
+		sizeof("Passenger %d gives the hand-luggage to screening officer %d\n"),
+		concat2Num(_myIndex, _myOff));
+	Acquire( GetMV(_myOff, SOLock) );
+	Release(OfficersLineLock);
+	Signal( GetMV(_myOff, SOLock), GetMV(_myOff, SOCommCV) );
+	Wait( GetMV(_myOff, SOLock), GetMV(_myOff, SOCommCV) );
+	/* officer lock is released below! */
+	/* end Screening Officer Interaction */
+
+
 	Exit(0);
 }
