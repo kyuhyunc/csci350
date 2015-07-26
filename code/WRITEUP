@@ -272,6 +272,7 @@ V. Testing:  (For each test case, you must show)
         + Test Output
         - At the end of the airport simulation, the manager will output statistics, just as he/she did in project 2. 
         - Note: All of the agents “go home” correctly, except for liaison and security personnel. 
+		- You will notice errors in server’s Signal() because of this. These can be ignored. 
 
 
         + Part 2)
