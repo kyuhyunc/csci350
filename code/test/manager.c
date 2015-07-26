@@ -65,6 +65,7 @@ Printf0("Manager Start\n", sizeof("Manager Start\n"));
 				SetMV( manager, ManAllLiaisonDone, true );
 				for(i = 0; i < NUM_LIASONS; ++i) {
 					liaison = GetMV( liaisons, i );
+Printf1("Lock = %d, CV = %d\n", sizeof("Lock = %d, CV = %d\n"), concat2Num(GetMV(liaison, LiaisonLock), GetMV(liaison, LiaisonCommCV)));
 					Signal( GetMV(liaison, LiaisonLock), GetMV(liaison, LiaisonCommCV) );
 				}
 			} else {

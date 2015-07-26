@@ -114,12 +114,7 @@ Printf1("Cis %d of airline %d woke up\n", sizeof("Cis %d of airline %d woke up\n
 				SetMV(
 					_myMV,
 					CISWeightCount, 
-					GetMV(_myMV, CISWeightCount) 
-					+ GetMV(
-						baggages,
-						GetMV(passenger, PassIndex) * 3 + i
-						)
-					);
+					GetMV(_myMV, CISWeightCount) + GetMV(GetMV(baggages, GetMV(passenger, PassIndex) * 3 + i), BaggageWeight));
 				/*#undef bag*/
 /*				#undef bIndex*/
 			}
@@ -142,6 +137,9 @@ Printf1("Cis %d of airline %d woke up\n", sizeof("Cis %d of airline %d woke up\n
 		SetMV(_myMV, CISCurrentPassenger, -1);
 		Release(GetMV(_myMV, CISLock));
 	} /* end while */
+    Printf1("Airline check-in staff %d of airline %d is going home\n",
+					sizeof("Airline check-in staff %d of airline %d is going home\n"),
+					concat2Num(_myIndex, _myAirlineIndex));
 	Exit(0);
 }
 

@@ -16,6 +16,10 @@ void startCargoHandler() {
 		#define bagMACRO GetMV(baggages, bIndex)
 		Acquire(ConveyorLock);
 		if (queue_empty(conveyorBelt)) {
+			if (GetMV(manager, ManAllCargoDone)) {
+				Release(ConveyorLock);
+				break;
+			}
 			SetMV(myMACRO, CHState, ONBREAK);
 			Printf1("Cargo Handler %d is going for a break\n", sizeof("Cargo Handler %d is going for a break\n"), _myIndex);
 			Wait(ConveyorLock, GetMV(myMACRO, CHCommCV));
@@ -37,12 +41,16 @@ void startCargoHandler() {
 
 			incrementMV(GetMV(myMACRO, CHBagCount), GetMV(bagMACRO, BaggageAirline));
 
-			SetMV(GetMV(myMACRO, CHWeightCount), GetMV(bagMACRO, BaggageAirline), GetMV(myMACRO, CHWeightCount) + GetMV(bagMACRO, BaggageWeight));
+			SetMV(
+                GetMV(myMACRO, CHWeightCount),
+                GetMV(bagMACRO, BaggageAirline),
+                GetMV(GetMV(myMACRO, CHWeightCount), GetMV(bagMACRO, BaggageAirline)) + GetMV(bagMACRO, BaggageWeight));
 		}
 		Release(ConveyorLock);	
 		Yield();
 		#undef bagMACRO	
 	}
+    Printf1("Cargo Handler %d is going home\n", sizeof("Cargo Handler %d is going home\n"), _myIndex);
 	Exit(0);
 #undef myMACRO
 }
