@@ -74,6 +74,46 @@ Printf0("Manager Start\n", sizeof("Manager Start\n"));
 		/* end CIS */
 
 		/*
+			Check Conveyor Belt - Cargo Handlers
+		*/
+		if (!GetMV(manager, ManAllCargoDone)) {
+			int numDone = 0;
+			bool msgToCargo = true;
+			int ch;
+
+			Acquire(ConveyorLock);
+			for (i = 0; i < NUM_AIRLINES; ++i) {
+				airlineMV = GetMV(airlines, i);
+				if ( GetMV(airlineMV, AirlineNumExpectedBaggages) == GetMV(airlineMV, AirlineNumLoadedBaggages) ) {
+					numDone++;
+				}
+			}
+			if (numDone == NUM_AIRLINES) {
+				SetMV( manager, ManAllCargoDone, true );
+				for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
+					Signal( ConveyorLock, GetMV( GetMV( cargoHandlers, i ), CHCommCV ) );
+				}
+			}
+			for (i = 0; i < NUM_CARGO_HANDLERS; ++i) {
+				ch = GetMV( cargoHandlers, i );
+				if (
+					!queue_empty(conveyorBelt) 
+					&& GetMV( ch, CHState ) == ONBREAK
+				){
+					Signal( ConveyorLock, GetMV(ch, CHCommCV) );
+					if (msgToCargo) {
+						Printf0("Airport manager calls back all the cargo handlers from break\n",
+							sizeof("Airport manager calls back all the cargo handlers from break\n"));
+						msgToCargo = false;
+					}
+				}
+			}
+			Release(ConveyorLock);
+		}
+		/* end Conveyor Belt / Cargo Handlers */
+
+
+		/*
 			Screening Officers
 		*/
 		Acquire(OfficersLineLock);
