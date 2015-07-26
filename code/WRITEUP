@@ -1,5 +1,5 @@
-Title:  Writeup for Project 3, Summer 2015
-Date:  07/15/2015
+Title:  Writeup for Project 4, Summer 2015
+Date:  07/25/2015
 Greg Berger                grberger@usc.edu        4180-9551-49
 Kyu Chang                kyuhyunc@usc.edu        5668-6984-00
 Taegyum Kim                taegyumk@usc.edu        3726-2416-03
@@ -7,340 +7,317 @@ Jerry Zhang                jerryzha@usc.edu        1699-6550-17
 Richard Fu                fur@usc.edu        7753-2687-42
 
 I. Requirements:
-        + Part 1)                Implement software-management of the TLB(10 pt).
-                Implement software page translation for handling TLB misses
-                Set up TLB state properly on context switch
-                Make sure a single program that fits in the main memory runs to completion
-+ Part 2)                Implement virtual memory(10 pt).
-        Implement a swap file for all Nachos processes and threads.
-        Implement inverted page table to keep track of all of the pages which are in use.
-        Implement Random page replacement and FIFO page replacement policies.
-+ Part 3)          Implement remote procedure calls for the Lock and Condition Variable system call(15 pt).
-                Implement Handling Monitor Variables system call
-Implement those Lock/Condition Variable/Monitor Variable so that 
-1) System calls are made by clients(multiple instance of nachos) and are sent to server. As a result, server performs system call for client
-2) After system calls are made and sent to server, each client can share the Lock/CV/Monitor variable.
-
-
-
+        + Part 1) Implement airport simulation code so it can be simulated in multiple instance(clients) of nachos so all instance of nachos(clients) can share Lock/CV/MV through server(s) in the way that clients does not know about server side since server(s) connect every entities of clients.
++ Part 2)  - Implement/Modify server side code so that up to five server can be run so servers can get and process messages from clients. Additionally, it should work with new Airport Simulation
+        - Implement a time ordering of event so that when all servers get the requests from clients, the requests can be processed in timestamp order.
 
 
 II. Assumptions:
-        + Part 1) - Preload pages from the executable
-+ Part 2) - There are only 32 pages of main memory
-        - Do not preload pages from the executable
-+ Part 3)        - Multiple instance of nachos(multiple clients) can be run simultaneously with the server. 
-- Multiple instance of nachos(multiple clients) can share Locks/CVs with other clients so one client can have an effect on other clients. 
--  Multiple instance of nachos(multiple clients) can share data with each other by sharing Monitor Variables that are placed in server.
-- There is only one mailbox for each instance of Nachos.  
+        + Part 1) No matter how many servers are running, clients’ requests have to be processed through servers without any problems.
++ Part 2) 
+        - Up to five servers and clients can be run and servers process requests from clients in timestamp order.
+        - Clients’ requests are send to the servers randomly each time.
+        - Each instance of nachos(clients) can have up to 50 mailboxes and every entity gets own mailbox.( ex) each passenger and liaison gets own separate mailbox.
+        - Even though each server is a separate instance of nachos, all servers have the same data(like ServerLockVector) so they can process requests that are sent by clients’ randomly to servers.
+        - No matter what server gets the request from clients, it sends the request to other running servers.
+        - timestamp is made when clients send their request to server and servers process the request in timestamp order.
 
 III. Design:
-        + Part 1) and Part 2)
-        + Data Structures
-                + Translation Lookaside Buffer (TLB)
-                        The TLB is a software simulation of hardware that stores page entries of the most recently used pages in physical memory.
-        + Inverted Page Table (IPT)
-                The IPT maps each page in physical memory to the appropriate virtual memory page and process.
-        + Handling Page Fault Exceptions
-                When the operating system attempts to execute an instruction living at a certain address, if the TLB does not contain an entry in physical memory of the virtual page containing that instruction, a Page Fault Exception is generated. The Exception Handler then looks in the IPT for the proper page and loads it into the TLB. Interrupts are disabled when the TLB is modified to prevent context switching from corrupting the TLB data.
-        + Handling IPT Misses
-                If the Exception Handler does not find the proper page in the IPT, then the virtual page has not been loaded into physical memory yet. The Exception Handler then allocates a physical page (that was either free to begin with or free after an eviction) and loads the proper virtual page into the physical page, then finally loads it into the TLB from the IPT (which now has the desired virtual page).
-        + Handling Evictions
-                If the IPT is full at the time the Exception Handler wants to load a virtual page into the IPT, the Exception Handler will evict a page currently in physical memory before proceeding to load the virtual page into physical memory and then into the TLB. We support two eviction algorithms:
-                + First in First Out (FIFO)
-                        The first page to be loaded into physical memory will be the first page to be evicted.
-                + Random (RAND)
-                        A random page will be selected to be evicted.
-+ Part 3)
-* New syscalls 
-   * Locks
-      * Client Side Syscall implementation 
-         * Each syscall from the client side is implemented in a very similar way.
-            * Send a message to the Server with the following info:
-               * ID for which function the server should run
-               * the parameters for that function
-      * ServerLock
-         * ServerLock is a class defined and used in main.cc.
-         * It isn’t actually a lock, it just stores information about the lock, such as name and who owns it.
-      * Server Side Implementation of syscalls
-         * CreateLock
-            * If a lock with the same name exists, return the index of that lock.
-            * Otherwise, create a new lock, and return the index of that lock
-         * DestroyLock
-            * Keep count of how many owners there are, once all owners call destroyLock, then the server is free to destroy this lock
-         * Acquire
-            * If the lock is available, then the lock owner can be set to the requesting client.
-            * If the lock is not available, put the requesting client on a wait queue
-         * Release
-            * The client who called this release will release the lock, assuming they are the owner
-            * If there is anyone of the waitQ, then give this lock to the next client in the waitQ
-            * If the lock is ready to be deleted, then destroy the lock here.
-   * Condition Variables
-      * CreateCV
-         * Much like CreateLock, see description there. 
-      * DestroyCV
-         * Much like DestroyCV, see description there.
-      * Wait
-         * Assuming the error checks are valid, release the lock
-         * Then to simulate the equivalent of currentThread->Sleep(), we simply leave the client in postOffice->Receive() by not sending them a message. 
-      * Signal        
-         * Wake up the waiting client by putting them on the end of the lock’s waiting queue.
-      * Broadcast
-         * The server needs to call Signal for each client in the waiting queue.
-            * Although, we don’t want ALL of the functionality of signal. In particular, we do not want to send a message back to the caller of signal.
-            * Solution: We put the core functionalit of signal inside of a function. We called it signalfunctionality(). Broadcast calls this for every client in the waitQ. Also, Signal calls this function, then sends a message to the client who called this server function. 
-   * Monitor Variables
-      * class MonitorVariable
-         * All monitor variables are arrays of integers
-      * CreateMV
-         * Much like CreateLock, see description there. 
-      * DestroyMV
-         * Much like DestroyLock, see description there. 
-      * GetMV
-         * Parameters are the index of the MV and the index of the integer within that MV
-      * SetMV
-         * Parameters are the index of the MV, the index of the integer within that MV, and the value which the integer will be set to. 
+        + Part 1)
+                + Airport initialization
+                        - All airport initialization code is moved to a new file create.h. Each client calls the initialization code using functions in create.h.
+                        - Store global variables and arrays as monitor variables
+                + Airport threads
+                        - Create a new file for each type of thread: passenger, liaison, checkin staff, manager, screening officer, security inspectors, cargo handlers.
+                        - Convert all threads to use monitor variables initialized in create.h
+                        - The Airport Simulation is separated into 5 clients:
+                                client1: all passengers
+                                client2: all liaisons and all checkin staff
+                                client3: manager
+                                client4: all screening officers and all security inspectors
+                                client5: all cargohandlers
 
 
+        + Part 2)
+                + Server
++ ServerFromClient()
+                                - In this function, Servers get the messages from clients. Since only one of servers gets messages, the server that gets message from client forward the messages to other servers that don’t get the messages. In this way, even though other servers don’t get messages directly from client, they can update and share the same data with other servers, and other servers confirms when server send message that is the oldest back to client 
+                        + ServerFromServer()
+                                - In this function, communication between servers is made. As soon as server forward client messages to other servers, other servers get the messages and determine the oldest message so that one of servers process the messages from client and send message back to client so clients process what they want to do. 
+                        + Server syscall function(like CreateLock, DestroyLock..)
+                                - It should work the same way that only one server is running except only one server send the message. Otherwise, clients get the multiple same message so they can process what they want to do properly.
+                                - In Wait/Signal function, previously, we only put machine ID, but in project 4, we need to put machine ID and mailbox number since one instance of nachos(client) can have up to fifty mailboxes.
+                        + struct SendDestination
+                                - This struct contains MailboxAddress and NetworkAddress and it is used in wait/signal functionality since when server send the message that waits in waitQ for signal, we need to know not only machine ID of client, but also mailbox number because unlike project 3, one client have up to fifty mailboxes.
+                        
+
+
+                + Client
+                        + int64_t GetTimeStamp()
+                                - When clients send to message to servers, they need to send the time that they send the messages to servers so that servers process the requests(messages) in timestamp order. The timestamp is the first one in the message in every syscall functions(like createLock, createCV) so when the server gets the message, they can translate.
 
 
 IV. Implementation:
-+ Part 1) and Part 2)
-        + Files Modified:
-        userprog/execption.cc
-        userprog/addrspace.cc
-        userprog/addrspace.h
-        thread/system.cc
-        thread/system.h
-        
-        + Files added:
-        test/matmult2exec.c
-        test/matmult2fork.c
-        test/sort2exec.c
-        test/sort2for.c
-        vm/swapfile
-
-
-        + Data structure added:
-        class IPTentry {
-                int virtualPage;
-                int physicalPage;
-                bool valid;
-                bool readOnly;
-                bool use;
-                bool dirty;
-                AddrSpace * space;
-        };
-        enum evict_alg {
-                FIFO, RAND
-        };
-
-
-        + Data structures modified: 
-        class AddrSpace {
-                friend void PFEhandle(unsigned int badvaddr);
-friend int IPTMissHandle(int vpn);
-friend int MemFullHandle(int vpn);
-}
-        
-        + Functions modified:
-        void ExceptionHandler(ExceptionType which)    -- in file exception.cc
-        AddrSpace::AddrSpace(OpenFile *executable)  -- in file addrspace.cc
-        Initialize(int argc, char **argv)                                  -- in file system.cc
-
-
-        + Functions added:
-        void DumpTLB()                                               -- in file exception.cc
-void DumpIPT()                                                 -- in file exception.cc
-int MemFullHandle(int vpn)                            -- in file exception.cc
-int IPTMissHandle(int vpn)                              -- in file exception.cc
-void PFEhandle(unsigned int badvaddr)      -- in file exception.cc
-
-
-
-
-+ Part 3)
++ Part 1)
         + Files Modified
-            -  ../code/threads/main.cc
-            - ../code/userprog/exception.cc
-            - ../code/test/start.s
-            - ../code/userprog/syscall.h
-        
-+ Files added - N/A
+                ../code/test/Makefile
 
+                + Files added
+                ../code/test/client1.c
+                ../code/test/client2.c
+                ../code/test/client3.c
+                ../code/test/client4.c
+                ../code/test/client5.c
+                        ../code/test/cargohandler.c
+                        ../code/test/checkinstaff.c
+                        ../code/test/liaison.c
+                        ../code/test/manager.c
+                        ../code/test/passenger.c
+                        ../code/test/screeningofficer.c
+                        ../code/test/securityinspector.c
+                        ../code/test/create.h
+                
 
 
                 + Data Structures added, and the file they were added to.
-        class ServerLock {                    -- ../code/threads/main.cc
-    
-public:
-    ServerLock(int s, int o, std::string n) {
-        state = s;
-        owner = o;
-        name = n;
-        clientCounter = 1;
-    }
-public:
-    int state;
-    int owner;
-    std::string name;
-    List * waitQ;
-    int clientCounter;
-};
+                in file test/create.h:
+                        int passengers;
+                        int airlines;
+                        int cargoHandlers;
+                        int manager;
+                        int securityInspectors;
+                        int screeningOfficers;
+                        int liaisons;
+                        int baggages;
+                        int officersLine;
+                        int conveyorBelt;
 
+                + Data Structures modified, and the file they were added to.
+                N/A
 
-       class ServerCV {                         -- ../code/threads/main.cc
-    
-public:
-    ServerCV(int o, std::string n) {
-        owner = o;
-        name = n;
-        toBeDeleted = false;
-        waitQ = new List();
-        waitingLock = NULL;
-        clientCounter = 1;
-    }
-public:
-    int owner;
-    std::string name;
-    List * waitQ;
-    bool toBeDeleted;
-    ServerLock * waitingLock;
-    int CVCounter;
-    int clientCounter;
-};
-
-
-        class MonitorVariable {              -- ../code/threads/main.cc
-public:
-    MonitorVariable(const int &vectSize, const std::string &n) 
-    :   vector(vectSize, 0),
-        name(n) 
-    {}
-    int size() {
-        return vector.size();
-    }
-    int& at(const int &index) {
-        return vector.at(index);
-    }
-public: 
-    std::string name;
-    std::vector<int> vector;
-};
-
-                + Data Structures modified, and the file they were added to -N/A
                 + Functions added and in which file.
-                        ----------->>> -- ../code/threads/main.cc
-                - void initializeNetworkMessageHeaders(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr,         MailHeader &outMailHdr, int dataLength)
-                - void sendMessage(const PacketHeader &inPktHdr, PacketHeader &outPktHdr,         const MailHeader &inMailHdr, MailHeader &outMailHdr, const std::string msg)
-                - void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name)
-                - void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index)
-                - void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name)
-                - void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index)
-                - void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index)
-                - void ReleaseFromWaitQ(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr, MailHeader &outMailHdr, const int &lockIndex)
-                - void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index)
-                - void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex)
-                - std::string SignalFunctionality( const PacketHeader &inPktHdr,  const MailHeader &inMailHdr, const int &LockIndex,  const int &CVIndex)
-                - void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex)
-                - void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex)
-                - void CreateMV( const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &size, Const std::string &name)
-                - void GetMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv, const int index)
-                - void SetMV( const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv, const int index, const int value) 
-                - void DestroyMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv) 
-                - void Server()
-                ----------->>> -- ../code/threads/main.cc
------------>>> ../code/userprog/exception.cc
-                        - int CreateMV_Syscall(int vaddr, int nameLength, int size)
-                        - int GetMV_Syscall(int mv, int index)
-                        - int SetMV_Syscall(int mv, int index, int value)
-                - int DestroyMV_Syscall(int mv)
-        ----------->>> ../code/userprog/exception.cc
+                in file test/create.h:
+                        void doCreates()
+                        void doInitialize()
+                        void createGlobalData()
+                        void createAirlines()
+                        void createCargoHandlers()
+                        void createManager()
+                        void createSecurityInspectors()
+                        void createScreeningOfficers()
+                        void createBaggages()
+                        void createPassengers()
+                        void initAirlines()
+                        void initCIS(int airline()
+                        void initCargoHandlers()
+                        void initManager()
+                        void initSecurityInspectors()
+                        void initScreeningOfficers()
+                        void initLiaisons()
+                        void initBaggages()
+                        void initPassengers()
+                        void incrementMV(int mv, int index)
+                        void decrementMV(int mv, int index)
+
+                + Functions modified and in which file.
+in file test/cargohandler.c:
+void startCargoHandler()
+in file test/checkinstaff.c:
+void startCheckInStaff()
+in file test/liaison.c:
+void startLiaison()
+in file test/manager.c:
+void startManager()
+in file test/passenger.c:
+void startPassenger()
+in file test/screeningofficer.c:
+void startScreeningOfficer()
+in file test/securityInspector.c:
+void startSecurityInspector()
+
++ Part 2)
+
+                + Files Modified
+                ../code/userprog/exception.cc
+                ../code/threads/main.cc
+                ../code/threads/thread.h
+                ../code/threads/threads.cc
+                ../code/threads/system.h
+                ../code/threads/system.cc
+                ../code/network/post.cc
+                ../code/network/post.h
+
+                + Files added
+                N/A
+
+                + Data Structures added, and the file they were added to.
+                        in the file ../code/threads/main.cc
+                struct SendDestination {
+    MailBoxAddress mailbox;
+                        NetworkAddress machineID;
+};
 
 
------------>>> ../code/test/start.s
-        - CreateMV:
-        - GetMV:
-        - SetMV:
-        - DestroyMV:
------------>>> ../code/test/start.s
+
+                + Data Structures modified, and the file they were added to.
+                        in the file ../code/threads/main.cc
+                            MonitorVariable(const int size, const std::string &name)
+    :_size(size), _name(name) {
+        _data = new int[size];
+        for (int i=0; i < size; i++) {
+            _data[i] = 0;
+        }
+    }
+in the file ../code/thread.cc
+in the file ../code/thread.h
+        class Thread {
+                Thread(char* debugName) {
+                #ifdef NETWORK
+                    MailBoxInitNumLock->Acquire();
+                    mailboxNum = MailBoxInitNum;
+                    MailBoxInitNum++;
+                    MailBoxInitNumLock->Release();
+#endif
+                }
+#ifdef NETWORK
+void Thread::ChooseRandServer()
+{
+    if (NumServers == 1) {
+        randserv = 0;
+    }
+    else {
+        randserv = rand() % NumServers;
+    }
+}
+#endif
+                                }
+                        in the file ../code/network/post.h
+                        in the file ../code/network/post.cc
+                                class post {
+                                        NetworkAddress getMachineID() { return netAddr; }
+                                }
+
+
+
+                + Functions added and in which file.
+                in the file ../code/userprog/exception.cc
+                        int64_t GetTimeStamp();;
+                        
+                        in the file ../code/threads/main.cc
+                                void ServerFromServer();
+                                void ServerFromClient();
+                        
+                + Functions modified and in which file.
+                in the file ../code/userprog/exception.cc
+                        added these two line in syscall functions
+
+
+    ss << GetTimeStamp();
+    ss << " ";
+                
+                        int CreateLock_Syscall(int vaddr, int size);
+                        int DestroyLock_Syscall(int index);
+                        int Acquire_Syscall(int index);
+                        int Release_Syscall(int index);
+                        int CreateCV_Syscall(int vaddr, int size);
+                        int DestroyCV_Syscall(int index);
+                        int Wait_Syscall(int lockIndex, int CVIndex);
+                        int Signal_Syscall(int lockIndex, int CVIndex);
+                        int Broadcast_Syscall(int lockIndex, int CVIndex);
+                        int CreateMV_Syscall(int vaddr, int nameLength, int size);
+                        int GetMV_Syscall(int mv, int index);
+                        int SetMV_Syscall(int mv, int index, int value)
+                        int DestroyMV_Syscall(int mv);
+                
+in the file ../code/threads/main.cc
+        int main();
+        void CreateLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name);
+void DestroyLock(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index);
+void CreateCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const std::string &name);
+void DestroyCV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index);
+void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index);
+void ReleaseFromWaitQ(const PacketHeader &inPktHdr, PacketHeader &outPktHdr, const MailHeader &inMailHdr, MailHeader &outMailHdr, const int &lockIndex);
+void Release(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &index);
+void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex);
+std::string SignalFunctionality(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex);
+void Signal(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex);
+void BroadCast(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &LockIndex, const int &CVIndex);
+void CreateMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &size,const std::string &name);
+void GetMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv, const int index);
+void SetMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv, const int index, const int value);
+void DestroyMV(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int mv);
 
 
 
 
-
-
-
-        + Functions modified and in which file.
-      ----------->>> ../code/userprog/exception.cc
-        - int CreateLock_Syscall(int vaddr, int size)
-        - int DestroyLock_Syscall(int index)
-        - int Acquire_Syscall(int index)
-        - int Release_Syscall(int index)
-        - int CreateCV_Syscall(int vaddr, int size)
-        - int DestroyCV_Syscall(int index) 
-        - int Wait_Syscall(int lockIndex, int CVIndex)
-        - int Signal_Syscall(int lockIndex, int CVIndex)
-        - int Broadcast_Syscall(int lockIndex, int CVIndex)
-        - void ExceptionHandler(ExceptionType which)
-     ----------->>> ../code/userprog/exception.cc
+        
 
 
 V. Testing:  (For each test case, you must show)
-        + How to test
-                + Part 1) and Part 2)
-                        From the code/vm directory, run:
-                                nachos -x ../test/matmult2fork -P RAND -rs ___
-                                nachos -x ../test/matmult2fork -P FIFO -rs ___
-                                nachos -x ../test/matmult2exec -P RAND -rs ___
-                                nachos -x ../test/matmult2exec -P FIFO -rs ___
-                                nachos -x ../test/sort2fork -P RAND -rs ___
-                                nachos -x ../test/sort2fork -P FIFO -rs ___
-                                nachos -x ../test/sort2exec -P RAND -rs ___
-                                nachos -x ../test/sort2exec -P FIFO -rs ___
-                        For “___” after -rs, insert your own random numbers to test the robustness of nachos against context switching.
-                        If no “-P RAND|FIFO” argument is specified, the default IPT eviction algorithm will be FIFO.
-        + Part 3)
-                
+        + Part 1)
+        - Simulate Airport simulation with Project 3 server implementation and check print statement 
+
+
+
+
++ How to run
+- server : nachos -m 0 -numservers 1 -d o -s
+- client :   nachos -d o -numservers 1 -m 5 -x ../test/client1
+        nachos -d o -numservers 1 -m 6 -x ../test/client2
+        nachos -d o -numservers 1 -m 7 -x ../test/client3
+        nachos -d o -numservers 1 -m 8 -x ../test/client4
+        nachos -d o -numservers 1 -m 9 -x ../test/client5
+- Note: We could only get this to work with one server. 
+
         + Test Output
-                + Part 1) and Part 2)
-                        For the matmult tests, the expected output will be:
-                                evict_type = “RAND|FIFO”
-                                Exit Value = 0
-                                Exit Value = 7220
-                                Exit Value = 7220
-                        For the sort tests, the expected output will be:
-                                evict_type = “RAND|FIFO”
-                                Exit Value = 0
-                                Exit Value = 1023
-                                Exit Value = 1023
-                        Note: when running without the “-P RAND|FIFO” argument, it will not print the evict_type.
-                        Note: the “Exit Value = 0” is from the main function that called the Exec or Fork Syscalls.
-        + Part 3)
-* There are several tests written in main() in the file: .../code/test/clientsim.c
-* 2 types of tests
-   * Automatically determined tests
-      * These are the default tests that will run
-      * There will be a print statement at the end of each test that determines whether a test passes or not
-      * There will also be a print statement at the very end that will let you know whether all tests pass or not.
-      * How to run
-         * start one instance of Nachos as a server
-            * nachos -m 0 -s
-   * Manually determined tests
-      * There are several commented out function calls in the top of main
-      * For these, we recommend uncommenting one test at a time because you will have to determine whether or not a test passed by looking at the print statements
+        - At the end of the airport simulation, the manager will output statistics, just as he/she did in project 2. 
+        - Note: All of the agents “go home” correctly, except for liaison and security personnel. 
+		- You will notice errors in server’s Signal() because of this. These can be ignored. 
+
+
+        + Part 2)
+                1) First Test
+                + Run multiple Servers(Multiple instance of nachos for Servers) with multiple clients(multiple instance of nachos for clients) with the clientsim.c that was used for Project 3 tests.
+                + How to run
+                        - NOTE: We must run client1 first, and you must make sure that all initializations are complete. Also, make sure client1 is not run with -rs, so that the initialization process is not interrupted. 
+                        - Server -> nachos -m 0 -numservers 5 -s -d o
+                        - Client -> nachos -d o -numservers 5 -m 5 -x ../test/clientsim
+                                (After -m, that is the machine ID for Servers it starts from 0 to 4 and for clients, it starts from 5 to 9
+                                After -numservers, the number is the number of servers that will run)
+                        - Execute five servers and five clients with different machine ID in separate Terminal
+                        - Since test c file is purposely designed to be executed without -rs value, client execution shouldn’t be run with -rs, but Servers can be run with -rs value.
+                + Test Output
+                        - If the clientsim is run and produce the same result without any deadlock even though there are multiple servers and clients running, the test passed!
+        2) Second Test
+                + Run multiple Servers(Multiple instance of nachos for Servers) with two Clients(two instance of nachos for Clients). The two clients have different code each other to see if there are interactions between two clients(ex) sharing data ,etc)
+         + How to run
+                        - Server -> nachos -m 0 -numservers 5 -s -d o
+                        - Client1 -> nachos -d o -numservers 5 -m 5 -x ../test/4test1
+- Client2 -> nachos -d o -numservers 5 -m 6 -x ../test/4test2
+                                (After -m, that is the machine ID for Servers it starts from 0 to 4.
+                                After -numservers, the number is the number of servers that will run)
+                        - Execute five servers and two clients with different machine ID in separate Terminal
+                        - Execute Client1 first, then Execute Client2
+- Since test c file is purposely designed to be executed with -rs value, client execution shouldn’t be run with -rs, but Servers can be run with -rs value.
+                + Test Output
+                        - In Client1, it waits until Client2 signals Client1. So if Client1 wakes up when Client2 is run, then the test passed. The two Clients have the same Lock and CV.
+                        - After Client2 signal Client1, Client2 creates MV and set the value MV, and when Client1 wakes up, then Client1 checks the MVs that is just set by Client2. If Client1 correctly get the value that Client2 sets, then the test passed. The values in the MVs are 100 and 777.
+                
+
+
 
 
 VI. Discussion:
-        + Experiment expectation.  (What you hope will happen.)
-        We were hoping to learn more about virtual memory and basic networking through this assignment. We also hoped that we would spend less time debugging.
+        + Experiment expectation.
+        - We hope that even with the five servers and five clients, they communicate each other so that in client perspective, user programs run perfectly the way that they run in one server.
+
         + Experiment result.  (What actually happens.)
-        We spent less time on this project than in project 1 and project 2.
+        - We could not get multiple servers to correctly process user requests. At the last moment, we found out there is a deadlock situation near line 1228. 
+        - We were able to process client requests with one server, and we successfully implemented an airport simulation that runs close to perfect. 
+        - We were unable to get further questioning to work with this implementation, even though we had it working in previous projects. 
+
         + Explanation
-                We developed a good understanding of the overall design before typing up any code. We made sure to ask a lot of questions to clarify any potential confusions on the assignment and on the nachos code.
+        - We think that the reason why we are unable to process client requests is because our implementation of total ordering may be incorrect. The requests are not getting all “OKs” from all servers. 
 
 VIII. Miscellaneous:
-The code that is the hardest to debug is the code that you know cannot possibly be wrong.
-My software never has bugs. It just develops random features.
-        Bugs come in through open Windows.
-I’m not anti-social; I’m just not user friendly.
+        - Testing files are designed to be executed without -rs value. Therefore, server can be run with -rs value but client instance can’t be executed with -rs value.
