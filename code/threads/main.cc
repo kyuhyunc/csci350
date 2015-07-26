@@ -570,7 +570,7 @@ void Acquire(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const in
     std::stringstream ss;
     //check if the lock is null or in the vector. Issue error message if client can't properly acquire the lock
     if(index < 0 || static_cast<unsigned int>(index) >= ServerLockVector.size()) {
-        printf("Invalid index is passed in. Can't Acquire Lock.(Acquire)\n.");
+        printf("Invalid lock index: %d in Acquire, must be between 0 and %d, can't acquire lock\n", index, MonitorVars.size());
         ss << -1;
 
     }else if(ServerLockVector[index] == NULL) {
@@ -696,18 +696,20 @@ void Wait(const PacketHeader &inPktHdr, const MailHeader &inMailHdr, const int &
     std::stringstream ss;
     //check if the lock/CV is null or in the vector. Issue error message if client can't properly wait
     if(LockIndex < 0 || static_cast<unsigned int>(LockIndex) >= ServerLockVector.size()) {
-        printf("Invalid Lock index is passed in. Can't process wait.(Wait)\n.");
+        printf("Invalid Lock index is passed in. Can't process wait.(Wait)\n");
+        printf("Came from machine %d mailbox %d\n", inPktHdr.from, inMailHdr.from);
         ss << -1;
 
     }else if(CVIndex < 0 || static_cast<unsigned int>(CVIndex) >= ServerCVVector.size()) {
-        printf("Invalid CV index is passed in. Can't process wait.(Wait)\n.");
+        printf("Invalid CV index is passed in. Can't process wait.(Wait)\n");
+        printf("Came from machine %d mailbox %d\n", inPktHdr.from, inMailHdr.from);
         ss << -1;
 
     }else if(ServerLockVector[LockIndex] == NULL) {
-        printf("Lock you try to wait is already deleted. Can't process wait.(Wait)\n ");
+        printf("Lock you try to wait is already deleted. Can't process wait.(Wait)\n");
         ss << -1;  
     }else if(ServerCVVector[CVIndex] == NULL) {
-        printf("Lock you try to wait is already deleted. Can't process wait.(Wait)\n ");
+        printf("Lock you try to wait is already deleted. Can't process wait.(Wait)\n");
         ss << -1;  
     }else {
         // If this is the first time Wait is being called with this lock, then set the lock variable
@@ -759,18 +761,20 @@ std::string SignalFunctionality(
     std::stringstream ss;
     //check if the lock/CV is null or in the vector. Issue error message if client can't properly signal
     if(LockIndex < 0 || static_cast<unsigned int>(LockIndex) >= ServerLockVector.size()) {
-        printf("Invalid Lock index is passed in. Can't process Signal.(Signal)\n.");
+        printf("Invalid Lock index is passed in. Can't process Signal.(Signal)\n");
+        printf("Came from machine %d mailbox %d\n", inPktHdr.from, inMailHdr.from);
         ss << -1;
 
     }else if(CVIndex < 0 || static_cast<unsigned int>(CVIndex) >= ServerCVVector.size()) {
-        printf("Invalid CV index is passed in. Can't process Signal.(Signal)\n.");
+        printf("Invalid CV index is passed in. Can't process Signal.(Signal)\n");
+        printf("Came from machine %d mailbox %d\n", inPktHdr.from, inMailHdr.from);
         ss << -1;
 
     }else if(ServerLockVector[LockIndex] == NULL) {
-        printf("Lock you try to signal is already deleted. Can't process Signal.(Signal)\n ");
+        printf("Lock you try to signal is already deleted. Can't process Signal.(Signal)\n");
         ss << -1;  
     }else if(ServerCVVector[CVIndex] == NULL) {
-        printf("Lock you try to signal is already deleted. Can't process Signal.(Signal)\n ");
+        printf("Lock you try to signal is already deleted. Can't process Signal.(Signal)\n");
         ss << -1;  
     }else {
         //if there is nothing to signal, then send the error message to client.
@@ -935,7 +939,8 @@ void GetMV(
     std::stringstream ss;
     // Check if client passed in MV within bounds
     if (mv < 0 || static_cast<unsigned int>(mv) >= MonitorVars.size()) {
-        printf("Invalid MV: %d in GetMV, array size: %d \n", mv, MonitorVars.size());
+        printf("Invalid MV: %d in GetMV, size = %d\n", mv, MonitorVars.size());
+        printf("Came from machine %d mailbox %d\n", inPktHdr.from, inMailHdr.from);
         ss << -1;
     }
     // Check if MV exists
@@ -945,7 +950,8 @@ void GetMV(
     }
     // Check if index is within bounds
     else if (index < 0 || index >= MonitorVars.at(mv)->getSize()) {
-        printf("Invalid index: %d in GetMV\n", index);
+        printf("Invalid index: %d in GetMV for mv %d (%s), size = %d\n", index, mv, MonitorVars.at(mv)->getName().c_str(), MonitorVars.at(mv)->getSize());
+        printf("Came from machine %d mailbox %d\n", inPktHdr.from, inMailHdr.from);
         ss << -1;
     }
     // All checks passed
@@ -981,7 +987,8 @@ void SetMV(
     std::stringstream ss;
     // Check if client passed in MV within bounds
     if ( mv < 0 || static_cast<unsigned int>(mv) >= MonitorVars.size() ) {
-        printf("Invalid MV: %d in SetMV , array size: %d \n", mv, MonitorVars.size());
+        printf("Invalid MV: %d in SetMV, size = %d\n", mv, MonitorVars.size());
+        printf("Came from machine %d mailbox %d\n", inPktHdr.from, inMailHdr.from);
         ss << -1;
     }
     // Check if MV exists
@@ -991,7 +998,8 @@ void SetMV(
     }
     // Check if index is within bounds
     else if ( index < 0 || index >= MonitorVars.at(mv)->getSize() ) {
-        printf("Invalid index: %d in SetMV\n", index);
+        printf("Invalid index: %d in SetMV for mv %d (%s), size = %d\n", index, mv, MonitorVars.at(mv)->getName().c_str(), MonitorVars.at(mv)->getSize());
+        printf("Came from machine %d mailbox %d\n", inPktHdr.from, inMailHdr.from);
         ss << -1;
     }
     // All checks passed

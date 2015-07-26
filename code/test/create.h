@@ -863,10 +863,26 @@ void initLiaisons() {
 		SetMV(liason, LiaisonState, BUSY);
 
 		/* LiaisonPassCount */
-		SetMV(liason, LiaisonPassCount, 0);
+        temp = CreateMV(
+                    concatNumToString(
+                        "LiaPassCnt",
+                        sizeof("LiaPassCnt"),
+                        i
+                    ),
+                    sizeof("LiaPassCnt" + 3),
+                    NUM_AIRLINES);
+		SetMV(liason, LiaisonPassCount, temp);
 
 		/* LiaisonBagCount */
-		SetMV(liason, LiaisonBagCount, 0);
+        temp = CreateMV(
+                    concatNumToString(
+                        "LiaBagCnt",
+                        sizeof("LiaBagCnt"),
+                        i
+                    ),
+                    sizeof("LiaBagCnt" + 3),
+                    NUM_AIRLINES);
+		SetMV(liason, LiaisonBagCount, temp);
 
 		/* LiaisonCurrentPassenger */
 		SetMV(liason, LiaisonCurrentPassenger, -1);

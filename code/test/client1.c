@@ -12,11 +12,11 @@ int main(){
 	doCreates();
 	doInitialize();
 
-	/*for (i = 0; i < NUM_PASSENGERS; ++i) {
-		Exec("../test/passenger", sizeof("../test/passenger"));
-	}*/
-
-	for (i = 0; i < 1; ++i) {
+	for (i = 0; i < NUM_PASSENGERS; ++i) {
 		Exec("../test/passenger", sizeof("../test/passenger"));
 	}
+
+	/*for (i = 0; i < 1; ++i) {
+		Exec("../test/passenger", sizeof("../test/passenger"));
+	}*/
 }
