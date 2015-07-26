@@ -513,12 +513,9 @@ void initCIS(int airline, int index) {
 						sizeof("aCIS") + 3, 
 						NUM_CIS_PER_AIRLINE
 						);
-Printf1("cisArray = %d\n", sizeof("cisArray = %d\n"), cisArray);
-Printf1("airline = %d\n", sizeof("airline = %d\n"), airline);
 	SetMV(airline, AirlineCIS, cisArray);
 	for (i = 0; i < NUM_CIS_PER_AIRLINE; ++i) {
 		cis = CreateMV(concatNumToString("cis", sizeof("cis"), 100 * index + i), sizeof("cis") + 3, 11);
-Printf1("cis = %d\n", sizeof("cis = %d\n"), cis);
 		SetMV(cisArray, i, cis);
 		/* Init CIS */
 
@@ -866,10 +863,26 @@ void initLiaisons() {
 		SetMV(liason, LiaisonState, BUSY);
 
 		/* LiaisonPassCount */
-		SetMV(liason, LiaisonPassCount, 0);
+        temp = CreateMV(
+                    concatNumToString(
+                        "LiaPassCnt",
+                        sizeof("LiaPassCnt"),
+                        i
+                    ),
+                    sizeof("LiaPassCnt" + 3),
+                    NUM_AIRLINES);
+		SetMV(liason, LiaisonPassCount, temp);
 
 		/* LiaisonBagCount */
-		SetMV(liason, LiaisonBagCount, 0);
+        temp = CreateMV(
+                    concatNumToString(
+                        "LiaBagCnt",
+                        sizeof("LiaBagCnt"),
+                        i
+                    ),
+                    sizeof("LiaBagCnt" + 3),
+                    NUM_AIRLINES);
+		SetMV(liason, LiaisonBagCount, temp);
 
 		/* LiaisonCurrentPassenger */
 		SetMV(liason, LiaisonCurrentPassenger, -1);

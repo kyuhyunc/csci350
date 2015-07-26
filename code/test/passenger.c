@@ -38,6 +38,7 @@ void startPassenger() {
     _myMV = GetMV(passengers, _myIndex);
     Release(GlobalDataLock);
 
+	
 	/*
 		Check-in Staff Interaction
 	*/
