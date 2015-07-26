@@ -261,6 +261,21 @@ Printf1("_myCIS = %d\n", sizeof("_myCIS = %d\n"), _myCIS);*/
 	Release( GetMV(_myInsp, SILock) );
 	/* end Security Inspector Interaction */
 
+	/*
+		Reached the Boarding Lounge
+	*/
+	Acquire( GetMV(_myAirline, AirlineLock) );
+	incrementMV( _myAirline, AirlineNumReadyPassengers );
+	Printf1("Passenger %d of Airline %d reached the gate %d\n",
+		sizeof("Passenger %d of Airline %d reached the gate %d\n"),
+		concat3Num(_myIndex, _myAirline, _myAirline));
+	Wait( GetMV(_myAirline, AirlineLock), GetMV(_myAirline, AirlineBoardLoungeCV) ); /* Wait for boarding call by manager */
+	Printf1("Passenger %d of Airline %d boarded airline %d\n",
+		sizeof("Passenger %d of Airline %d boarded airline %d\n"),
+		concat3Num(_myIndex, _myAirline, _myAirline));
+	Release( GetMV(_myAirline, AirlineLock) );
+	/* End Boarding Lounge */
+
 
 	Exit(0);
 }

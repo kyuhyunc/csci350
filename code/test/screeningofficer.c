@@ -44,8 +44,8 @@ void startScreeningOfficer() {
 			Release(OfficersLineLock);
 			Wait(GetMV(mySOMACRO, SOLock), GetMV(mySOMACRO, SOCommCV)); /* Wait for passenger to approach */
 			/* Generate PASS/FAIL Results */
-/*			suspicionLevel = (17 * GetMV(mySOMACRO, SOCurrentPassenger)) % 10; /* PSUEDO rand() */
-            suspicionlevel = 0;
+/*			suspicionLevel = (17 * GetMV(mySOMACRO, SOCurrentPassenger)) % 10; *//* PSUEDO rand() */
+            suspicionLevel = 0;
 			SetMV(SecurityFailResults, GetMV(GetMV(mySOMACRO, SOCurrentPassenger), PassIndex), suspicionLevel > 8);
 
 			if (GetMV(SecurityFailResults, GetMV(GetMV(mySOMACRO, SOCurrentPassenger), PassIndex))) { /* FAIL */
