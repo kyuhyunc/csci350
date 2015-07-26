@@ -5,10 +5,10 @@ void startLiaison() {
 	int _myIndex; /* ID for currentThread */
 	int _myMV;
 
-	Printf0(
+/*	Printf0(
 	    		"startLiaison\n",
 	    		sizeof("startLiaison\n")
-	    		);
+	    		);*/
 
     Acquire(GlobalDataLock);
 	/*_myIndex = NumActiveLiaisons++;*/
@@ -18,7 +18,7 @@ void startLiaison() {
 
     _myMV = GetMV(liaisons, _myIndex);
 
-    Printf1(
+/*    Printf1(
     		"Liaison's ID: %d\n",
     		sizeof("Liaison's ID: %d\n"),
     		_myMV
@@ -26,7 +26,7 @@ void startLiaison() {
     Printf1(
 		"Liaison LiaisonCommCV: %d, LiaisonLock:%d\n",
 		sizeof("Liaison LiaisonCommCV: %d, LiaisonLock:%d\n"),
-		concat2Num(GetMV(_myMV, LiaisonCommCV), GetMV(_myMV, LiaisonLock)));
+		concat2Num(GetMV(_myMV, LiaisonCommCV), GetMV(_myMV, LiaisonLock)));*/
 
 	while(true) {
 		/*
@@ -57,27 +57,27 @@ void startLiaison() {
 	    		break;
 	    	}
 	    } else {
-	    	Printf1(
+/*	    	Printf1(
 				"Liaison signal. CV: %d, Lock:%d\n",
 				sizeof("Liaison signal. CV: %d, Lock:%d\n"),
-				concat2Num(GetMV(_myMV, LiaisonLineCV), LiaisonLineLock));
+				concat2Num(GetMV(_myMV, LiaisonLineCV), LiaisonLineLock));*/
 	    	
 	    	Signal(LiaisonLineLock, GetMV(_myMV, LiaisonLineCV)); /* Signal Passenger */
 	    	
 	    	Release(LiaisonLineLock); 
 
-	    	Printf1(
+/*	    	Printf1(
 				"Liaison wait. CV: %d, Lock:%d\n",
 				sizeof("Liaison wait. CV: %d, Lock:%d\n"),
-				concat2Num(GetMV(_myMV, LiaisonCommCV), GetMV(_myMV, LiaisonLock)));
+				concat2Num(GetMV(_myMV, LiaisonCommCV), GetMV(_myMV, LiaisonLock)));*/
 	    	
 	    	Wait(
 	    		GetMV(_myMV, LiaisonLock),
 	    		GetMV(_myMV, LiaisonCommCV) ); /* Wait on Passenger */
 	    }
-	    Printf0(
+/*	    Printf0(
     		"About to help\n",
-    		sizeof("About to help\n") );
+    		sizeof("About to help\n") );*/
 	    SetMV(_myMV, LiaisonState, BUSY);
 	    Printf1(
 	    	"Airport Liaison %d directed passenger %d of airline %d\n",

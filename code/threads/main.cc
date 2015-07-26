@@ -780,6 +780,7 @@ std::string SignalFunctionality(
         //if there is nothing to signal, then send the error message to client.
         if(ServerCVVector[CVIndex]->waitQ->IsEmpty()) {
             printf("There is nothing to signal. Can't process Signal.(Signal)\n");
+            printf("Came from machine %d mailbox %d\n", inPktHdr.from, inMailHdr.from);
             ss << -1;
         }
         // If this is not the first thread to call wait, AND they passed in the incorrect lock, send error

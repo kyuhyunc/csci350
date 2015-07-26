@@ -6,9 +6,9 @@ int main(){
     /*doCreates();
     doInitialize();*/
 
-	/*for (i = 0; i < NUM_LIASONS; ++i) {
+	for (i = 0; i < NUM_LIASONS; ++i) {
 		Exec("../test/liaison", sizeof("../test/liaison"));
-	}*/
+	}
 
 	/*for (i = 0; i < 1; ++i) {
 		Exec("../test/liaison", sizeof("../test/liaison"));
